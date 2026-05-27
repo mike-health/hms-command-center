@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reports — HMS Command</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><h1>HMS Command</h1><div class="sub">Hyperbaric Management</div></div>
+    <nav class="nav">
+      <div class="nav-section"><div class="nav-section-title">Overview</div><a href="/" class="nav-item" data-page="dashboard"><span class="nav-icon">◈</span><span>Dashboard</span></a></div>
+      <div class="nav-section"><div class="nav-section-title">Operations</div>
+        <a href="/modules/org-chart.html" class="nav-item" data-page="org-chart"><span class="nav-icon">⚙</span><span>Org Chart</span></a>
+        <a href="/modules/map.html" class="nav-item" data-page="map"><span class="nav-icon">◎</span><span>Clinic Map</span><span class="nav-badge blue" id="map-badge">6</span></a>
+        <a href="/modules/referrals.html" class="nav-item" data-page="referrals"><span class="nav-icon">⇄</span><span>Referrals</span><span class="nav-badge green" id="ref-badge">4</span></a>
+        <a href="/modules/tasks.html" class="nav-item" data-page="tasks"><span class="nav-icon">☰</span><span>Tasks</span><span class="nav-badge" id="task-badge">3</span></a>
+      </div>
+      <div class="nav-section"><div class="nav-section-title">Analytics</div><a href="/modules/reports.html" class="nav-item active" data-page="reports"><span class="nav-icon">▤</span><span>Reports</span></a></div>
+    </nav>
+    <div class="sidebar-footer">v1.0 · Auto-saving</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Reports</div>
+      <div class="topbar-actions">
+        <div class="status-pill"><span class="status-dot"></span><span id="status-text">Live</span></div>
+        <button class="btn btn-secondary btn-sm" onclick="exportData()">Export Data</button>
+      </div>
+    </header>
+    <div class="content">
+      <div class="summary-grid" id="summary-cards"></div>
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Financial by Clinic</div></div>
+        <div class="section-body" style="padding:0">
+          <table class="data-table" id="fin-table"><thead><tr><th>Clinic</th><th>Revenue</th><th>Expenses</th><th>Net</th><th>Margin</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Referral Pipeline</div></div>
+        <div class="section-body" id="ref-pipeline"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+async function init() {
+  const s = await loadState();
+  if (!s.success) return;
+  const d = s.data;
+
+  const sum = await fetchSummary();
+  const cards = document.getElementById('summary-cards');
+  cards.innerHTML = `
+    <div class="sum-card"><div class="sum-label">Total Revenue</div><div class="sum-value">$${(sum.totalRevenue/1000).toFixed(1)}k</div><div class="sum-sub positive">Monthly</div></div>
+    <div class="sum-card"><div class="sum-label">Total Expenses</div><div class="sum-value">$${(sum.totalExpenses/1000).toFixed(1)}k</div><div class="sum-sub negative">Monthly</div></div>
+    <div class="sum-card"><div class="sum-label">Net Income</div><div class="sum-value">$${(sum.netIncome/1000).toFixed(1)}k</div><div class="sum-sub ${sum.netIncome>=0?'positive':'negative'}">${sum.netIncome>=0?'Profit':'Loss'}</div></div>
+    <div class="sum-card"><div class="sum-label">Patient Volume</div><div class="sum-value">${sum.totalPatients}</div><div class="sum-sub">Monthly total</div></div>
+  `;
+
+  const tbody = document.querySelector('#fin-table tbody');
+  tbody.innerHTML = d.clinics.map(c => {
+    const net = (c.revenue || 0) - (c.expenses || 0);
+    const margin = c.revenue ? Math.round((net / c.revenue) * 100) : 0;
+    return `<tr>
+      <td><strong>${esc(c.name)}</strong><div style="font-size:11px;color:#94a3b8;">${esc(c.city)}</div></td>
+      <td>$${(c.revenue||0).toLocaleString()}</td>
+      <td>$${(c.expenses||0).toLocaleString()}</td>
+      <td style="color:${net>=0?'#16a34a':'#dc2626'};font-weight:600;">$${net.toLocaleString()}</td>
+      <td>${margin}%</td>
+    </tr>`;
+  }).join('');
+
+  const pipeline = document.getElementById('ref-pipeline');
+  const statusCounts = { active: 0, pending: 0, completed: 0 };
+  d.referrals.forEach(r => { if (statusCounts[r.status] !== undefined) statusCounts[r.status]++; });
+  pipeline.innerHTML = `
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      <div style="background:#dcfce7;padding:16px 24px;border-radius:10px;min-width:120px;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:#166534;">${statusCounts.active}</div>
+        <div style="font-size:11px;color:#166534;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">Active</div>
+      </div>
+      <div style="background:#fef3c7;padding:16px 24px;border-radius:10px;min-width:120px;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:#92400e;">${statusCounts.pending}</div>
+        <div style="font-size:11px;color:#92400e;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">Pending</div>
+      </div>
+      <div style="background:#f1f5f9;padding:16px 24px;border-radius:10px;min-width:120px;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:#475569;">${statusCounts.completed}</div>
+        <div style="font-size:11px;color:#475569;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">Completed</div>
+      </div>
+    </div>
+  `;
+}
+
+init();
+</script>
+</body>
+</html>

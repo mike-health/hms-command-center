@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Referrals — HMS Command</title>
+<link rel="stylesheet" href="/css/app.css">
+<style>
+.ref-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+.ref-form { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><h1>HMS Command</h1><div class="sub">Hyperbaric Management</div></div>
+    <nav class="nav">
+      <div class="nav-section"><div class="nav-section-title">Overview</div><a href="/" class="nav-item" data-page="dashboard"><span class="nav-icon">◈</span><span>Dashboard</span></a></div>
+      <div class="nav-section"><div class="nav-section-title">Operations</div>
+        <a href="/modules/org-chart.html" class="nav-item" data-page="org-chart"><span class="nav-icon">⚙</span><span>Org Chart</span></a>
+        <a href="/modules/map.html" class="nav-item" data-page="map"><span class="nav-icon">◎</span><span>Clinic Map</span><span class="nav-badge blue" id="map-badge">6</span></a>
+        <a href="/modules/referrals.html" class="nav-item active" data-page="referrals"><span class="nav-icon">⇄</span><span>Referrals</span><span class="nav-badge green" id="ref-badge">4</span></a>
+        <a href="/modules/tasks.html" class="nav-item" data-page="tasks"><span class="nav-icon">☰</span><span>Tasks</span><span class="nav-badge" id="task-badge">3</span></a>
+      </div>
+      <div class="nav-section"><div class="nav-section-title">Analytics</div><a href="/modules/reports.html" class="nav-item" data-page="reports"><span class="nav-icon">▤</span><span>Reports</span></a></div>
+    </nav>
+    <div class="sidebar-footer">v1.0 · Auto-saving</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Referral Portal</div>
+      <div class="topbar-actions">
+        <div class="status-pill"><span class="status-dot"></span><span id="status-text">Live</span></div>
+      </div>
+    </header>
+    <div class="content">
+      <div class="ref-grid">
+        <div>
+          <div class="section">
+            <div class="section-header"><div class="section-title">All Referrals</div><span class="badge badge-blue" id="ref-count">0</span></div>
+            <div class="section-body" style="padding:0"><table class="data-table" id="ref-table"><tbody></tbody></table></div>
+          </div>
+        </div>
+        <div class="ref-form">
+          <div style="font-size:14px;font-weight:600;color:#1e293b;margin-bottom:12px;">New Referral</div>
+          <div class="form-group"><label>Patient Name</label><input id="r-name" placeholder="John Doe"></div>
+          <div class="form-group"><label>Referring Source</label><input id="r-source" placeholder="Dr. Smith"></div>
+          <div class="form-group"><label>Clinic</label><select id="r-clinic"></select></div>
+          <div class="form-group"><label>Notes</label><textarea id="r-notes" placeholder="Condition, sessions needed..."></textarea></div>
+          <button class="btn btn-primary" style="width:100%;" onclick="addReferral()">Create Referral</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+let referrals = [], clinics = [];
+
+async function init() {
+  const s = await loadState();
+  if (!s.success) return;
+  referrals = s.data.referrals; clinics = s.data.clinics;
+  document.getElementById('ref-badge').textContent = referrals.filter(r => r.status === 'active' || r.status === 'pending').length;
+  renderTable();
+  const sel = document.getElementById('r-clinic');
+  sel.innerHTML = clinics.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+}
+
+function renderTable() {
+  const tbody = document.querySelector('#ref-table tbody');
+  document.getElementById('ref-count').textContent = referrals.length;
+  if (!referrals.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No referrals yet</td></tr>'; return; }
+  tbody.innerHTML = referrals.map(r => {
+    const clinic = clinics.find(c => c.id === r.clinicId);
+    return `<tr>
+      <td><strong>${esc(r.patientName)}</strong></td>
+      <td>${esc(clinic?.name || 'Unknown')}</td>
+      <td>${esc(r.source)}</td>
+      <td><span class="badge badge-${r.status==='active'?'green':r.status==='pending'?'amber':'gray'}">${r.status}</span></td>
+      <td>${r.date}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function addReferral() {
+  const name = document.getElementById('r-name').value.trim();
+  const source = document.getElementById('r-source').value.trim();
+  const clinicId = document.getElementById('r-clinic').value;
+  const notes = document.getElementById('r-notes').value.trim();
+  if (!name || !source) { alert('Name and source required'); return; }
+  referrals.push({ id: 'r'+Date.now(), patientName: name, source, clinicId, status: 'pending', date: new Date().toISOString().slice(0,10), notes });
+  document.getElementById('r-name').value = '';
+  document.getElementById('r-source').value = '';
+  document.getElementById('r-notes').value = '';
+  renderTable();
+  await saveState({ nodes: {}, clinics, referrals, tasks: [], alerts: [] });
+}
+
+init();
+</script>
+</body>
+</html>

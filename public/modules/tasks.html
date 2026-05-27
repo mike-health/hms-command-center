@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tasks — HMS Command</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><h1>HMS Command</h1><div class="sub">Hyperbaric Management</div></div>
+    <nav class="nav">
+      <div class="nav-section"><div class="nav-section-title">Overview</div><a href="/" class="nav-item" data-page="dashboard"><span class="nav-icon">◈</span><span>Dashboard</span></a></div>
+      <div class="nav-section"><div class="nav-section-title">Operations</div>
+        <a href="/modules/org-chart.html" class="nav-item" data-page="org-chart"><span class="nav-icon">⚙</span><span>Org Chart</span></a>
+        <a href="/modules/map.html" class="nav-item" data-page="map"><span class="nav-icon">◎</span><span>Clinic Map</span><span class="nav-badge blue" id="map-badge">6</span></a>
+        <a href="/modules/referrals.html" class="nav-item" data-page="referrals"><span class="nav-icon">⇄</span><span>Referrals</span><span class="nav-badge green" id="ref-badge">4</span></a>
+        <a href="/modules/tasks.html" class="nav-item active" data-page="tasks"><span class="nav-icon">☰</span><span>Tasks</span><span class="nav-badge" id="task-badge">3</span></a>
+      </div>
+      <div class="nav-section"><div class="nav-section-title">Analytics</div><a href="/modules/reports.html" class="nav-item" data-page="reports"><span class="nav-icon">▤</span><span>Reports</span></a></div>
+    </nav>
+    <div class="sidebar-footer">v1.0 · Auto-saving</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Tasks</div>
+      <div class="topbar-actions">
+        <div class="status-pill"><span class="status-dot"></span><span id="status-text">Live</span></div>
+        <button class="btn btn-primary btn-sm" onclick="addTask()">+ New Task</button>
+      </div>
+    </header>
+    <div class="content">
+      <div class="section">
+        <div class="section-header"><div class="section-title">All Tasks</div><span class="badge badge-blue" id="task-count">0</span></div>
+        <div class="section-body" style="padding:0">
+          <table class="data-table" id="task-table">
+            <thead><tr><th>Task</th><th>Assignee</th><th>Due</th><th>Priority</th><th>Status</th><th>Module</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+let tasks = [];
+
+async function init() {
+  const s = await loadState();
+  if (!s.success) return;
+  tasks = s.data.tasks;
+  document.getElementById('task-badge').textContent = tasks.filter(t => t.status !== 'completed').length;
+  render();
+}
+
+function render() {
+  const tbody = document.querySelector('#task-table tbody');
+  document.getElementById('task-count').textContent = tasks.length;
+  if (!tasks.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty">No tasks</td></tr>'; return; }
+  tbody.innerHTML = tasks.map(t => `<tr>
+    <td><strong>${esc(t.title)}</strong></td>
+    <td>${esc(t.assignee)}</td>
+    <td>${t.due}</td>
+    <td><span class="badge badge-${t.priority==='high'?'red':t.priority==='medium'?'amber':'blue'}">${t.priority}</span></td>
+    <td><span class="badge badge-${t.status==='completed'?'green':t.status==='in-progress'?'blue':'gray'}">${t.status}</span></td>
+    <td><span class="badge badge-purple">${t.module}</span></td>
+  </tr>`).join('');
+}
+
+function addTask() {
+  const title = prompt('Task title:'); if (!title) return;
+  const assignee = prompt('Assignee:'); if (!assignee) return;
+  const due = prompt('Due date (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
+  tasks.push({ id: 't'+Date.now(), title, assignee, due: due || '', status: 'not-started', priority: 'medium', module: 'general' });
+  render();
+  saveState({ nodes: {}, clinics: [], referrals: [], tasks, alerts: [] });
+}
+
+init();
+</script>
+</body>
+</html>
