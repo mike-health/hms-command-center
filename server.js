@@ -9,6 +9,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 
+// Resolve public directory
+const PUBLIC_DIR = path.join(__dirname, 'public');
+console.log('Server starting from:', __dirname);
+console.log('Public directory:', PUBLIC_DIR);
+console.log('Public exists:', fs.existsSync(PUBLIC_DIR));
+
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'command-center.json');
 
@@ -117,9 +123,36 @@ app.get('/api/summary', (req, res) => {
   });
 });
 
-/* Static files */
-app.use(express.static(path.join(__dirname, 'public')));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+/* ===== STATIC FILES ===== */
+// Explicitly serve each HTML module page (works even if static middleware fails)
+const modulePages = ['index.html', 'modules/org-chart.html', 'modules/map.html', 'modules/referrals.html', 'modules/tasks.html', 'modules/reports.html'];
+
+modulePages.forEach(page => {
+  const filePath = path.join(PUBLIC_DIR, page);
+  const route = page === 'index.html' ? '/' : '/' + page;
+  app.get(route, (req, res) => {
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).send(`File not found: ${filePath}`);
+    }
+  });
+});
+
+// Static assets (CSS, JS, images)
+app.use('/css', express.static(path.join(PUBLIC_DIR, 'css')));
+app.use('/js', express.static(path.join(PUBLIC_DIR, 'js')));
+app.use('/modules', express.static(path.join(PUBLIC_DIR, 'modules')));
+
+// Fallback for SPA routes
+app.get('*', (req, res) => {
+  const indexPath = path.join(PUBLIC_DIR, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({ success: false, error: 'Not found' });
+  }
+});
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`HMS Command Center running on http://localhost:${PORT}`);
