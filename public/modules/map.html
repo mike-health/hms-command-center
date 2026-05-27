@@ -61,62 +61,10 @@
         <div class="map-sidebar">
           <div class="map-sidebar-header">
             <h3>Clinics</h3>
-            <span class="clinic-count" id="clinic-count" style="font-size:12px;color:#94a3b8;">6</span>
+            <span class="clinic-count" id="clinic-count" style="font-size:12px;color:#94a3b8;">0</span>
           </div>
           <div class="map-list" id="clinic-list">
-            <!-- Pre-rendered clinic cards -->
-            <div class="map-card" data-id="c1" onclick="focusClinic('c1')">
-              <div class="map-card-name">Austin Hyperbaric</div>
-              <div class="map-card-city">Austin, TX</div>
-              <div class="map-card-badges">
-                <span class="badge badge-green">operational</span>
-                <span class="badge badge-purple">independent</span>
-              </div>
-            </div>
-            <div class="map-card" data-id="c2" onclick="focusClinic('c2')">
-              <div class="map-card-name">Phoenix Wellness</div>
-              <div class="map-card-city">Phoenix, AZ</div>
-              <div class="map-card-badges">
-                <span class="badge badge-green">operational</span>
-                <span class="badge badge-purple">independent</span>
-              </div>
-            </div>
-            <div class="map-card" data-id="c3" onclick="focusClinic('c3')">
-              <div class="map-card-name">Portland O2 Center</div>
-              <div class="map-card-city">Portland, OR</div>
-              <div class="map-card-badges">
-                <span class="badge badge-amber">partly</span>
-                <span class="badge badge-purple">independent</span>
-              </div>
-            </div>
-            <div class="map-card" data-id="c4" onclick="focusClinic('c4')">
-              <div class="map-card-name">Denver HBOT</div>
-              <div class="map-card-city">Denver, CO</div>
-              <div class="map-card-badges">
-                <span class="badge badge-blue">startup</span>
-                <span class="badge badge-purple">independent</span>
-              </div>
-            </div>
-            <div class="map-card" data-id="c5" onclick="focusClinic('c5')">
-              <div class="map-card-name">Miami Breathe</div>
-              <div class="map-card-city">Miami, FL</div>
-              <div class="map-card-badges">
-                <span class="badge badge-blue">startup</span>
-                <span class="badge badge-gray">partnered</span>
-              </div>
-            </div>
-            <div class="map-card" data-id="c6" onclick="focusClinic('c6')">
-              <div class="map-card-name">Seattle Under Pressure</div>
-              <div class="map-card-city">Seattle, WA</div>
-              <div class="map-card-badges">
-                <span class="badge badge-gray">prospective</span>
-                <span class="badge badge-purple">independent</span>
-              </div>
-            </div>
-            <div class="add-clinic-card" onclick="addClinic()">
-              <div style="font-size:18px;">+</div>
-              <div>Add Clinic</div>
-            </div>
+            <div class="loading" style="padding:20px;text-align:center;color:#94a3b8;">Loading clinics...</div>
           </div>
         </div>
         <div id="map-container"></div>
@@ -128,17 +76,50 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="/js/app.js"></script>
 <script>
-// Clinic data embedded for instant map rendering
-const CLINIC_DATA = [
-  { id:'c1', name:'Austin Hyperbaric', city:'Austin, TX', lat:30.2672, lng:-97.7431, status:'operational', type:'independent' },
-  { id:'c2', name:'Phoenix Wellness', city:'Phoenix, AZ', lat:33.4484, lng:-112.074, status:'operational', type:'independent' },
-  { id:'c3', name:'Portland O2 Center', city:'Portland, OR', lat:45.5152, lng:-122.6784, status:'partly', type:'independent' },
-  { id:'c4', name:'Denver HBOT', city:'Denver, CO', lat:39.7392, lng:-104.9903, status:'startup', type:'independent' },
-  { id:'c5', name:'Miami Breathe', city:'Miami, FL', lat:25.7617, lng:-80.1918, status:'startup', type:'partnered' },
-  { id:'c6', name:'Seattle Under Pressure', city:'Seattle, WA', lat:47.6062, lng:-122.3321, status:'prospective', type:'independent' }
-];
+let clinics = [], map = null, markers = [];
 
-let map = null, markers = [];
+async function init() {
+  try {
+    const s = await loadState();
+    if (!s.success) throw new Error('Failed to load');
+    clinics = s.data.clinics || [];
+    document.getElementById('map-badge').textContent = clinics.length;
+    document.getElementById('clinic-count').textContent = clinics.length;
+    renderList();
+    initMap();
+  } catch (e) {
+    console.error('Map init error:', e);
+    document.getElementById('clinic-list').innerHTML = `
+      <div style="padding:20px;text-align:center;color:#dc2626;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Failed to load clinics</div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;">${esc(e.message)}</div>
+        <button class="btn btn-primary btn-sm" onclick="init()">Retry</button>
+      </div>`;
+  }
+}
+
+function renderList() {
+  const list = document.getElementById('clinic-list');
+  if (!clinics.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:#94a3b8;">No clinics</div>';
+    return;
+  }
+  list.innerHTML = clinics.map(c => `
+    <div class="map-card" data-id="${esc(c.id)}" onclick="focusClinic('${esc(c.id)}')">
+      <div class="map-card-name">${esc(c.name)}</div>
+      <div class="map-card-city">${esc(c.city)}</div>
+      <div class="map-card-badges">
+        <span class="badge badge-${c.status==='operational'?'green':c.status==='startup'?'blue':'amber'}">${esc(c.status)}</span>
+        <span class="badge badge-${c.type==='independent'?'purple':'gray'}">${esc(c.type)}</span>
+      </div>
+    </div>
+  `).join('') + `
+    <div class="add-clinic-card" onclick="addClinic()">
+      <div style="font-size:18px;">+</div>
+      <div>Add Clinic</div>
+    </div>
+  `;
+}
 
 function initMap() {
   map = L.map('map-container').setView([39.8283, -98.5795], 4);
@@ -148,13 +129,13 @@ function initMap() {
   }).addTo(map);
 
   const colors = { operational:'#22c55e', partly:'#f59e0b', startup:'#3b82f6', prospective:'#94a3b8' };
-  const valid = CLINIC_DATA.filter(c => c.lat != null && c.lng != null);
+  const valid = clinics.filter(c => c.lat != null && c.lng != null);
 
   valid.forEach(c => {
     const marker = L.circleMarker([c.lat, c.lng], {
       radius: 10, fillColor: colors[c.status] || '#94a3b8', color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.85
     }).addTo(map);
-    marker.bindPopup(`<div class="map-popup"><h4>${esc(c.name)}</h4><p>${esc(c.city)}</p><div class="badge-row"><span class="badge badge-${c.status==='operational'?'green':c.status==='startup'?'blue':'amber'}">${c.status}</span><span class="badge badge-${c.type==='independent'?'purple':'gray'}">${c.type}</span></div></div>`);
+    marker.bindPopup(`<div class="map-popup"><h4>${esc(c.name)}</h4><p>${esc(c.city)}</p><div class="badge-row"><span class="badge badge-${c.status==='operational'?'green':c.status==='startup'?'blue':'amber'}">${esc(c.status)}</span><span class="badge badge-${c.type==='independent'?'purple':'gray'}">${esc(c.type)}</span></div></div>`);
     marker.on('click', () => highlightCard(c.id));
     markers.push({ id: c.id, marker });
   });
@@ -167,7 +148,7 @@ function initMap() {
 
 function focusClinic(id) {
   highlightCard(id);
-  const c = CLINIC_DATA.find(x => x.id === id);
+  const c = clinics.find(x => x.id === id);
   const m = markers.find(x => x.id === id);
   if (m && c && c.lat != null && c.lng != null) {
     map.setView([c.lat, c.lng], 12);
@@ -185,11 +166,10 @@ function addClinic() {
   const name = prompt('Clinic name:'); if (!name) return;
   const city = prompt('City (e.g., Austin, TX):') || '';
   const lat = parseFloat(prompt('Latitude:')); const lng = parseFloat(prompt('Longitude:'));
-  alert('Clinic "' + name + '" added locally. Save to server coming soon.');
+  alert('Clinic "' + esc(name) + '" added. (Server save coming in next update)');
 }
 
-// Init immediately
-document.addEventListener('DOMContentLoaded', initMap);
+init();
 </script>
 </body>
 </html>

@@ -74,9 +74,74 @@
     </header>
 
     <div class="content" id="content">
-      <div class="loading">
-        <div class="loading-spinner"></div>
-        <div>Loading command center...</div>
+      <!-- Pre-rendered summary cards -->
+      <div class="summary-grid">
+        <div class="sum-card">
+          <div class="sum-label">Monthly Revenue</div>
+          <div class="sum-value">$105k</div>
+          <div class="sum-sub positive">Net: $9k</div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Active Patients</div>
+          <div class="sum-value">202</div>
+          <div class="sum-sub">Across 2 operational clinics</div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Active Referrals</div>
+          <div class="sum-value">2</div>
+          <div class="sum-sub">1 pending approval</div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Open Tasks</div>
+          <div class="sum-value">3</div>
+          <div class="sum-sub">1 urgent alert</div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Clinics</div>
+          <div class="sum-value">6</div>
+          <div class="sum-sub">2 open · 1 starting · 3 prospective</div>
+        </div>
+        <div class="sum-card">
+          <div class="sum-label">Team</div>
+          <div class="sum-value">10</div>
+          <div class="sum-sub">10 active</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Alerts</div>
+          <span class="badge badge-amber">3 active</span>
+        </div>
+        <div class="section-body">
+          <div class="alert-list">
+            <div class="alert-item warning">
+              <span class="alert-icon">▲</span>
+              <span class="alert-text">Portland O2 Center operating below capacity</span>
+              <span class="alert-time">May 26</span>
+            </div>
+            <div class="alert-item info">
+              <span class="alert-icon">ℹ</span>
+              <span class="alert-text">Nashville equipment delivery scheduled June 5</span>
+              <span class="alert-time">May 25</span>
+            </div>
+            <div class="alert-item urgent">
+              <span class="alert-icon">!</span>
+              <span class="alert-text">Denver lease expires in 45 days</span>
+              <span class="alert-time">May 27</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Quick Actions</div></div>
+        <div class="section-body" style="display:flex;gap:10px;flex-wrap:wrap;">
+          <a href="/modules/referrals.html" class="btn btn-primary">+ New Referral</a>
+          <a href="/modules/map.html" class="btn btn-primary">+ Add Clinic</a>
+          <a href="/modules/tasks.html" class="btn btn-secondary">View All Tasks</a>
+          <a href="/modules/reports.html" class="btn btn-secondary">Run Report</a>
+        </div>
       </div>
     </div>
   </main>

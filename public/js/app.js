@@ -31,12 +31,7 @@ function esc(s) {
   return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Debug logging helper
-function log(msg, data) {
-  if (typeof console !== 'undefined') {
-    console.log('[HMS]', msg, data || '');
-  }
-}
+function formatDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
