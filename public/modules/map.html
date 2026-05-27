@@ -5,44 +5,56 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Clinic Map — HMS Command</title>
 <link rel="stylesheet" href="/css/app.css">
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <style>
-.map-grid { display: grid; grid-template-columns: 280px 1fr; gap: 20px; height: 100%; }
-.map-sidebar { display: flex; flex-direction: column; gap: 10px; }
+.map-wrap { display: grid; grid-template-columns: 300px 1fr; gap: 0; height: calc(100vh - 56px); }
+.map-sidebar {
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.map-sidebar-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.map-sidebar-header h3 { font-size: 14px; font-weight: 600; color: #1e293b; }
+.map-list { flex: 1; overflow-y: auto; padding: 8px; }
 .map-card {
   background: #fff;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
   cursor: pointer;
   transition: all 0.15s;
 }
-.map-card:hover { border-color: #bfdbfe; }
-.map-card.active { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+.map-card:hover { border-color: #bfdbfe; background: #f8fafc; }
+.map-card.active { border-color: #2563eb; background: #eff6ff; }
 .map-card-name { font-size: 13px; font-weight: 600; color: #1e293b; }
 .map-card-city { font-size: 11px; color: #64748b; margin-top: 2px; }
 .map-card-badges { display: flex; gap: 4px; margin-top: 6px; }
-.map-main {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 500px;
+#map-container { width: 100%; height: 100%; background: #f0f4f8; }
+.map-popup h4 { margin: 0 0 4px; font-size: 14px; color: #1e293b; }
+.map-popup p { margin: 0; font-size: 12px; color: #64748b; }
+.map-popup .badge-row { display: flex; gap: 4px; margin-top: 6px; }
+.add-clinic-card {
+  border: 2px dashed #cbd5e1; border-radius: 8px; padding: 14px;
+  text-align: center; cursor: pointer; color: #64748b;
+  font-size: 12px; font-weight: 500; transition: all 0.15s;
 }
-.map-placeholder {
-  text-align: center;
-  color: #94a3b8;
-  padding: 40px;
-}
-.map-placeholder .big-icon { font-size: 48px; margin-bottom: 12px; }
-.clinic-detail-panel {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 16px;
-  margin-top: 10px;
-}
+.add-clinic-card:hover { border-color: #93c5fd; color: #2563eb; background: #f8fafc; }
+
+/* Status colors for map pins */
+.pin-operational { filter: hue-rotate(100deg); }
+.pin-partly { filter: hue-rotate(40deg); }
+.pin-startup { filter: hue-rotate(200deg); }
+.pin-prospective { filter: grayscale(100%); }
 </style>
 </head>
 <body>
@@ -50,19 +62,16 @@
   <aside class="sidebar">
     <div class="brand"><h1>HMS Command</h1><div class="sub">Hyperbaric Management</div></div>
     <nav class="nav">
-      <div class="nav-section">
-        <div class="nav-section-title">Overview</div>
+      <div class="nav-section"><div class="nav-section-title">Overview</div>
         <a href="/" class="nav-item" data-page="dashboard"><span class="nav-icon">◈</span><span>Dashboard</span></a>
       </div>
-      <div class="nav-section">
-        <div class="nav-section-title">Operations</div>
+      <div class="nav-section"><div class="nav-section-title">Operations</div>
         <a href="/modules/org-chart.html" class="nav-item" data-page="org-chart"><span class="nav-icon">⚙</span><span>Org Chart</span></a>
         <a href="/modules/map.html" class="nav-item active" data-page="map"><span class="nav-icon">◎</span><span>Clinic Map</span><span class="nav-badge blue" id="map-badge">6</span></a>
         <a href="/modules/referrals.html" class="nav-item" data-page="referrals"><span class="nav-icon">⇄</span><span>Referrals</span><span class="nav-badge green" id="ref-badge">4</span></a>
         <a href="/modules/tasks.html" class="nav-item" data-page="tasks"><span class="nav-icon">☰</span><span>Tasks</span><span class="nav-badge" id="task-badge">3</span></a>
       </div>
-      <div class="nav-section">
-        <div class="nav-section-title">Analytics</div>
+      <div class="nav-section"><div class="nav-section-title">Analytics</div>
         <a href="/modules/reports.html" class="nav-item" data-page="reports"><span class="nav-icon">▤</span><span>Reports</span></a>
       </div>
     </nav>
@@ -78,39 +87,50 @@
       </div>
     </header>
     <div class="content" style="padding:0;">
-      <div class="map-grid" style="height:calc(100vh - 56px);padding:20px;">
-        <div class="map-sidebar" id="clinic-list"></div>
-        <div class="map-main" id="map-view">
-          <div class="map-placeholder">
-            <div class="big-icon">◎</div>
-            <div style="font-size:15px;font-weight:600;color:#475569;margin-bottom:4px;">Map Integration</div>
-            <div style="font-size:12px;color:#94a3b8;max-width:300px;">
-              Connect Google Maps or Mapbox API to show clinic locations.<br>
-              Each card on the left has lat/lng data ready.
-            </div>
+      <div class="map-wrap">
+        <div class="map-sidebar">
+          <div class="map-sidebar-header">
+            <h3>Clinics</h3>
+            <span class="clinic-count" id="clinic-count" style="font-size:12px;color:#94a3b8;">0</span>
           </div>
+          <div class="map-list" id="clinic-list"><div class="loading" style="padding:20px;text-align:center;color:#94a3b8;">Loading clinics...</div></div>
         </div>
+        <div id="map-container"></div>
       </div>
     </div>
   </main>
 </div>
 
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="/js/app.js"></script>
 <script>
-let clinics = [], selectedClinic = null;
+let clinics = [], map = null, markers = [];
 
 async function init() {
-  const s = await loadState();
-  if (!s.success) return;
-  clinics = s.data.clinics;
-  renderList();
-  document.getElementById('map-badge').textContent = clinics.length;
+  try {
+    const s = await loadState();
+    if (!s.success) throw new Error('Failed to load data');
+    clinics = s.data.clinics;
+    document.getElementById('map-badge').textContent = clinics.length;
+    document.getElementById('clinic-count').textContent = clinics.length;
+    renderList();
+    initMap();
+  } catch (e) {
+    console.error('Init error:', e);
+    document.getElementById('clinic-list').innerHTML = `
+      <div style="padding:20px;text-align:center;color:#dc2626;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">Failed to load clinics</div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;">${esc(e.message)}</div>
+        <button class="btn btn-primary btn-sm" onclick="init()">Retry</button>
+      </div>`;
+  }
 }
 
 function renderList() {
   const list = document.getElementById('clinic-list');
   list.innerHTML = clinics.map(c => `
-    <div class="map-card ${selectedClinic === c.id ? 'active' : ''}" onclick="selectClinic('${c.id}')">
+    <div class="map-card" data-id="${c.id}" onclick="focusClinic('${c.id}')">
       <div class="map-card-name">${esc(c.name)}</div>
       <div class="map-card-city">${esc(c.city)}</div>
       <div class="map-card-badges">
@@ -119,91 +139,106 @@ function renderList() {
       </div>
     </div>
   `).join('') + `
-    <div class="map-card" onclick="addClinic()" style="border-style:dashed;text-align:center;color:#94a3b8;">
+    <div class="add-clinic-card" onclick="addClinic()">
       <div style="font-size:18px;">+</div>
-      <div style="font-size:12px;">Add Clinic</div>
+      <div>Add Clinic</div>
     </div>
   `;
 }
 
-function selectClinic(id) {
-  selectedClinic = id;
-  renderList();
+function initMap() {
+  // Center on US
+  map = L.map('map-container').setView([39.8283, -98.5795], 4);
+  
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 18
+  }).addTo(map);
+
+  // Add markers for each clinic with valid coordinates
+  const validClinics = clinics.filter(c => c.lat != null && c.lng != null);
+  
+  validClinics.forEach(c => {
+    const color = c.status === 'operational' ? '#22c55e' : 
+                  c.status === 'partly' ? '#f59e0b' : 
+                  c.status === 'startup' ? '#3b82f6' : '#94a3b8';
+    
+    const marker = L.circleMarker([c.lat, c.lng], {
+      radius: 10,
+      fillColor: color,
+      color: '#fff',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.85
+    }).addTo(map);
+    
+    marker.bindPopup(`
+      <div class="map-popup">
+        <h4>${esc(c.name)}</h4>
+        <p>${esc(c.city)}</p>
+        <div class="badge-row">
+          <span class="badge badge-${c.status==='operational'?'green':c.status==='startup'?'blue':'amber'}">${c.status}</span>
+          <span class="badge badge-${c.type==='independent'?'purple':'gray'}">${c.type}</span>
+        </div>
+      </div>
+    `);
+    
+    marker.on('click', () => highlightCard(c.id));
+    markers.push({ id: c.id, marker });
+  });
+
+  // Fit bounds if we have clinics
+  if (validClinics.length > 0) {
+    const group = new L.featureGroup(markers.map(m => m.marker));
+    map.fitBounds(group.getBounds().pad(0.2));
+  }
+}
+
+function focusClinic(id) {
+  // Highlight card
+  highlightCard(id);
+  
+  // Find and pan to marker
+  const m = markers.find(x => x.id === id);
   const c = clinics.find(x => x.id === id);
-  const mapView = document.getElementById('map-view');
-  mapView.innerHTML = `
-    <div style="padding:24px;width:100%;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <div>
-          <div style="font-size:18px;font-weight:700;color:#0f172a;">${esc(c.name)}</div>
-          <div style="font-size:13px;color:#64748b;margin-top:2px;">${esc(c.city)} · Lat: ${c.lat || '—'} · Lng: ${c.lng || '—'}</div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-primary btn-sm" onclick="editClinic('${c.id}')">✎ Edit</button>
-          <button class="btn btn-secondary btn-sm" onclick="showPlaceholder()">Back to List</button>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
-        <div class="clinic-detail-panel">
-          <div style="font-size:11px;color:#94a3b8;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">Status</div>
-          <div style="font-size:14px;font-weight:600;color:#1e293b;margin-top:4px;">${esc(c.status)}</div>
-        </div>
-        <div class="clinic-detail-panel">
-          <div style="font-size:11px;color:#94a3b8;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">Type</div>
-          <div style="font-size:14px;font-weight:600;color:#1e293b;margin-top:4px;">${esc(c.type)}</div>
-        </div>
-        <div class="clinic-detail-panel">
-          <div style="font-size:11px;color:#94a3b8;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">Monthly Revenue</div>
-          <div style="font-size:14px;font-weight:600;color:#1e293b;margin-top:4px;">$${(c.revenue||0).toLocaleString()}</div>
-        </div>
-      </div>
-      <div class="clinic-detail-panel">
-        <div style="font-size:11px;color:#94a3b8;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Notes</div>
-        <div style="font-size:13px;color:#334155;line-height:1.5;">${esc(c.notes)}</div>
-      </div>
-      <div class="clinic-detail-panel">
-        <div style="font-size:11px;color:#94a3b8;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">Responsible</div>
-        <div style="font-size:13px;color:#334155;">${esc(c.assignedTo)}</div>
-      </div>
-    </div>
-  `;
+  if (m && c && c.lat != null && c.lng != null) {
+    map.setView([c.lat, c.lng], 12);
+    m.marker.openPopup();
+  }
 }
 
-function showPlaceholder() {
-  selectedClinic = null;
-  renderList();
-  document.getElementById('map-view').innerHTML = `
-    <div class="map-placeholder">
-      <div class="big-icon">◎</div>
-      <div style="font-size:15px;font-weight:600;color:#475569;margin-bottom:4px;">Map Integration</div>
-      <div style="font-size:12px;color:#94a3b8;max-width:300px;">
-        Connect Google Maps or Mapbox API to show clinic locations.<br>
-        Each card on the left has lat/lng data ready.
-      </div>
-    </div>
-  `;
+function highlightCard(id) {
+  document.querySelectorAll('.map-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.id === id);
+  });
 }
 
 function addClinic() {
   const id = 'c' + Date.now();
-  clinics.push({ id, name: 'New Clinic', city: '', lat: null, lng: null, status: 'prospective', type: 'independent', notes: '', assignedTo: 'greene', revenue: 0, expenses: 0, patientsMonth: 0 });
-  selectedClinic = id;
-  renderList(); selectClinic(id);
+  const name = prompt('Clinic name:');
+  if (!name) return;
+  const city = prompt('City (e.g., Austin, TX):') || '';
+  const lat = parseFloat(prompt('Latitude:'));
+  const lng = parseFloat(prompt('Longitude:'));
+  clinics.push({
+    id, name, city, lat: isNaN(lat) ? null : lat, lng: isNaN(lng) ? null : lng,
+    status: 'prospective', type: 'independent', notes: '', assignedTo: 'greene',
+    revenue: 0, expenses: 0, patientsMonth: 0
+  });
+  renderList();
   saveState({ nodes: {}, clinics, referrals: [], tasks: [], alerts: [] });
-}
-
-async function editClinic(id) {
-  const c = clinics.find(x => x.id === id);
-  if (!c) return;
-  const name = prompt('Clinic name:', c.name);
-  if (name === null) return;
-  c.name = name || c.name;
-  c.city = prompt('City:', c.city) || c.city;
-  const rev = prompt('Monthly revenue:', c.revenue);
-  if (rev !== null) c.revenue = parseInt(rev) || 0;
-  c.notes = prompt('Notes:', c.notes) || c.notes;
-  selectClinic(id);
-  await saveState({ nodes: {}, clinics, referrals: [], tasks: [], alerts: [] });
+  // Add marker if coordinates valid
+  const c = clinics[clinics.length - 1];
+  if (c.lat != null && c.lng != null && map) {
+    const marker = L.circleMarker([c.lat, c.lng], {
+      radius: 10, fillColor: '#94a3b8', color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.85
+    }).addTo(map);
+    marker.bindPopup(`<div class="map-popup"><h4>${esc(c.name)}</h4><p>${esc(c.city)}</p></div>`);
+    marker.on('click', () => highlightCard(c.id));
+    markers.push({ id: c.id, marker });
+    map.setView([c.lat, c.lng], 12);
+    marker.openPopup();
+  }
 }
 
 init();

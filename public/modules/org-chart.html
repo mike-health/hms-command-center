@@ -11,57 +11,18 @@
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .content { flex: 1; overflow-y: auto; padding: 24px; }
 
-/* ===== ORG CHART STYLES (from standalone) ===== */
+/* ===== ORG CHART STYLES ===== */
 .oc-wrap { max-width: 1000px; margin: 0 auto; }
-
-.oc-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
+.oc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .oc-header h1 { font-size: 22px; font-weight: 700; color: #0f172a; }
-
-.oc-status {
-  font-size: 12px;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.oc-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #22c55e;
-  animation: ocpulse 2s infinite;
-}
-@keyframes ocpulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
+.oc-status { font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 8px; }
+.oc-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; animation: ocpulse 2s infinite; }
+@keyframes ocpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 .oc-status-dot.saving { background: #f59e0b; }
 .oc-status-dot.error { background: #ef4444; animation: none; }
-
-.oc-toolbar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-.oc-btn {
-  padding: 6px 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #fff;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  color: #475569;
-  transition: all 0.15s;
-}
+.oc-toolbar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.oc-btn { padding: 6px 14px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; font-size: 12px; font-weight: 500; cursor: pointer; color: #475569; transition: all 0.15s; }
 .oc-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
-.oc-btn:active { transform: scale(0.98); }
 .oc-btn.blue { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
 .oc-btn.green { background: #f0fdf4; border-color: #bbf7d0; color: #16a34a; }
 .oc-btn.red { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
@@ -71,85 +32,38 @@
 .tree { display: flex; flex-direction: column; align-items: center; }
 
 /* Node boxes */
-.node {
-  min-width: 150px;
-  max-width: 190px;
-  padding: 14px 16px;
-  border-radius: 10px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-  border: 2px solid transparent;
-}
-.node:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-}
-.node.active {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
-}
+.node { min-width: 150px; max-width: 190px; padding: 14px 16px; border-radius: 10px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; border: 2px solid transparent; }
+.node:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+.node.active { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
 
-/* Founder nodes */
-.node-founder {
-  background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
-  border: 2px solid #93c5fd;
-}
+.node-founder { background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); border: 2px solid #93c5fd; }
 .node-founder .n-name { color: #1e40af; font-size: 15px; font-weight: 700; }
 .node-founder .n-title { color: #3b82f6; font-size: 11px; font-weight: 600; margin-top: 2px; }
 
-/* Function nodes */
-.node-function {
-  background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
-  border: 2px solid #bfdbfe;
-}
+.node-function { background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%); border: 2px solid #bfdbfe; }
 .node-function .n-name { color: #1e40af; font-size: 13px; font-weight: 600; }
 .node-function .n-title { color: #60a5fa; font-size: 10px; font-weight: 500; margin-top: 2px; }
 
-/* Manager nodes */
-.node-manager-green {
-  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-  border: 2px solid #86efac;
-}
+.node-manager-green { background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 2px solid #86efac; }
 .node-manager-green .n-name { color: #166534; font-size: 13px; font-weight: 600; }
 .node-manager-green .n-title { color: #22c55e; font-size: 10px; font-weight: 500; margin-top: 2px; }
 
-.node-manager-orange {
-  background: linear-gradient(135deg, #fffbeb 0%, #fefce8 100%);
-  border: 2px solid #fde68a;
-}
+.node-manager-orange { background: linear-gradient(135deg, #fffbeb 0%, #fefce8 100%); border: 2px solid #fde68a; }
 .node-manager-orange .n-name { color: #92400e; font-size: 13px; font-weight: 600; }
 .node-manager-orange .n-title { color: #f59e0b; font-size: 10px; font-weight: 500; margin-top: 2px; }
 
-.node-manager-purple {
-  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
-  border: 2px solid #d8b4fe;
-}
+.node-manager-purple { background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 2px solid #d8b4fe; }
 .node-manager-purple .n-name { color: #6b21a8; font-size: 13px; font-weight: 600; }
 .node-manager-purple .n-title { color: #a855f7; font-size: 10px; font-weight: 500; margin-top: 2px; }
 
-/* Team nodes */
-.node-team {
-  background: #f8fafc;
-  border: 2px dashed #cbd5e1;
-  min-width: 90px;
-  padding: 10px 12px;
-}
+.node-team { background: #f8fafc; border: 2px dashed #cbd5e1; min-width: 90px; padding: 10px 12px; }
 .node-team .n-name { color: #475569; font-size: 11px; font-weight: 600; }
 .node-team .n-title { color: #94a3b8; font-size: 9px; font-weight: 500; margin-top: 1px; }
 
-/* Assistant nodes */
-.node-assistant {
-  background: #faf5ff;
-  border: 2px dashed #d8b4fe;
-  min-width: 100px;
-  padding: 10px 12px;
-}
+.node-assistant { background: #faf5ff; border: 2px dashed #d8b4fe; min-width: 100px; padding: 10px 12px; }
 .node-assistant .n-name { color: #7c3aed; font-size: 11px; font-weight: 600; }
 .node-assistant .n-title { color: #a78bfa; font-size: 9px; font-weight: 500; margin-top: 1px; }
 
-/* Connector lines */
 .vline { width: 2px; height: 32px; background: #93c5fd; flex-shrink: 0; }
 .vline-green { background: #86efac; }
 .vline-orange { background: #fdba74; }
@@ -170,139 +84,57 @@
 .ops-note { font-size: 10px; color: #94a3b8; font-style: italic; margin-top: 6px; text-align: center; }
 
 /* Detail panel overlay */
-.oc-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.25);
-  z-index: 100;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
+.oc-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
 .oc-overlay.show { display: flex; }
-
-.oc-panel {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-  width: 100%;
-  max-width: 460px;
-  max-height: 85vh;
-  overflow-y: auto;
-  animation: ocslideUp 0.2s ease;
-}
-@keyframes ocslideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.oc-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-}
+.oc-panel { background: #fff; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); width: 100%; max-width: 460px; max-height: 85vh; overflow-y: auto; animation: ocslideUp 0.2s ease; }
+@keyframes ocslideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.oc-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
 .oc-panel-header h3 { font-size: 15px; font-weight: 600; color: #0f172a; }
-.oc-panel-close {
-  width: 28px; height: 28px; border-radius: 6px; border: none;
-  background: #f1f5f9; cursor: pointer; font-size: 16px; color: #64748b;
-  display: flex; align-items: center; justify-content: center;
-}
-
-.oc-panel-tabs {
-  display: flex; gap: 2px; padding: 0 20px;
-  border-bottom: 1px solid #e2e8f0; margin-top: 8px;
-}
-.oc-tab-btn {
-  padding: 8px 12px; border: none; background: none;
-  font-size: 12px; font-weight: 500; color: #64748b;
-  cursor: pointer; border-bottom: 2px solid transparent;
-}
+.oc-panel-close { width: 28px; height: 28px; border-radius: 6px; border: none; background: #f1f5f9; cursor: pointer; font-size: 16px; color: #64748b; display: flex; align-items: center; justify-content: center; }
+.oc-panel-tabs { display: flex; gap: 2px; padding: 0 20px; border-bottom: 1px solid #e2e8f0; margin-top: 8px; }
+.oc-tab-btn { padding: 8px 12px; border: none; background: none; font-size: 12px; font-weight: 500; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; }
 .oc-tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
-
 .oc-panel-body { padding: 16px 20px 20px; }
 
 /* Edit form */
 .oc-form-group { margin-bottom: 12px; }
-.oc-form-group label {
-  display: block; font-size: 11px; font-weight: 600; color: #475569;
-  margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px;
-}
-.oc-form-group input,
-.oc-form-group textarea,
-.oc-form-group select {
-  width: 100%; padding: 8px 10px; border: 1px solid #e2e8f0;
-  border-radius: 6px; font-size: 13px; font-family: inherit;
-  color: #1e293b; background: #fff;
-}
-.oc-form-group input:focus,
-.oc-form-group textarea:focus,
-.oc-form-group select:focus {
-  outline: none; border-color: #93c5fd;
-  box-shadow: 0 0 0 3px rgba(147,197,253,0.2);
-}
+.oc-form-group label { display: block; font-size: 11px; font-weight: 600; color: #475569; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+.oc-form-group input, .oc-form-group textarea, .oc-form-group select { width: 100%; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; font-family: inherit; color: #1e293b; background: #fff; }
+.oc-form-group input:focus, .oc-form-group textarea:focus, .oc-form-group select:focus { outline: none; border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(147,197,253,0.2); }
 .oc-form-group textarea { resize: vertical; min-height: 60px; }
-
 .oc-form-actions { display: flex; gap: 8px; margin-top: 16px; }
 .oc-btn-primary { background: #2563eb; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
 .oc-btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
 
 /* Detail view */
 .oc-detail-section { margin-bottom: 14px; }
-.oc-detail-section h4 {
-  font-size: 11px; font-weight: 600; color: #64748b;
-  text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
-}
+.oc-detail-section h4 { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 .oc-detail-section p { font-size: 13px; color: #334155; line-height: 1.5; }
 .oc-detail-clinics { display: flex; flex-wrap: wrap; gap: 4px; }
-.oc-clinic-pill {
-  font-size: 11px; padding: 3px 8px; border-radius: 4px;
-  background: #f1f5f9; color: #475569;
-}
+.oc-clinic-pill { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: #f1f5f9; color: #475569; }
 
 /* Clinic section */
 .clinic-section { margin-top: 32px; }
-.clinic-section-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 14px;
-}
+.clinic-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .clinic-section-header h2 { font-size: 16px; font-weight: 600; color: #0f172a; }
 .clinic-count { font-size: 12px; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; }
-
 .clinic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-
-.clinic-card {
-  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
-  padding: 12px 14px; cursor: pointer; transition: all 0.15s; position: relative;
-}
+.clinic-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all 0.15s; position: relative; }
 .clinic-card:hover { border-color: #bfdbfe; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
 .clinic-card.editing { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(147,197,253,0.15); cursor: default; }
-
 .cc-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
 .cc-name { font-size: 13px; font-weight: 600; color: #1e293b; }
 .cc-city { font-size: 11px; color: #64748b; margin-top: 1px; }
 .cc-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
 .cc-notes { font-size: 11px; color: #64748b; line-height: 1.4; }
 .cc-assigned { font-size: 10px; color: #94a3b8; margin-top: 6px; padding-top: 6px; border-top: 1px solid #f1f5f9; }
-
 .clinic-edit-form { padding: 4px 0; }
 .clinic-edit-form .oc-form-group { margin-bottom: 8px; }
 .clinic-edit-form .oc-form-group label { font-size: 10px; }
-.clinic-edit-form .oc-form-group input,
-.clinic-edit-form .oc-form-group select,
-.clinic-edit-form .oc-form-group textarea { font-size: 12px; padding: 6px 8px; }
-
-.add-clinic-card {
-  border: 2px dashed #cbd5e1; border-radius: 10px; padding: 20px;
-  text-align: center; cursor: pointer; color: #64748b;
-  font-size: 13px; font-weight: 500; transition: all 0.15s;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 120px;
-}
+.clinic-edit-form .oc-form-group input, .clinic-edit-form .oc-form-group select, .clinic-edit-form .oc-form-group textarea { font-size: 12px; padding: 6px 8px; }
+.add-clinic-card { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; color: #64748b; font-size: 13px; font-weight: 500; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 120px; }
 .add-clinic-card:hover { border-color: #93c5fd; color: #2563eb; background: #f8fafc; }
 .add-icon { font-size: 24px; margin-bottom: 4px; }
-
 .badge-operational { background: #dcfce7; color: #166534; }
 .badge-partly { background: #fef3c7; color: #92400e; }
 .badge-startup { background: #dbeafe; color: #1e40af; }
@@ -311,17 +143,15 @@
 .badge-partnered { background: #fce7f3; color: #9d174d; }
 
 /* Loading */
-.oc-loading {
-  text-align: center; padding: 60px 20px; color: #64748b;
-}
-.oc-loading-spinner {
-  width: 32px; height: 32px; border: 3px solid #e2e8f0;
-  border-top-color: #3b82f6; border-radius: 50%;
-  animation: ocspin 0.8s linear infinite; margin: 0 auto 12px;
-}
+.oc-loading { text-align: center; padding: 60px 20px; color: #64748b; }
+.oc-loading-spinner { width: 32px; height: 32px; border: 3px solid #e2e8f0; border-top-color: #3b82f6; border-radius: 50%; animation: ocspin 0.8s linear infinite; margin: 0 auto 12px; }
 @keyframes ocspin { to { transform: rotate(360deg); } }
 
-/* Responsive */
+/* Error display */
+.oc-error { text-align: center; padding: 40px 20px; color: #dc2626; }
+.oc-error h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.oc-error p { font-size: 12px; color: #94a3b8; margin-bottom: 16px; }
+
 @media (max-width: 768px) {
   .chart { gap: 20px; flex-direction: column; align-items: center; }
   .hub-bar, .hub-drops { width: 280px; }
@@ -335,7 +165,6 @@
 </head>
 <body>
 <div class="app">
-  <!-- Sidebar -->
   <aside class="sidebar">
     <div class="brand"><h1>HMS Command</h1><div class="sub">Hyperbaric Management</div></div>
     <nav class="nav">
@@ -355,7 +184,6 @@
     <div class="sidebar-footer">v1.0 · Auto-saving</div>
   </aside>
 
-  <!-- Main -->
   <main class="main">
     <header class="topbar">
       <div class="topbar-title">Org Chart</div>
@@ -363,130 +191,15 @@
         <div class="status-pill"><span class="status-dot"></span><span id="status-text">Live</span></div>
       </div>
     </header>
-    <div class="content">
-      <!-- Org Chart Content -->
-      <div class="oc-wrap">
-        <div id="oc-loading" class="oc-loading">
-          <div class="oc-loading-spinner"></div>
-          <div>Loading org chart...</div>
-        </div>
-        <div id="oc-content" style="display:none;">
-          <div class="oc-header">
-            <h1>HMS Org Chart</h1>
-            <div class="oc-status">
-              <span id="oc-status-dot" class="oc-status-dot"></span>
-              <span id="oc-status-text">Live</span>
-              <span id="oc-last-saved" style="font-size:11px;color:#94a3b8;margin-left:8px;"></span>
-            </div>
-          </div>
-          <div class="oc-toolbar">
-            <button class="oc-btn blue" onclick="exportJSON()">Export JSON</button>
-            <button class="oc-btn green" onclick="importJSON()">Import JSON</button>
-            <input type="file" id="import-file" style="display:none" accept=".json" onchange="handleImportFile(event)">
-            <button class="oc-btn red" onclick="resetData()">Reset to Defaults</button>
-          </div>
-
-          <!-- Org Chart -->
-          <div class="chart">
-            <div class="tree tree-left">
-              <div class="node node-founder" data-id="greene" onclick="openNode('greene')">
-                <div class="n-name">Greene</div>
-                <div class="n-title">Deals & Funding</div>
-              </div>
-              <div class="vline"></div>
-              <div class="node node-function" data-id="locfund" onclick="openNode('locfund')">
-                <div class="n-name">Location Cooperation & Funding</div>
-                <div class="n-title">Partnerships & Capital</div>
-              </div>
-            </div>
-            <div class="bracket-wrap">
-              <svg width="60" height="60" viewBox="0 0 60 60">
-                <path class="bracket-line" d="M 0 10 Q 30 10, 30 30 T 60 30" />
-                <path class="bracket-line" d="M 0 50 Q 30 50, 30 30 T 60 30" />
-                <polygon points="55,27 60,30 55,33" fill="#93c5fd" opacity="0.35" />
-              </svg>
-            </div>
-            <div class="tree tree-right">
-              <div class="node node-founder" data-id="greenhalgh" onclick="openNode('greenhalgh')">
-                <div class="n-name">Greenhalgh</div>
-                <div class="n-title">Build & Operate</div>
-              </div>
-              <div class="vline"></div>
-              <div class="hub-bar"></div>
-              <div class="hub-drops">
-                <div class="vline vline-green" style="height:28px;"></div>
-                <div class="vline vline-orange" style="height:28px;"></div>
-                <div class="vline vline-purple" style="height:28px;"></div>
-              </div>
-              <div class="mgrs">
-                <div class="mg-col">
-                  <div class="node node-manager-green" data-id="construction" onclick="openNode('construction')">
-                    <div class="n-name">Construction Mgr</div>
-                    <div class="n-title">Build & Install</div>
-                  </div>
-                  <div class="vline vline-gray" style="height:24px;"></div>
-                  <div class="sub-hub-bar"></div>
-                  <div class="sub-hub-drops">
-                    <div class="vline vline-gray" style="height:20px;"></div>
-                    <div class="vline vline-gray" style="height:20px;"></div>
-                    <div class="vline vline-gray" style="height:20px;"></div>
-                  </div>
-                  <div class="teams-row">
-                    <div class="node node-team" data-id="teamA" onclick="openNode('teamA')">
-                      <div class="n-name">Install Team A</div>
-                      <div class="n-title">Site Build</div>
-                    </div>
-                    <div class="node node-team" data-id="teamB" onclick="openNode('teamB')">
-                      <div class="n-name">Install Team B</div>
-                      <div class="n-title">Site Build</div>
-                    </div>
-                    <div class="node node-team" data-id="teamC" onclick="openNode('teamC')">
-                      <div class="n-name">Install Team C</div>
-                      <div class="n-title">Site Build</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="mg-col">
-                  <div class="node node-manager-orange" data-id="operations" onclick="openNode('operations')">
-                    <div class="n-name">Operations Mgr</div>
-                    <div class="n-title">Run & Report</div>
-                  </div>
-                  <div class="vline vline-gray" style="height:24px;opacity:0;"></div>
-                  <div class="ops-note">Replaced by dedicated hire</div>
-                </div>
-                <div class="mg-col">
-                  <div class="node node-manager-purple" data-id="marketing" onclick="openNode('marketing')">
-                    <div class="n-name">Marketing Mgr</div>
-                    <div class="n-title">Grow & Retain</div>
-                  </div>
-                  <div class="vline vline-gray" style="height:24px;"></div>
-                  <div class="node node-assistant" data-id="mktgAsst" onclick="openNode('mktgAsst')">
-                    <div class="n-name">Mktg Assistant</div>
-                    <div class="n-title">Support</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Clinics -->
-          <div class="clinic-section">
-            <div class="clinic-section-header">
-              <h2>Clinics</h2>
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span class="clinic-count" id="clinic-count">0 locations</span>
-                <button class="oc-btn blue" onclick="addClinic()" style="padding:4px 10px;font-size:11px;">+ Add</button>
-              </div>
-            </div>
-            <div class="clinic-grid" id="clinic-grid"></div>
-          </div>
-        </div>
+    <div class="content" id="content">
+      <div class="oc-loading">
+        <div class="oc-loading-spinner"></div>
+        <div>Loading org chart...</div>
       </div>
     </div>
   </main>
 </div>
 
-<!-- Detail Panel Overlay -->
 <div class="oc-overlay" id="oc-overlay" onclick="closePanel(event)">
   <div class="oc-panel" onclick="event.stopPropagation()">
     <div class="oc-panel-header">
@@ -503,8 +216,21 @@
 
 <script src="/js/app.js"></script>
 <script>
-/* ================= STATE ================= */
-let nodes = {};
+/* Default nodes so chart renders even if API fails */
+const DEFAULT_NODES = {
+  greene: { id: 'greene', name: 'Greene', title: 'Deals & Funding', role: 'Partner', description: 'Finds locations, builds partnerships, secures funding.' },
+  greenhalgh: { id: 'greenhalgh', name: 'Greenhalgh', title: 'Build & Operate', role: 'Partner', description: 'Feasibility analysis, site approval, operations oversight.' },
+  locfund: { id: 'locfund', name: 'Location Cooperation & Funding', title: 'Partnerships & Capital', role: 'Function', description: 'Negotiates leases, secures funding, manages investor relations.' },
+  construction: { id: 'construction', name: 'Construction Mgr', title: 'Build & Install', role: 'Manager', description: 'Manages all installation teams across sites.' },
+  operations: { id: 'operations', name: 'Operations Mgr', title: 'Run & Report', role: 'Manager', description: 'Oversees day-to-day clinic operations. Will be replaced by dedicated hire.' },
+  marketing: { id: 'marketing', name: 'Marketing Mgr', title: 'Grow & Retain', role: 'Manager', description: 'Assesses marketing needs per clinic, rolls out campaigns, maintains brand presence across all locations.' },
+  teamA: { id: 'teamA', name: 'Install Team A', title: 'Site Build', role: 'Team', description: 'Handles initial construction, equipment install, site commissioning.' },
+  teamB: { id: 'teamB', name: 'Install Team B', title: 'Site Build', role: 'Team', description: 'Handles initial construction, equipment install, site commissioning.' },
+  teamC: { id: 'teamC', name: 'Install Team C', title: 'Site Build', role: 'Team', description: 'Handles initial construction, equipment install, site commissioning.' },
+  mktgAsst: { id: 'mktgAsst', name: 'Mktg Assistant', title: 'Support', role: 'Assistant', description: 'Supports marketing campaigns, social media, collateral production.' }
+};
+
+let nodes = { ...DEFAULT_NODES };
 let clinics = [];
 let activeNodeId = null;
 let activeTab = 'view';
@@ -512,88 +238,176 @@ let editingClinicId = null;
 let saveTimer = null;
 let isSaving = false;
 
-const API_URL = '';
 const STATUS_LABELS = { operational: 'Operational', partly: 'Partly Operational', startup: 'Startup', prospective: 'Prospective' };
 const STATUS_CLASSES = { operational: 'badge-operational', partly: 'badge-partly', startup: 'badge-startup', prospective: 'badge-prospective' };
 const TYPE_CLASSES = { independent: 'badge-independent', partnered: 'badge-partnered' };
 
 function nodeName(id) { return nodes[id]?.name || id; }
 
-/* ================= LOAD / SAVE ================= */
-async function loadState() {
+function esc(s) {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function init() {
   try {
-    const res = await fetch(`${API_URL}/api/state`);
-    const json = await res.json();
-    if (json.success) {
-      nodes = json.data.nodes || {};
-      clinics = json.data.clinics || [];
-    } else { throw new Error('Failed to load'); }
+    showStatus('ok', 'Loading...');
+    const s = await loadState();
+    if (s.success && s.data) {
+      nodes = s.data.nodes || DEFAULT_NODES;
+      clinics = s.data.clinics || [];
+      showStatus('ok', 'Live');
+    } else {
+      console.warn('API returned no data, using defaults');
+      nodes = { ...DEFAULT_NODES };
+      clinics = [];
+      showStatus('warning', 'Using defaults');
+    }
+    renderAll();
   } catch (e) {
-    console.error('Load error:', e);
-    showStatus('error', 'Connection failed');
+    console.error('Init error:', e);
+    nodes = { ...DEFAULT_NODES };
+    clinics = [];
+    renderAll();
+    showError('Failed to load from server. Chart shown with default data. Refresh to retry.', e.message);
   }
-  render();
-  document.getElementById('oc-loading').style.display = 'none';
-  document.getElementById('oc-content').style.display = 'block';
 }
 
-async function saveToServer() {
-  if (isSaving) return;
-  isSaving = true;
-  showStatus('saving', 'Saving...');
-  try {
-    const res = await fetch(`${API_URL}/api/state`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nodes, clinics })
-    });
-    const json = await res.json();
-    if (json.success) {
-      showStatus('ok', 'Saved');
-      updateLastSaved();
-    } else { throw new Error(json.error); }
-  } catch (e) {
-    console.error('Save error:', e);
-    showStatus('error', 'Save failed');
-  } finally { isSaving = false; }
-}
-
-function scheduleSave() {
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveToServer, 800);
-}
-
-function updateLastSaved() {
-  const now = new Date();
-  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  document.getElementById('oc-last-saved').textContent = `Last saved: ${time}`;
+function showError(title, detail) {
+  const content = document.getElementById('content');
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'oc-error';
+  errorDiv.innerHTML = `
+    <h3>${esc(title)}</h3>
+    <p>${esc(detail)}</p>
+    <button class="oc-btn-primary" onclick="init()">Retry</button>
+  `;
+  content.insertBefore(errorDiv, content.firstChild);
 }
 
 function showStatus(type, text) {
-  const dot = document.getElementById('oc-status-dot');
-  const label = document.getElementById('oc-status-text');
-  dot.className = 'oc-status-dot' + (type === 'saving' ? ' saving' : type === 'error' ? ' error' : '');
-  label.textContent = text;
+  const dot = document.getElementById('status-dot');
+  const label = document.getElementById('status-text');
+  if (dot) dot.className = 'status-dot' + (type === 'saving' ? ' saving' : type === 'error' ? ' error' : type === 'warning' ? ' warning' : '');
+  if (label) label.textContent = text;
 }
 
-/* ================= RENDER ================= */
-function render() {
-  for (const [id, node] of Object.entries(nodes)) {
-    const el = document.querySelector(`.node[data-id="${id}"]`);
-    if (el) {
-      el.querySelector('.n-name').textContent = node.name;
-      el.querySelector('.n-title').textContent = node.title;
-    }
-  }
-  document.getElementById('clinic-count').textContent = `${clinics.length} location${clinics.length !== 1 ? 's' : ''}`;
-  const grid = document.getElementById('clinic-grid');
-  grid.innerHTML = clinics.map(c => renderClinicCard(c)).join('') +
-    `<div class="add-clinic-card" onclick="addClinic()"><div class="add-icon">+</div><div>Add Clinic</div></div>`;
+function renderAll() {
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div class="oc-wrap">
+      <div class="oc-header">
+        <h1>HMS Org Chart</h1>
+        <div class="oc-status">
+          <span id="oc-status-dot" class="oc-status-dot"></span>
+          <span id="oc-status-text">Live</span>
+          <span id="oc-last-saved" style="font-size:11px;color:#94a3b8;margin-left:8px;"></span>
+        </div>
+      </div>
+      <div class="oc-toolbar">
+        <button class="oc-btn blue" onclick="exportJSON()">Export JSON</button>
+        <button class="oc-btn green" onclick="importJSON()">Import JSON</button>
+        <input type="file" id="import-file" style="display:none" accept=".json" onchange="handleImportFile(event)">
+        <button class="oc-btn red" onclick="resetData()">Reset to Defaults</button>
+      </div>
+
+      <div class="chart">
+        <div class="tree tree-left">
+          <div class="node node-founder" data-id="greene" onclick="openNode('greene')">
+            <div class="n-name">${esc(nodes.greene?.name||'Greene')}</div>
+            <div class="n-title">${esc(nodes.greene?.title||'Deals & Funding')}</div>
+          </div>
+          <div class="vline"></div>
+          <div class="node node-function" data-id="locfund" onclick="openNode('locfund')">
+            <div class="n-name">${esc(nodes.locfund?.name||'Location Cooperation & Funding')}</div>
+            <div class="n-title">${esc(nodes.locfund?.title||'Partnerships & Capital')}</div>
+          </div>
+        </div>
+        <div class="bracket-wrap">
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <path class="bracket-line" d="M 0 10 Q 30 10, 30 30 T 60 30" />
+            <path class="bracket-line" d="M 0 50 Q 30 50, 30 30 T 60 30" />
+            <polygon points="55,27 60,30 55,33" fill="#93c5fd" opacity="0.35" />
+          </svg>
+        </div>
+        <div class="tree tree-right">
+          <div class="node node-founder" data-id="greenhalgh" onclick="openNode('greenhalgh')">
+            <div class="n-name">${esc(nodes.greenhalgh?.name||'Greenhalgh')}</div>
+            <div class="n-title">${esc(nodes.greenhalgh?.title||'Build & Operate')}</div>
+          </div>
+          <div class="vline"></div>
+          <div class="hub-bar"></div>
+          <div class="hub-drops">
+            <div class="vline vline-green" style="height:28px;"></div>
+            <div class="vline vline-orange" style="height:28px;"></div>
+            <div class="vline vline-purple" style="height:28px;"></div>
+          </div>
+          <div class="mgrs">
+            <div class="mg-col">
+              <div class="node node-manager-green" data-id="construction" onclick="openNode('construction')">
+                <div class="n-name">${esc(nodes.construction?.name||'Construction Mgr')}</div>
+                <div class="n-title">${esc(nodes.construction?.title||'Build & Install')}</div>
+              </div>
+              <div class="vline vline-gray" style="height:24px;"></div>
+              <div class="sub-hub-bar"></div>
+              <div class="sub-hub-drops">
+                <div class="vline vline-gray" style="height:20px;"></div>
+                <div class="vline vline-gray" style="height:20px;"></div>
+                <div class="vline vline-gray" style="height:20px;"></div>
+              </div>
+              <div class="teams-row">
+                <div class="node node-team" data-id="teamA" onclick="openNode('teamA')">
+                  <div class="n-name">${esc(nodes.teamA?.name||'Install Team A')}</div>
+                  <div class="n-title">${esc(nodes.teamA?.title||'Site Build')}</div>
+                </div>
+                <div class="node node-team" data-id="teamB" onclick="openNode('teamB')">
+                  <div class="n-name">${esc(nodes.teamB?.name||'Install Team B')}</div>
+                  <div class="n-title">${esc(nodes.teamB?.title||'Site Build')}</div>
+                </div>
+                <div class="node node-team" data-id="teamC" onclick="openNode('teamC')">
+                  <div class="n-name">${esc(nodes.teamC?.name||'Install Team C')}</div>
+                  <div class="n-title">${esc(nodes.teamC?.title||'Site Build')}</div>
+                </div>
+              </div>
+            </div>
+            <div class="mg-col">
+              <div class="node node-manager-orange" data-id="operations" onclick="openNode('operations')">
+                <div class="n-name">${esc(nodes.operations?.name||'Operations Mgr')}</div>
+                <div class="n-title">${esc(nodes.operations?.title||'Run & Report')}</div>
+              </div>
+              <div class="vline vline-gray" style="height:24px;opacity:0;"></div>
+              <div class="ops-note">Replaced by dedicated hire</div>
+            </div>
+            <div class="mg-col">
+              <div class="node node-manager-purple" data-id="marketing" onclick="openNode('marketing')">
+                <div class="n-name">${esc(nodes.marketing?.name||'Marketing Mgr')}</div>
+                <div class="n-title">${esc(nodes.marketing?.title||'Grow & Retain')}</div>
+              </div>
+              <div class="vline vline-gray" style="height:24px;"></div>
+              <div class="node node-assistant" data-id="mktgAsst" onclick="openNode('mktgAsst')">
+                <div class="n-name">${esc(nodes.mktgAsst?.name||'Mktg Assistant')}</div>
+                <div class="n-title">${esc(nodes.mktgAsst?.title||'Support')}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="clinic-section">
+        <div class="clinic-section-header">
+          <h2>Clinics</h2>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="clinic-count" id="clinic-count">${clinics.length} location${clinics.length !== 1 ? 's' : ''}</span>
+            <button class="oc-btn blue" onclick="addClinic()" style="padding:4px 10px;font-size:11px;">+ Add</button>
+          </div>
+        </div>
+        <div class="clinic-grid" id="clinic-grid">${clinics.map(c => renderClinicCard(c)).join('')}<div class="add-clinic-card" onclick="addClinic()"><div class="add-icon">+</div><div>Add Clinic</div></div></div>
+      </div>
+    </div>
+  `;
 }
 
 function renderClinicCard(c) {
-  const isEditing = editingClinicId === c.id;
-  if (isEditing) return renderClinicEditForm(c);
+  if (editingClinicId === c.id) return renderClinicEditForm(c);
   const assigned = nodeName(c.assignedTo);
   return `<div class="clinic-card" onclick="editClinic('${c.id}')">
     <div class="cc-header"><div><div class="cc-name">${esc(c.name)}</div><div class="cc-city">${esc(c.city)}</div></div></div>
@@ -633,34 +447,19 @@ function renderClinicEditForm(c) {
   </div>`;
 }
 
-function esc(s) {
-  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-/* ================= NODE DETAIL PANEL ================= */
 function openNode(id) {
   activeNodeId = id; activeTab = 'view';
   const node = nodes[id]; if (!node) return;
   document.getElementById('oc-panel-title').textContent = node.name;
-  updateTabs(); renderPanelBody();
+  updateTabs(); renderPanel();
   document.getElementById('oc-overlay').classList.add('show');
 }
 
-function closePanel(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('oc-overlay').classList.remove('show');
-  activeNodeId = null;
-}
+function closePanel(e) { if (e && e.target !== e.currentTarget) return; document.getElementById('oc-overlay').classList.remove('show'); activeNodeId = null; }
+function switchTab(tab) { activeTab = tab; updateTabs(); renderPanel(); }
+function updateTabs() { document.querySelectorAll('.oc-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === activeTab)); }
 
-function switchTab(tab) { activeTab = tab; updateTabs(); renderPanelBody(); }
-
-function updateTabs() {
-  document.querySelectorAll('.oc-tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === activeTab);
-  });
-}
-
-function renderPanelBody() {
+function renderPanel() {
   const node = nodes[activeNodeId]; if (!node) return;
   const body = document.getElementById('oc-panel-body');
   if (activeTab === 'edit') {
@@ -677,41 +476,30 @@ function renderPanelBody() {
     const assigned = clinics.filter(c => c.assignedTo === activeNodeId);
     body.innerHTML = `
       <div class="oc-detail-section"><h4>Role & Responsibilities</h4><p><strong>${esc(node.role)}</strong> — ${esc(node.description)}</p></div>
-      <div class="oc-detail-section"><h4>Clinics Assigned</h4>${assigned.length ? `<div class="oc-detail-clinics">${assigned.map(c => `<span class="oc-clinic-pill">${esc(c.name)}</span>`).join('')}</div>` : '<p>No clinics currently assigned.</p>'}</div>
-      <div class="oc-detail-section"><h4>Reporting Structure</h4><p>${getReportingInfo(activeNodeId)}</p></div>`;
+      <div class="oc-detail-section"><h4>Clinics Assigned</h4>${assigned.length ? `<div class="oc-detail-clinics">${assigned.map(c => `<span class="oc-clinic-pill">${esc(c.name)}</span>`).join('')}</div>` : '<p>No clinics assigned.</p>'}</div>
+      <div class="oc-detail-section"><h4>Reporting Structure</h4><p>${esc(getReporting(activeNodeId))}</p></div>`;
   }
 }
 
-function getReportingInfo(id) {
-  const h = {
-    greene: 'Founding partner. Owns the Deals & Funding domain.',
-    greenhalgh: 'Founding partner. Owns the Build & Operate domain. Manages Construction, Operations, and Marketing.',
-    locfund: 'Reports to Greene.',
-    construction: 'Reports to Greenhalgh. Manages Install Teams A, B, and C.',
-    operations: 'Reports to Greenhalgh. Will be replaced by dedicated hire.',
-    marketing: 'Reports to Greenhalgh. Oversees Marketing Assistant.',
-    teamA: 'Reports to Construction Mgr.',
-    teamB: 'Reports to Construction Mgr.',
-    teamC: 'Reports to Construction Mgr.',
-    mktgAsst: 'Reports to Marketing Mgr.'
-  };
+function getReporting(id) {
+  const h = { greene:'Founding partner. Owns Deals & Funding.', greenhalgh:'Founding partner. Manages Construction, Operations, Marketing.', locfund:'Reports to Greene.', construction:'Reports to Greenhalgh. Manages Teams A/B/C.', operations:'Reports to Greenhalgh. Will be replaced.', marketing:'Reports to Greenhalgh. Oversees Mktg Assistant.', teamA:'Reports to Construction Mgr.', teamB:'Reports to Construction Mgr.', teamC:'Reports to Construction Mgr.', mktgAsst:'Reports to Marketing Mgr.' };
   return h[id] || '';
 }
 
-function saveNodeEdit() {
+async function saveNodeEdit() {
   if (!activeNodeId) return;
   nodes[activeNodeId].name = document.getElementById('ne-name').value.trim();
   nodes[activeNodeId].title = document.getElementById('ne-title').value.trim();
   nodes[activeNodeId].role = document.getElementById('ne-role').value.trim();
   nodes[activeNodeId].description = document.getElementById('ne-desc').value.trim();
-  render(); closePanel(); scheduleSave();
+  await saveState({ nodes, clinics, referrals: [], tasks: [], alerts: [] });
+  renderAll(); closePanel();
 }
 
-/* ================= CLINIC ACTIONS ================= */
-function editClinic(id) { editingClinicId = id; render(); }
-function cancelClinicEdit() { editingClinicId = null; render(); }
+function editClinic(id) { editingClinicId = id; renderAll(); }
+function cancelClinicEdit() { editingClinicId = null; renderAll(); }
 
-function saveClinic(id) {
+async function saveClinic(id) {
   const c = clinics.find(x => x.id === id); if (!c) return;
   c.name = document.getElementById('ce-name').value.trim();
   c.city = document.getElementById('ce-city').value.trim();
@@ -719,21 +507,26 @@ function saveClinic(id) {
   c.type = document.getElementById('ce-type').value;
   c.assignedTo = document.getElementById('ce-assigned').value;
   c.notes = document.getElementById('ce-notes').value.trim();
-  editingClinicId = null; render(); scheduleSave();
+  editingClinicId = null;
+  await saveState({ nodes, clinics, referrals: [], tasks: [], alerts: [] });
+  renderAll();
 }
 
-function addClinic() {
+async function addClinic() {
   const id = 'c' + Date.now();
-  clinics.push({ id, name: 'New Clinic', city: '', status: 'prospective', type: 'independent', notes: '', assignedTo: 'greene' });
-  editingClinicId = id; render(); scheduleSave();
+  clinics.push({ id, name: 'New Clinic', city: '', status: 'prospective', type: 'independent', notes: '', assignedTo: 'greene', revenue: 0, expenses: 0, patientsMonth: 0, lat: null, lng: null });
+  editingClinicId = id;
+  await saveState({ nodes, clinics, referrals: [], tasks: [], alerts: [] });
+  renderAll();
 }
 
-function deleteClinic(id) {
+async function deleteClinic(id) {
   clinics = clinics.filter(c => c.id !== id);
-  editingClinicId = null; render(); scheduleSave();
+  editingClinicId = null;
+  await saveState({ nodes, clinics, referrals: [], tasks: [], alerts: [] });
+  renderAll();
 }
 
-/* ================= EXPORT / IMPORT / RESET ================= */
 function exportJSON() {
   const data = JSON.stringify({ nodes, clinics }, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
@@ -750,12 +543,13 @@ function importJSON() { document.getElementById('import-file').click(); }
 function handleImportFile(e) {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) => {
+  reader.onload = async (ev) => {
     try {
       const data = JSON.parse(ev.target.result);
       if (data.nodes) nodes = data.nodes;
       if (data.clinics) clinics = data.clinics;
-      render(); saveToServer();
+      await saveState({ nodes, clinics, referrals: [], tasks: [], alerts: [] });
+      renderAll();
       alert('Imported successfully');
     } catch (err) { alert('Invalid JSON file'); }
   };
@@ -766,20 +560,16 @@ function handleImportFile(e) {
 async function resetData() {
   if (!confirm('Reset all data to defaults? This cannot be undone.')) return;
   try {
-    const res = await fetch(`${API_URL}/api/reset`, { method: 'POST' });
-    const json = await res.json();
-    if (json.success) {
-      nodes = json.data.nodes; clinics = json.data.clinics;
-      render(); showStatus('ok', 'Reset to defaults');
-    }
+    await fetch('/api/reset', { method: 'POST' });
+    alert('Reset complete. Reloading...');
+    window.location.reload();
   } catch (e) { alert('Reset failed: ' + e.message); }
 }
 
-/* ================= KEYBOARD ================= */
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePanel(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
 
-/* ================= INIT ================= */
-loadState();
+// Start
+init();
 </script>
 </body>
 </html>
