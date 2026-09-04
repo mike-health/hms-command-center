@@ -564,6 +564,91 @@ body {
 
 .panel-body { padding: 16px 20px 20px; }
 
+/* ===== OPS CADENCE BOARD ===== */
+.cadence-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.cadence-tabs {
+  display: inline-flex;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+.cadence-tab {
+  padding: 7px 14px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+}
+.cadence-tab:hover { color: #334155; background: #f8fafc; }
+.cadence-tab.active {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.filter-chips-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.chip {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chip:hover { border-color: #cbd5e1; }
+.chip.selected {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+.data-table tr.clickable { cursor: pointer; }
+.data-table .issue-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+}
+.due-overdue { color: #dc2626; font-weight: 600; }
+.ops-banner {
+  font-size: 12px;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+}
+.ops-banner.error {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.owner-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .sidebar { width: 60px; }

@@ -58,6 +58,7 @@ function setActiveNav() {
   if (path.includes('org-chart')) page = 'org-chart';
   else if (path.includes('map')) page = 'map';
   else if (path.includes('referrals')) page = 'referrals';
+  else if (path.includes('ops-board')) page = 'ops-board';
   else if (path.includes('tasks')) page = 'tasks';
   else if (path.includes('reports')) page = 'reports';
 

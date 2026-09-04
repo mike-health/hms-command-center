@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ops board — HMS Command</title>
+<link rel="stylesheet" href="/css/app.css?v=4">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><h1>HMS Command</h1><div class="sub">Hyperbaric Management</div></div>
+    <nav class="nav">
+      <div class="nav-section"><div class="nav-section-title">Overview</div><a href="/" class="nav-item" data-page="dashboard"><span class="nav-icon">◈</span><span>Dashboard</span></a></div>
+      <div class="nav-section"><div class="nav-section-title">Operations</div>
+        <a href="/modules/org-chart.html" class="nav-item" data-page="org-chart"><span class="nav-icon">⚙</span><span>Org Chart</span></a>
+        <a href="/modules/map.html" class="nav-item" data-page="map"><span class="nav-icon">◎</span><span>Clinic Map</span><span class="nav-badge blue" id="map-badge">6</span></a>
+        <a href="/modules/referrals.html" class="nav-item" data-page="referrals"><span class="nav-icon">⇄</span><span>Referrals</span><span class="nav-badge green" id="ref-badge">4</span></a>
+        <a href="/modules/tasks.html" class="nav-item" data-page="tasks"><span class="nav-icon">☰</span><span>Tasks</span><span class="nav-badge" id="task-badge">3</span></a>
+        <a href="/modules/ops-board.html" class="nav-item active" data-page="ops-board"><span class="nav-icon">▦</span><span>Ops board</span></a>
+      </div>
+      <div class="nav-section"><div class="nav-section-title">Analytics</div><a href="/modules/reports.html" class="nav-item" data-page="reports"><span class="nav-icon">▤</span><span>Reports</span></a></div>
+    </nav>
+    <div class="sidebar-footer">v1.0 · Auto-saving</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Ops cadence</div>
+      <div class="topbar-actions">
+        <div class="status-pill"><span class="status-dot" id="status-dot"></span><span id="status-text">Loading</span></div>
+        <a class="btn btn-secondary btn-sm" id="linear-project-link" href="https://linear.app/healthi/project/ops-cadence-ebb195e01b21" target="_blank" rel="noopener">Open in Linear</a>
+        <button class="btn btn-primary btn-sm" type="button" onclick="loadBoard()">↻ Refresh</button>
+      </div>
+    </header>
+    <div class="content">
+      <div id="ops-banner" class="ops-banner" hidden></div>
+      <div class="cadence-toolbar">
+        <div class="cadence-tabs" role="tablist">
+          <button type="button" class="cadence-tab active" data-cadence="Daily" onclick="setCadence('Daily')">Daily</button>
+          <button type="button" class="cadence-tab" data-cadence="Weekly" onclick="setCadence('Weekly')">Weekly</button>
+          <button type="button" class="cadence-tab" data-cadence="Monthly" onclick="setCadence('Monthly')">Monthly</button>
+        </div>
+        <div class="filter-chips" id="owner-chips">
+          <span class="filter-chips-label">People</span>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title" id="list-title">Daily</div>
+          <span class="badge badge-blue" id="issue-count">0</span>
+        </div>
+        <div class="section-body" style="padding:0">
+          <table class="data-table" id="ops-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Owner</th>
+                <th>Due</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js?v=4"></script>
+<script>
+let cadence = 'Daily';
+let selectedOwners = new Set();
+let ownerLabels = [];
+let issues = [];
+
+async function loadBoard() {
+  showStatus('status-text', 'saving', 'Loading');
+  const banner = document.getElementById('ops-banner');
+  banner.hidden = true;
+  try {
+    const res = await fetch('/api/ops-cadence');
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Failed to load');
+    issues = json.issues || [];
+    ownerLabels = json.ownerLabels || [];
+    if (json.project && json.project.url) {
+      document.getElementById('linear-project-link').href = json.project.url;
+    }
+    renderOwnerChips();
+    render();
+    if (!json.configured) {
+      banner.hidden = false;
+      banner.className = 'ops-banner';
+      banner.textContent = 'Demo data — set LINEAR_API_KEY on the server to load live Linear issues from the Ops cadence project. Tag issues with Cadence (Daily/Weekly/Monthly) and Owner (Rudy/Stacey/Mike/…) labels.';
+      showStatus('status-text', 'warning', 'Demo');
+      document.getElementById('status-dot').className = 'status-dot warning';
+    } else {
+      showStatus('status-text', '', 'Linear');
+    }
+  } catch (err) {
+    issues = [];
+    render();
+    banner.hidden = false;
+    banner.className = 'ops-banner error';
+    banner.textContent = err.message || 'Could not load Ops cadence board.';
+    showStatus('status-text', 'error', 'Error');
+  }
+}
+
+function setCadence(next) {
+  cadence = next;
+  document.querySelectorAll('.cadence-tab').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.cadence === cadence);
+  });
+  render();
+}
+
+function toggleOwner(name) {
+  if (selectedOwners.has(name)) selectedOwners.delete(name);
+  else selectedOwners.add(name);
+  renderOwnerChips();
+  render();
+}
+
+function renderOwnerChips() {
+  const wrap = document.getElementById('owner-chips');
+  wrap.innerHTML = '';
+  const label = document.createElement('span');
+  label.className = 'filter-chips-label';
+  label.textContent = 'People';
+  wrap.appendChild(label);
+  if (!ownerLabels.length) {
+    const empty = document.createElement('span');
+    empty.className = 'filter-chips-label';
+    empty.textContent = 'No Owner labels';
+    wrap.appendChild(empty);
+    return;
+  }
+  ownerLabels.forEach((name) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chip' + (selectedOwners.has(name) ? ' selected' : '');
+    btn.textContent = name;
+    btn.addEventListener('click', () => toggleOwner(name));
+    wrap.appendChild(btn);
+  });
+}
+
+function visibleIssues() {
+  const owners = [...selectedOwners];
+  return issues.filter((issue) => {
+    if (!(issue.cadenceLabels || []).includes(cadence)) return false;
+    if (!owners.length) return true;
+    return (issue.ownerLabels || []).some((n) => owners.includes(n));
+  });
+}
+
+function statusBadge(status) {
+  const s = (status || '').toLowerCase();
+  let cls = 'gray';
+  if (s.includes('done') || s.includes('complete')) cls = 'green';
+  else if (s.includes('progress') || s.includes('started')) cls = 'blue';
+  else if (s.includes('todo') || s.includes('backlog') || s.includes('unstarted')) cls = 'amber';
+  return `<span class="badge badge-${cls}">${esc(status || '—')}</span>`;
+}
+
+function dueCell(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + (iso.length === 10 ? 'T12:00:00' : ''));
+  const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (d < today) return `<span class="due-overdue">${esc(label)}</span>`;
+  return esc(label);
+}
+
+function render() {
+  const rows = visibleIssues();
+  document.getElementById('list-title').textContent = cadence;
+  document.getElementById('issue-count').textContent = rows.length;
+  const tbody = document.querySelector('#ops-table tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No open issues for this cadence' + (selectedOwners.size ? ' and people filter' : '') + '.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map((issue) => {
+    const owners = (issue.ownerLabels || []).map((n) => `<span class="badge badge-purple">${esc(n)}</span>`).join(' ') || '—';
+    const url = esc(issue.url || '#');
+    return `<tr class="clickable" tabindex="0" data-url="${url}" onclick="openIssue(this)" onkeydown="if(event.key==='Enter')openIssue(this)">
+      <td class="issue-id">${esc(issue.identifier)}</td>
+      <td><strong>${esc(issue.title)}</strong></td>
+      <td>${statusBadge(issue.status)}</td>
+      <td><div class="owner-pills">${owners}</div></td>
+      <td>${dueCell(issue.dueDate)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openIssue(row) {
+  const url = row && row.dataset && row.dataset.url;
+  if (url && url !== '#') window.open(url, '_blank', 'noopener');
+}
+
+loadBoard();
+</script>
+</body>
+</html>
