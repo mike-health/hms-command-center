@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const { getOpsCadenceBoard } = require('./lib/ops-cadence');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -105,6 +106,16 @@ app.get('/api/clinics', (req, res) => res.json({ success: true, data: data.clini
 app.get('/api/referrals', (req, res) => res.json({ success: true, data: data.referrals }));
 app.get('/api/tasks', (req, res) => res.json({ success: true, data: data.tasks }));
 app.get('/api/alerts', (req, res) => res.json({ success: true, data: data.alerts }));
+
+app.get('/api/ops-cadence', async (req, res) => {
+  try {
+    const board = await getOpsCadenceBoard();
+    res.json({ success: true, ...board });
+  } catch (err) {
+    console.error('Ops cadence fetch failed:', err.message);
+    res.status(502).json({ success: false, error: err.message || 'Failed to load Linear issues' });
+  }
+});
 app.get('/api/summary', (req, res) => {
   const totalRevenue = data.clinics.reduce((s, c) => s + (c.revenue || 0), 0);
   const totalExpenses = data.clinics.reduce((s, c) => s + (c.expenses || 0), 0);
@@ -125,7 +136,7 @@ app.get('/api/summary', (req, res) => {
 
 /* ===== STATIC FILES ===== */
 // Explicitly serve each HTML module page (works even if static middleware fails)
-const modulePages = ['index.html', 'modules/org-chart.html', 'modules/map.html', 'modules/referrals.html', 'modules/tasks.html', 'modules/reports.html'];
+const modulePages = ['index.html', 'modules/org-chart.html', 'modules/map.html', 'modules/referrals.html', 'modules/tasks.html', 'modules/ops-board.html', 'modules/reports.html'];
 
 modulePages.forEach(page => {
   const filePath = path.join(PUBLIC_DIR, page);
