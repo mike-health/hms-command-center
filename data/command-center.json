@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastModified": "2026-09-06T03:15:00.000Z",
+  "lastModified": "2026-09-06T04:22:00.000Z",
   "nodes": {
     "hms": {
       "id": "hms",
@@ -21,7 +21,7 @@
     "greene": {
       "id": "greene",
       "name": "Dr. David Erik Greene",
-      "title": "50% Clinic Partner",
+      "title": "Medical Director · Site Selection · Strategy",
       "role": "Partner (Do Not Contact)",
       "description": "50% clinic partner lane only. Site selection, strategy, funding, and medical director responsibilities. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.",
       "active": true
