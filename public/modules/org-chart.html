@@ -42,9 +42,31 @@
 .node-apex .n-name { color: #fff; font-size: 18px; font-weight: 800; }
 .node-apex .n-title { color: #93c5fd; font-size: 11px; font-weight: 500; margin-top: 2px; }
 
-.founders-bar { width: 300px; }
-.founders-drops { width: 300px; }
-.founders-row { display: flex; gap: 48px; align-items: flex-start; justify-content: center; }
+.founders-stage {
+  display: grid;
+  grid-template-columns: 190px 190px;
+  column-gap: 60px;
+  justify-content: center;
+  align-items: start;
+}
+.founders-connector {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.founders-bar { width: 250px; height: 2px; background: #93c5fd; }
+.founders-drops { display: flex; justify-content: space-between; width: 250px; }
+.founder-col { display: flex; flex-direction: column; align-items: center; }
+.founder-col--greene { grid-column: 1; grid-row: 2; }
+.founder-col--greenhalgh { grid-column: 2; grid-row: 2; }
+.mike-subtree {
+  grid-column: 2;
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 .tree-apex { width: 100%; }
 
 .node-function { background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%); border: 2px solid #bfdbfe; }
@@ -158,6 +180,8 @@
 
 @media (max-width: 768px) {
   .chart { gap: 20px; flex-direction: column; align-items: center; }
+  .founders-stage { grid-template-columns: 1fr 1fr; column-gap: 24px; }
+  .founders-bar, .founders-drops { width: 200px; }
   .hub-bar, .hub-drops { width: 280px; }
   .sub-hub-bar, .sub-hub-drops { width: 200px; }
   .mgrs { gap: 8px; }
@@ -222,27 +246,31 @@
               <div class="n-title">Hyperbaric Management Services</div>
             </div>
             <div class="vline"></div>
-            <div class="hub-bar founders-bar"></div>
-            <div class="hub-drops founders-drops">
-              <div class="vline"></div>
-              <div class="vline"></div>
-            </div>
-            <div class="founders-row">
-              <!-- GREENE PARTNER LANE (do not contact) -->
-              <div class="tree tree-left">
-                <div class="node node-function" data-id="greene" onclick="navigatePm('greene')">
+            <div class="founders-stage">
+              <div class="founders-connector">
+                <div class="founders-bar"></div>
+                <div class="founders-drops">
+                  <div class="vline"></div>
+                  <div class="vline"></div>
+                </div>
+              </div>
+              <!-- GREENE — peer founder lane (do not contact) -->
+              <div class="founder-col founder-col--greene">
+                <div class="node node-founder" data-id="greene" onclick="navigatePm('greene')">
                   <div class="n-name">Dr. David Erik Greene</div>
-                  <div class="n-title">50% Clinic Partner</div>
+                  <div class="n-title">Medical Director · Site Selection · Strategy</div>
                 </div>
                 <div class="ops-note">Partner lane — do not contact</div>
               </div>
-
-              <!-- GREENHALGH / HMS OPS TREE -->
-              <div class="tree tree-right">
+              <!-- GREENHALGH — peer founder / HMS ops -->
+              <div class="founder-col founder-col--greenhalgh">
                 <div class="node node-founder" data-id="greenhalgh" onclick="navigatePm('greenhalgh')">
                   <div class="n-name">Michael Greenhalgh</div>
                   <div class="n-title">Managing Director</div>
                 </div>
+              </div>
+              <!-- Mike's ops subtree — below Mike only, not beside Greene -->
+              <div class="mike-subtree">
                 <div class="vline"></div>
                 <div class="hub-bar"></div>
                 <div class="hub-drops">
@@ -394,7 +422,7 @@ const DEFAULT_NODES = {
   hms: { id: 'hms', name: 'HMS', title: 'Hyperbaric Management Services', role: 'Organization', description: 'Organization apex for Pacific Hyperbarics / HMS. Peer founding lanes: Dr. David Erik Greene (50% clinic partner — do not contact) and Michael Greenhalgh (Managing Director / owner-operator).' },
   marketingOutreach: { id: 'marketingOutreach', name: 'Marketing Outreach', title: 'All Clinics — Marketing & Patient Acquisition', role: 'Function', description: 'Cross-clinic marketing staffing group: Rudy Alvarez, Stacey Vajrabukka, and Nikhil Narayan. Jointly responsible for marketing outreach across all 7 Pacific Hyperbarics clinics.', members: ['rudy', 'stacey', 'nikhil'] },
   greenhalgh: { id: 'greenhalgh', name: 'Michael Greenhalgh', title: 'Managing Director', role: 'Owner-Operator', description: 'Owner-operator of Pacific Hyperbarics / HMS. Ultimate authority over clinic network operations and strategy.' },
-  greene: { id: 'greene', name: 'Dr. David Erik Greene', title: '50% Clinic Partner', role: 'Partner (Do Not Contact)', description: '50% clinic partner lane only. Site selection, strategy, funding, and medical director responsibilities. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.' },
+  greene: { id: 'greene', name: 'Dr. David Erik Greene', title: 'Medical Director · Site Selection · Strategy', role: 'Partner (Do Not Contact)', description: '50% clinic partner lane only. Site selection, strategy, funding, and medical director responsibilities. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.' },
   rudy: { id: 'rudy', name: 'Rudy Alvarez', title: 'Regional Manager — all clinics · acting operator', role: 'Manager', description: 'Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed. Multi-home: also in Marketing Outreach group with Stacey and Nikhil.', multiHome: true },
   melinna: { id: 'melinna', name: 'Melinna Leon', title: 'EA / Payroll / Recruiting', role: 'Admin', description: 'Executive assistant, ADP payroll, and recruiting for open clinic seats.' },
   mily: { id: 'mily', name: 'Mily (Emilia) Greenhalgh', title: 'Personnel & Clinic Design / Chula Manager', role: 'Manager', description: 'Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Michael Greenhalgh.' },
