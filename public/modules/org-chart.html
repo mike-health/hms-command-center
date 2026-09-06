@@ -234,39 +234,32 @@
               <div class="vline vline-orange" style="height:28px;"></div>
             </div>
             <div class="mgrs">
-              <!-- Melinna + recruiting vacancies -->
+              <!-- Melinna -->
               <div class="mg-col">
                 <div class="node node-manager-purple" data-id="melinna" onclick="openNode('melinna')">
                   <div class="n-name">Melinna Leon</div>
                   <div class="n-title">EA / Payroll / Recruiting</div>
                 </div>
-                <div class="vline vline-gray" style="height:20px;"></div>
-                <div class="teams-row" style="flex-wrap:wrap;max-width:120px;">
-                  <div class="node node-team" data-id="vacOceanside" onclick="openNode('vacOceanside')">
-                    <div class="n-name">Oceanside</div>
-                    <div class="n-title">Open seat</div>
-                  </div>
-                  <div class="node node-team" data-id="vacMonterey" onclick="openNode('vacMonterey')">
-                    <div class="n-name">Monterey</div>
-                    <div class="n-title">Open seat</div>
-                  </div>
-                  <div class="node node-team" data-id="vacRiverside" onclick="openNode('vacRiverside')">
-                    <div class="n-name">Riverside</div>
-                    <div class="n-title">Open seat</div>
-                  </div>
-                  <div class="node node-team" data-id="vacLaguna" onclick="openNode('vacLaguna')">
-                    <div class="n-name">Laguna</div>
-                    <div class="n-title">Open seat</div>
-                  </div>
-                </div>
-                <div class="ops-note">Rudy acting operator until filled</div>
               </div>
-              <!-- Stacey -->
+              <!-- Mily — direct under Mike -->
+              <div class="mg-col">
+                <div class="node node-manager-green" data-id="mily" onclick="openNode('mily')">
+                  <div class="n-name">Mily (Emilia) Greenhalgh</div>
+                  <div class="n-title">Personnel &amp; Clinic Design / Chula Manager</div>
+                </div>
+              </div>
+              <!-- Stacey + Nikhil (marketing function) -->
               <div class="mg-col">
                 <div class="node node-manager-purple" data-id="stacey" onclick="openNode('stacey')">
                   <div class="n-name">Stacey Vajrabukka</div>
                   <div class="n-title">Marketing &amp; Referrals</div>
                 </div>
+                <div class="vline vline-purple" style="height:20px;"></div>
+                <div class="node node-assistant" data-id="nikhil" onclick="openNode('nikhil')">
+                  <div class="n-name">Nikhil Narayan</div>
+                  <div class="n-title">Marketing — Web &amp; Digital</div>
+                </div>
+                <div class="ops-note">With Rudy — marketing function</div>
               </div>
               <!-- Ben (vendor) -->
               <div class="mg-col">
@@ -275,38 +268,44 @@
                   <div class="n-title">TMS CRM (vendor)</div>
                 </div>
               </div>
-              <!-- Nikhil -->
-              <div class="mg-col">
-                <div class="node node-assistant" data-id="nikhil" onclick="openNode('nikhil')">
-                  <div class="n-name">Nikhil Narayan</div>
-                  <div class="n-title">Web / Product</div>
-                </div>
-              </div>
-              <!-- Rudy + regional lane (all 7 clinics) -->
+              <!-- Rudy + 7 clinic nodes -->
               <div class="mg-col">
                 <div class="node node-manager-orange" data-id="rudy" onclick="openNode('rudy')">
                   <div class="n-name">Rudy Alvarez</div>
                   <div class="n-title">Regional Manager — all clinics · acting operator</div>
                 </div>
                 <div class="vline vline-gray" style="height:20px;"></div>
-                <div class="teams-row" style="flex-wrap:wrap;max-width:220px;">
-                  <div class="node node-manager-green" data-id="mily" onclick="openNode('mily')">
-                    <div class="n-name">Mily Greenhalgh</div>
-                    <div class="n-title">Personnel &amp; Clinic Design / Chula Manager</div>
+                <div class="teams-row" style="flex-wrap:wrap;max-width:280px;">
+                  <div class="node node-team" onclick="editClinic('c-chula')">
+                    <div class="n-name">Chula Vista</div>
+                    <div class="n-title">Clinic</div>
                   </div>
-                  <div class="node node-assistant" data-id="bobby" onclick="openNode('bobby')">
-                    <div class="n-name">Bobby Awadalla</div>
-                    <div class="n-title">Skincredible</div>
+                  <div class="node node-team" onclick="editClinic('c-oceanside')">
+                    <div class="n-name">Oceanside</div>
+                    <div class="n-title">Clinic</div>
                   </div>
-                  <div class="node node-manager-green" data-id="monica" onclick="openNode('monica')">
-                    <div class="n-name">Monica Hernandez</div>
-                    <div class="n-title">Salinas floor</div>
+                  <div class="node node-team" onclick="editClinic('c-salinas')">
+                    <div class="n-name">Salinas</div>
+                    <div class="n-title">Clinic</div>
                   </div>
-                  <div class="node node-manager-green" data-id="deb" onclick="openNode('deb')">
-                    <div class="n-name">Deborah Dunton</div>
-                    <div class="n-title">Madras tech</div>
+                  <div class="node node-team" onclick="editClinic('c-monterey')">
+                    <div class="n-name">Monterey</div>
+                    <div class="n-title">Clinic</div>
+                  </div>
+                  <div class="node node-team" onclick="editClinic('c-madras')">
+                    <div class="n-name">Madras</div>
+                    <div class="n-title">Clinic</div>
+                  </div>
+                  <div class="node node-team" onclick="editClinic('c-laguna')">
+                    <div class="n-name">Laguna</div>
+                    <div class="n-title">Clinic</div>
+                  </div>
+                  <div class="node node-team" onclick="editClinic('c-riverside')">
+                    <div class="n-name">Riverside</div>
+                    <div class="n-title">Clinic</div>
                   </div>
                 </div>
+                <div class="ops-note">Staff &amp; open seats on clinic cards</div>
               </div>
             </div>
           </div>
@@ -395,16 +394,16 @@
 // Node data — pre-loaded for instant rendering
 const DEFAULT_NODES = {
   greenhalgh: { id: 'greenhalgh', name: 'Michael Greenhalgh', title: 'Managing Director', role: 'Owner-Operator', description: 'Owner-operator of Pacific Hyperbarics / HMS. Ultimate authority over clinic network operations and strategy.' },
-  greene: { id: 'greene', name: 'Dr. David Erik Greene', title: '50% Clinic Partner', role: 'Partner (Do Not Contact)', description: '50% clinic partner lane only. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.' },
+  greene: { id: 'greene', name: 'Dr. David Erik Greene', title: '50% Clinic Partner', role: 'Partner (Do Not Contact)', description: '50% clinic partner lane only. Site selection, strategy, funding, and medical director responsibilities. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.' },
   rudy: { id: 'rudy', name: 'Rudy Alvarez', title: 'Regional Manager — all clinics · acting operator', role: 'Manager', description: 'Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed.' },
   melinna: { id: 'melinna', name: 'Melinna Leon', title: 'EA / Payroll / Recruiting', role: 'Admin', description: 'Executive assistant, ADP payroll, and recruiting for open clinic seats.' },
-  mily: { id: 'mily', name: 'Mily (Emilia) Greenhalgh', title: 'Personnel & Clinic Design / Chula Manager', role: 'Manager', description: 'Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Rudy Alvarez (regional line).' },
+  mily: { id: 'mily', name: 'Mily (Emilia) Greenhalgh', title: 'Personnel & Clinic Design / Chula Manager', role: 'Manager', description: 'Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Michael Greenhalgh.' },
   monica: { id: 'monica', name: 'Monica Hernandez', title: 'Salinas Floor Ops', role: 'Staff', description: 'Salinas / Cypress Coast floor operations. Training visits from regional team.' },
   deb: { id: 'deb', name: 'Deborah Dunton', title: 'Madras Hyperbaric Tech', role: 'Staff', description: 'Hyperbaric technician at Madras, OR clinic.' },
   stacey: { id: 'stacey', name: 'Stacey Vajrabukka', title: 'Marketing & Referrals', role: 'Manager', description: 'Marketing, referrals, and patient acquisition across the clinic network.' },
   ben: { id: 'ben', name: 'Ben Stark', title: 'TMS Billings CRM', role: 'Vendor', description: 'TMS Billings CRM vendor. Not an HMS employee.' },
   bobby: { id: 'bobby', name: 'Bobby Awadalla', title: 'Skincredible Partner', role: 'Partner (External)', description: 'Laguna Beach Skincredible partner. Not an HMS employee.' },
-  nikhil: { id: 'nikhil', name: 'Nikhil Narayan', title: 'Web / Product', role: 'Staff', description: 'Web and product development for HMS command center and digital tools.' },
+  nikhil: { id: 'nikhil', name: 'Nikhil Narayan', title: 'Marketing — Web & Digital', role: 'Staff', description: 'Works with Stacey Vajrabukka and Rudy Alvarez in the marketing function — web presence, digital tools, referrals support, and patient acquisition.' },
   vacOceanside: { id: 'vacOceanside', name: 'Open Seat: Oceanside', title: 'Operator + Front Desk', role: 'Vacancy', description: 'Oceanside operator and front desk — recruiting via Melinna. Rudy Alvarez acting operator until filled.' },
   vacMonterey: { id: 'vacMonterey', name: 'Open Seat: Monterey', title: 'Clinic Operator', role: 'Vacancy', description: 'Monterey clinic operator — inactive staffing, seat open. Rudy Alvarez acting operator until filled.' },
   vacRiverside: { id: 'vacRiverside', name: 'Open Seat: Riverside', title: 'Clinic Operator', role: 'Vacancy', description: 'Riverside operator for TI / early buildout site. Rudy Alvarez acting operator until filled.' },
@@ -517,21 +516,21 @@ function renderPanel() {
 
 function getReporting(id) {
   const h = {
-    greenhalgh: 'Managing Director / owner-operator. Direct reports: Greene (partner lane), Melinna, Stacey, Ben (vendor), Nikhil, Rudy (regional — all 7 clinics).',
-    greene: '50% clinic partner — do-not-contact lane. Not in HMS ops reporting chain.',
-    melinna: 'Reports to Michael Greenhalgh. Owns EA, ADP payroll, and recruiting for open seats.',
-    stacey: 'Reports to Michael Greenhalgh. Marketing and referrals.',
+    greenhalgh: 'Managing Director / owner-operator. Direct reports: Greene (partner lane), Melinna, Mily, Stacey, Ben (vendor), Rudy (regional — all 7 clinics). Nikhil in marketing function under Stacey.',
+    greene: '50% clinic partner — do-not-contact lane. Site selection, strategy, funding, medical director. Not in HMS ops reporting chain.',
+    melinna: 'Reports to Michael Greenhalgh. Owns EA, ADP payroll, and recruiting for open seats. No direct reports in org tree.',
+    mily: 'Reports to Michael Greenhalgh. Personnel & Clinic Design / Chula Manager — local manager, personnel oversight, new-clinic design.',
+    stacey: 'Reports to Michael Greenhalgh. Marketing and referrals. Nikhil reports into marketing function here; Rudy collaborates on marketing.',
     ben: 'Reports to Michael Greenhalgh. TMS Billings CRM vendor — not HMS employee.',
-    nikhil: 'Reports to Michael Greenhalgh. Web and product.',
-    rudy: 'Reports to Michael Greenhalgh. Regional Manager for all 7 clinics (including Chula Vista). Acting operator covering open operator, front desk, and floor seats.',
-    mily: 'Reports to Rudy Alvarez (regional line). Personnel & Clinic Design / Chula Manager — local manager, personnel oversight, new-clinic design.',
-    monica: 'Reports to Rudy Alvarez. Salinas / Cypress floor ops; training visits.',
-    deb: 'Reports to Rudy Alvarez. Madras hyperbaric tech.',
-    bobby: 'Reports to Rudy Alvarez. Laguna Skincredible partner — not HMS employee.',
-    vacOceanside: 'Open seat — recruiting via Melinna Leon. Oceanside operator + front desk. Rudy Alvarez acting operator until filled.',
-    vacMonterey: 'Open seat — recruiting via Melinna Leon. Monterey clinic operator. Rudy Alvarez acting operator until filled.',
-    vacRiverside: 'Open seat — recruiting via Melinna Leon. Riverside operator. Rudy Alvarez acting operator until filled.',
-    vacLaguna: 'Open seat — recruiting via Melinna Leon. Laguna onsite manager. Rudy Alvarez acting operator covering gaps.'
+    nikhil: 'Reports to Stacey Vajrabukka (marketing function). Works with Stacey and Rudy Alvarez on marketing, web, and digital patient acquisition.',
+    rudy: 'Reports to Michael Greenhalgh. Regional Manager for all 7 clinics. Direct reports are the 7 clinic locations (not individual staff). Acting operator covering open operator, front desk, and floor seats. Collaborates with Stacey and Nikhil on marketing.',
+    monica: 'Salinas / Cypress Coast floor ops — assigned to clinic card, not a direct report in org tree.',
+    deb: 'Madras hyperbaric tech — assigned to clinic card, not a direct report in org tree.',
+    bobby: 'Laguna Skincredible partner — on Laguna clinic card, not HMS employee.',
+    vacOceanside: 'Open seat on Oceanside clinic card — recruiting via Melinna Leon. Rudy Alvarez acting operator until filled.',
+    vacMonterey: 'Open seat on Monterey clinic card — recruiting via Melinna Leon. Rudy Alvarez acting operator until filled.',
+    vacRiverside: 'Open seat on Riverside clinic card — recruiting via Melinna Leon. Rudy Alvarez acting operator until filled.',
+    vacLaguna: 'Open seat on Laguna clinic card — recruiting via Melinna Leon. Rudy Alvarez acting operator covering gaps.'
   };
   return h[id] || '';
 }
