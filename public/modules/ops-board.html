@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ops board — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=6">
+<link rel="stylesheet" href="/css/app.css?v=7">
 </head>
 <body>
 <div class="app">
@@ -54,6 +54,24 @@
           <div class="ops-card-list" id="ops-card-list" role="list"></div>
         </div>
       </div>
+      <div class="ops-chat" id="ops-chat">
+        <form class="ops-chat-form" id="ops-chat-form" onsubmit="submitChat(event)">
+          <label class="ops-chat-label" for="ops-chat-input">Linear command</label>
+          <div class="ops-chat-row">
+            <input type="text" id="ops-chat-input" class="ops-chat-input" placeholder="e.g. create Review logs weekly assign Stacey · mark done · assign Mike" autocomplete="off" />
+            <button type="submit" class="btn btn-primary btn-sm" id="ops-chat-preview-btn">Preview</button>
+          </div>
+        </form>
+        <div class="ops-chat-preview" id="ops-chat-preview" hidden>
+          <div class="ops-chat-preview-title">Preview — confirm before applying</div>
+          <ul class="ops-chat-preview-lines" id="ops-chat-preview-lines"></ul>
+          <div class="ops-chat-sensitive" id="ops-chat-sensitive" hidden></div>
+          <div class="ops-chat-preview-actions">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="cancelChatPreview()">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm" id="ops-chat-confirm-btn" onclick="confirmChat()">Confirm</button>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -81,6 +99,9 @@ let cadence = 'Daily';
 let selectedOwners = new Set();
 let ownerLabels = [];
 let issues = [];
+let activeIssueId = null;
+let pendingChatPlan = null;
+let pendingChatPlanId = null;
 
 async function loadBoard() {
   showStatus('status-text', 'saving', 'Loading');
@@ -236,6 +257,7 @@ function openIssue(row) {
   if (!id) return;
   const issue = issues.find((i) => i.id === id);
   if (!issue) return;
+  activeIssueId = issue.id;
   document.getElementById('ops-drawer-id').textContent = issue.identifier || '';
   document.getElementById('ops-drawer-title').textContent = issue.title || '';
   document.getElementById('ops-drawer-body').innerHTML = renderDrawerBody(issue);
@@ -251,6 +273,106 @@ function closeDrawer(e) {
   if (e && e.target !== e.currentTarget) return;
   document.getElementById('ops-drawer-overlay').hidden = true;
   document.body.style.overflow = '';
+  activeIssueId = null;
+}
+
+function cancelChatPreview() {
+  pendingChatPlan = null;
+  pendingChatPlanId = null;
+  document.getElementById('ops-chat-preview').hidden = true;
+  document.getElementById('ops-chat-sensitive').hidden = true;
+}
+
+async function submitChat(event) {
+  event.preventDefault();
+  const input = document.getElementById('ops-chat-input');
+  const instruction = (input.value || '').trim();
+  if (!instruction) return;
+
+  cancelChatPreview();
+  const previewBtn = document.getElementById('ops-chat-preview-btn');
+  previewBtn.disabled = true;
+  previewBtn.textContent = 'Preview…';
+
+  try {
+    const res = await fetch('/api/ops-cadence/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instruction,
+        issueId: activeIssueId,
+        cadence,
+        ownerLabels,
+        issues
+      })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Preview failed');
+
+    pendingChatPlan = json.plan;
+    pendingChatPlanId = json.planId;
+
+    const lines = document.getElementById('ops-chat-preview-lines');
+    lines.innerHTML = (json.previewLines || [])
+      .map((line) => `<li>${esc(line)}</li>`)
+      .join('');
+
+    const sensitive = document.getElementById('ops-chat-sensitive');
+    if (json.sensitiveNote) {
+      sensitive.hidden = false;
+      sensitive.textContent = json.sensitiveNote;
+    } else {
+      sensitive.hidden = true;
+    }
+
+    document.getElementById('ops-chat-preview').hidden = false;
+  } catch (err) {
+    showStatus('status-text', 'error', 'Preview error');
+    alert(err.message || 'Could not preview instruction.');
+  } finally {
+    previewBtn.disabled = false;
+    previewBtn.textContent = 'Preview';
+  }
+}
+
+async function confirmChat() {
+  if (!pendingChatPlan || !pendingChatPlanId) return;
+
+  const confirmBtn = document.getElementById('ops-chat-confirm-btn');
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Applying…';
+
+  try {
+    const res = await fetch('/api/ops-cadence/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plan: pendingChatPlan,
+        planId: pendingChatPlanId,
+        confirmed: true
+      })
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || 'Apply failed');
+
+    cancelChatPreview();
+    document.getElementById('ops-chat-input').value = '';
+    closeDrawer();
+    await loadBoard();
+
+    if (json.mock) {
+      showStatus('status-text', 'warning', 'Demo apply');
+      alert(json.message || 'Demo mode — no Linear change applied.');
+    } else {
+      showStatus('status-text', '', 'Updated');
+    }
+  } catch (err) {
+    showStatus('status-text', 'error', 'Apply error');
+    alert(err.message || 'Could not apply change to Linear.');
+  } finally {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Confirm';
+  }
 }
 
 document.addEventListener('keydown', (e) => {

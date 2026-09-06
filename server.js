@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const { getOpsCadenceBoard } = require('./lib/ops-cadence');
+const { applyOpsPlan, previewOpsInstruction } = require('./lib/ops-chat');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -114,6 +115,32 @@ app.get('/api/ops-cadence', async (req, res) => {
   } catch (err) {
     console.error('Ops cadence fetch failed:', err.message);
     res.status(502).json({ success: false, error: err.message || 'Failed to load Linear issues' });
+  }
+});
+
+app.post('/api/ops-cadence/preview', async (req, res) => {
+  try {
+    const result = await previewOpsInstruction(req.body || {});
+    if (!result.ok) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('Ops chat preview failed:', err.message);
+    res.status(502).json({ success: false, error: err.message || 'Preview failed' });
+  }
+});
+
+app.post('/api/ops-cadence/apply', async (req, res) => {
+  try {
+    const result = await applyOpsPlan(req.body || {});
+    if (!result.ok) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('Ops chat apply failed:', err.message);
+    res.status(502).json({ success: false, error: err.message || 'Apply failed' });
   }
 });
 app.get('/api/summary', (req, res) => {
