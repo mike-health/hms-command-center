@@ -6,7 +6,9 @@ const {
   collectOwnerLabels,
   filterOpsIssues,
   mapLinearIssue,
-  mockBoard
+  mapPriority,
+  mockBoard,
+  streamFromLabels
 } = require('../lib/ops-cadence');
 
 describe('mapLinearIssue', () => {
@@ -32,6 +34,55 @@ describe('mapLinearIssue', () => {
     assert.deepEqual(mapped.cadenceLabels, ['Daily']);
     assert.deepEqual(mapped.ownerLabels, ['Rudy']);
     assert.equal(mapped.status, 'Backlog');
+    assert.equal(mapped.streamLabel, null);
+    assert.equal(mapped.priority, null);
+  });
+
+  it('maps Stream label group and Linear priority', () => {
+    const mapped = mapLinearIssue(
+      {
+        id: '2',
+        identifier: 'HEA-90',
+        title: 'Chamber install',
+        url: 'https://linear.app/healthi/issue/HEA-90',
+        dueDate: '2026-09-08',
+        priority: 2,
+        state: { name: 'In Progress', type: 'started' },
+        labels: {
+          nodes: [
+            { name: 'Weekly', parent: { name: 'Cadence' } },
+            { name: 'Clinical', parent: { name: 'Stream' } },
+            { name: 'Stacey', parent: { name: 'Owner' } }
+          ]
+        }
+      },
+      new Set(['Stacey'])
+    );
+    assert.equal(mapped.streamLabel, 'Clinical');
+    assert.equal(mapped.priority, 'High');
+    assert.equal(mapped.status, 'In Progress');
+  });
+});
+
+describe('mapPriority', () => {
+  it('returns null for unset priority and labels for 1–4', () => {
+    assert.equal(mapPriority(0), null);
+    assert.equal(mapPriority(null), null);
+    assert.equal(mapPriority(1), 'Urgent');
+    assert.equal(mapPriority(3), 'Medium');
+  });
+});
+
+describe('streamFromLabels', () => {
+  it('picks first Stream group label', () => {
+    assert.equal(
+      streamFromLabels([
+        { name: 'Finance', parent: { name: 'Stream' } },
+        { name: 'Equipment', parent: { name: 'Stream' } }
+      ]),
+      'Finance'
+    );
+    assert.equal(streamFromLabels([{ name: 'Mike', parent: { name: 'Owner' } }]), null);
   });
 });
 

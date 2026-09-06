@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ops board — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=4">
+<link rel="stylesheet" href="/css/app.css?v=5">
 </head>
 <body>
 <div class="app">
@@ -50,19 +50,8 @@
           <div class="section-title" id="list-title">Daily</div>
           <span class="badge badge-blue" id="issue-count">0</span>
         </div>
-        <div class="section-body" style="padding:0">
-          <table class="data-table" id="ops-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Owner</th>
-                <th>Due</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+        <div class="section-body ops-card-body">
+          <div class="ops-card-list" id="ops-card-list" role="list"></div>
         </div>
       </div>
     </div>
@@ -158,45 +147,62 @@ function visibleIssues() {
   });
 }
 
-function statusBadge(status) {
+function statusAccent(status, statusType) {
+  const type = (statusType || '').toLowerCase();
   const s = (status || '').toLowerCase();
-  let cls = 'gray';
-  if (s.includes('done') || s.includes('complete')) cls = 'green';
-  else if (s.includes('progress') || s.includes('started')) cls = 'blue';
-  else if (s.includes('todo') || s.includes('backlog') || s.includes('unstarted')) cls = 'amber';
-  return `<span class="badge badge-${cls}">${esc(status || '—')}</span>`;
+  if (type === 'completed' || s.includes('done')) return 'done';
+  if (s.includes('block')) return 'blocked';
+  if (type === 'started' || s.includes('progress')) return 'progress';
+  if (type === 'unstarted' || s.includes('todo') || type === 'backlog' || s.includes('backlog')) return 'todo';
+  return 'todo';
 }
 
-function dueCell(iso) {
+function formatDue(iso) {
   if (!iso) return '—';
   const d = new Date(iso + (iso.length === 10 ? 'T12:00:00' : ''));
   const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  if (d < today) return `<span class="due-overdue">${esc(label)}</span>`;
-  return esc(label);
+  const overdue = d < today;
+  return { label, overdue };
+}
+
+function metaPart(value, overdue) {
+  if (!value || value === '—') return '—';
+  if (overdue) return `<span class="due-overdue">${esc(value)}</span>`;
+  return esc(value);
+}
+
+function renderOpsCard(issue) {
+  const accent = statusAccent(issue.status, issue.statusType);
+  const stream = issue.streamLabel || '—';
+  const owner = (issue.ownerLabels || []).join(', ') || '—';
+  const due = formatDue(issue.dueDate);
+  const priority = issue.priority || '—';
+  const url = esc(issue.url || '#');
+  const meta = [
+    metaPart(stream),
+    metaPart(owner),
+    metaPart(due.label, due.overdue),
+    metaPart(priority)
+  ].join('<span class="ops-meta-sep">·</span>');
+
+  return `<article class="ops-card ops-accent-${accent}" role="listitem" tabindex="0" data-url="${url}" onclick="openIssue(this)" onkeydown="if(event.key==='Enter')openIssue(this)">
+    <div class="ops-card-line1">${esc(issue.title)}</div>
+    <div class="ops-card-line2">${meta}</div>
+  </article>`;
 }
 
 function render() {
   const rows = visibleIssues();
   document.getElementById('list-title').textContent = cadence;
   document.getElementById('issue-count').textContent = rows.length;
-  const tbody = document.querySelector('#ops-table tbody');
+  const list = document.getElementById('ops-card-list');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty">No open issues for this cadence' + (selectedOwners.size ? ' and people filter' : '') + '.</td></tr>';
+    list.innerHTML = '<div class="empty ops-empty">No open issues for this cadence' + (selectedOwners.size ? ' and people filter' : '') + '.</div>';
     return;
   }
-  tbody.innerHTML = rows.map((issue) => {
-    const owners = (issue.ownerLabels || []).map((n) => `<span class="badge badge-purple">${esc(n)}</span>`).join(' ') || '—';
-    const url = esc(issue.url || '#');
-    return `<tr class="clickable" tabindex="0" data-url="${url}" onclick="openIssue(this)" onkeydown="if(event.key==='Enter')openIssue(this)">
-      <td class="issue-id">${esc(issue.identifier)}</td>
-      <td><strong>${esc(issue.title)}</strong></td>
-      <td>${statusBadge(issue.status)}</td>
-      <td><div class="owner-pills">${owners}</div></td>
-      <td>${dueCell(issue.dueDate)}</td>
-    </tr>`;
-  }).join('');
+  list.innerHTML = rows.map(renderOpsCard).join('');
 }
 
 function openIssue(row) {
