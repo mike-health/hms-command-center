@@ -165,7 +165,7 @@ function highlightCard(id) {
 
 function addClinic() {
   const name = prompt('Clinic name:'); if (!name) return;
-  const city = prompt('City (e.g., Austin, TX):') || '';
+  const city = prompt('City (e.g., Chula Vista, CA):') || '';
   const lat = parseFloat(prompt('Latitude:')); const lng = parseFloat(prompt('Longitude:'));
   alert('Clinic "' + esc(name) + '" added. (Server save coming in next update)');
 }
