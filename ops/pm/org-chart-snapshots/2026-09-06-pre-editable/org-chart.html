@@ -239,8 +239,102 @@
         </div>
 
         <div class="chart">
-          <!-- Rendered from nodes + parentId/orgEdges (see DEFAULT_NODES / command-center.json) -->
-          <div id="org-tree"></div>
+          <div class="tree tree-apex">
+            <!-- HMS APEX -->
+            <div class="node node-apex" data-id="hms" onclick="navigatePm('org')">
+              <div class="n-name">HMS</div>
+              <div class="n-title">Hyperbaric Management Services</div>
+            </div>
+            <div class="vline"></div>
+            <div class="founders-stage">
+              <div class="founders-connector">
+                <div class="founders-bar"></div>
+                <div class="founders-drops">
+                  <div class="vline"></div>
+                  <div class="vline"></div>
+                </div>
+              </div>
+              <!-- GREENE — peer founder lane (do not contact) -->
+              <div class="founder-col founder-col--greene">
+                <div class="node node-founder" data-id="greene" onclick="navigatePm('greene')">
+                  <div class="n-name">Dr. David Erik Greene</div>
+                  <div class="n-title">Medical Director · Site Selection · Strategy</div>
+                </div>
+                <div class="ops-note">Partner lane — do not contact</div>
+              </div>
+              <!-- GREENHALGH — peer founder / HMS ops -->
+              <div class="founder-col founder-col--greenhalgh">
+                <div class="node node-founder" data-id="greenhalgh" onclick="navigatePm('greenhalgh')">
+                  <div class="n-name">Michael Greenhalgh</div>
+                  <div class="n-title">Managing Director</div>
+                </div>
+              </div>
+              <!-- Mike's ops subtree — below Mike only, not beside Greene -->
+              <div class="mike-subtree">
+                <div class="vline"></div>
+                <div class="hub-bar"></div>
+                <div class="hub-drops">
+                  <div class="vline vline-purple" style="height:28px;"></div>
+                  <div class="vline vline-purple" style="height:28px;"></div>
+                  <div class="vline vline-gray" style="height:28px;"></div>
+                  <div class="vline vline-gray" style="height:28px;"></div>
+                  <div class="vline vline-orange" style="height:28px;"></div>
+                </div>
+                <div class="mgrs">
+                  <!-- Melinna -->
+                  <div class="mg-col">
+                    <div class="node node-manager-purple" data-id="melinna" onclick="navigatePm('melinna')">
+                      <div class="n-name">Melinna Leon</div>
+                      <div class="n-title">EA / Payroll / Recruiting</div>
+                    </div>
+                  </div>
+                  <!-- Mily — direct under Mike -->
+                  <div class="mg-col">
+                    <div class="node node-manager-green" data-id="mily" onclick="navigatePm('mily')">
+                      <div class="n-name">Mily (Emilia) Greenhalgh</div>
+                      <div class="n-title">Personnel &amp; Clinic Design / Chula Manager</div>
+                    </div>
+                  </div>
+                  <!-- Marketing Outreach — Rudy + Stacey + Nikhil (multi-home; all clinics) -->
+                  <div class="mg-col">
+                    <div class="node-group">
+                      <div class="node-group-header" data-id="marketingOutreach" onclick="navigatePm('marketingOutreach')">Marketing Outreach</div>
+                      <div class="node-group-members">
+                        <div class="node node-manager-orange" data-id="rudy" data-home="marketing" onclick="navigatePm('rudy')">
+                          <div class="n-name">Rudy Alvarez</div>
+                          <div class="n-title">Regional Manager — all clinics · acting operator</div>
+                        </div>
+                        <div class="node node-manager-purple" data-id="stacey" data-home="marketing" onclick="navigatePm('stacey')">
+                          <div class="n-name">Stacey Vajrabukka</div>
+                          <div class="n-title">Marketing &amp; Referrals</div>
+                        </div>
+                        <div class="node node-assistant" data-id="nikhil" data-home="marketing" onclick="navigatePm('nikhil')">
+                          <div class="n-name">Nikhil Narayan</div>
+                          <div class="n-title">Marketing — Web &amp; Digital</div>
+                        </div>
+                      </div>
+                      <div class="ops-note">All 7 clinics — marketing &amp; outreach</div>
+                    </div>
+                  </div>
+                  <!-- Ben (vendor) -->
+                  <div class="mg-col">
+                    <div class="node node-assistant" data-id="ben" onclick="navigatePm('ben')">
+                      <div class="n-name">Ben Stark</div>
+                      <div class="n-title">TMS CRM (vendor)</div>
+                    </div>
+                  </div>
+                  <!-- Rudy RM — multi-home ops lane (no clinic tree children) -->
+                  <div class="mg-col">
+                    <div class="node node-manager-orange" data-id="rudy" data-home="ops" onclick="navigatePm('rudy')">
+                      <div class="n-name">Rudy Alvarez</div>
+                      <div class="n-title">Regional Manager — all clinics · acting operator</div>
+                    </div>
+                    <div class="ops-note">Ops RM — see clinic cards below</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- CLINICS -->
@@ -252,7 +346,54 @@
               <button class="oc-btn blue" onclick="addClinic()" style="padding:4px 10px;font-size:11px;">+ Add</button>
             </div>
           </div>
-          <div class="clinic-grid" id="clinic-grid"></div>
+          <div class="clinic-grid" id="clinic-grid">
+            <div class="clinic-card" onclick="navigateClinic('c-chula')">
+              <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Chula Vista</div><div class="cc-city">Chula Vista, CA</div></div></div>
+              <div class="cc-badges"><span class="badge badge-operational">Operational</span><span class="badge badge-independent">independent</span></div>
+              <div class="cc-notes">Flagship — Open. 826 Starboard St. RM: Rudy. Mily: local mgr, personnel oversight, new-clinic design.</div>
+              <div class="cc-assigned">Responsible: Rudy Alvarez</div>
+            </div>
+            <div class="clinic-card" onclick="navigateClinic('c-oceanside')">
+              <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Oceanside</div><div class="cc-city">Oceanside, CA</div></div></div>
+              <div class="cc-badges"><span class="badge badge-startup">Startup</span><span class="badge badge-independent">independent</span></div>
+              <div class="cc-notes">TI / buildout. 1411 N Coast Hwy. Rudy standup.</div>
+              <div class="cc-assigned">Responsible: Rudy Alvarez</div>
+            </div>
+            <div class="clinic-card" onclick="navigateClinic('c-salinas')">
+              <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Salinas / Cypress Coast</div><div class="cc-city">Salinas, CA</div></div></div>
+              <div class="cc-badges"><span class="badge badge-operational">Operational</span><span class="badge badge-independent">independent</span></div>
+              <div class="cc-notes">Open. 610 E Romie Ln Unit B. Monica floor ops. RM: Rudy.</div>
+              <div class="cc-assigned">Responsible: Rudy Alvarez</div>
+            </div>
+            <div class="clinic-card" onclick="navigateClinic('c-monterey')">
+              <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Monterey</div><div class="cc-city">Monterey, CA</div></div></div>
+              <div class="cc-badges"><span class="badge badge-partly">Partly Operational</span><span class="badge badge-independent">independent</span></div>
+              <div class="cc-notes">Inactive / not active staffing. 70 Garden Ct Suite 100.</div>
+              <div class="cc-assigned">Responsible: Rudy Alvarez</div>
+            </div>
+            <div class="clinic-card" onclick="navigateClinic('c-madras')">
+              <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Madras, OR</div><div class="cc-city">Madras, OR</div></div></div>
+              <div class="cc-badges"><span class="badge badge-operational">Operational</span><span class="badge badge-independent">independent</span></div>
+              <div class="cc-notes">Open. ADDRESS CONFLICT: 83 NW K St vs 83 SW K St — verify before mail/maps. Deb tech. RM: Rudy.</div>
+              <div class="cc-assigned">Responsible: Rudy Alvarez</div>
+            </div>
+            <div class="clinic-card" onclick="navigateClinic('c-laguna')">
+              <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Laguna Beach</div><div class="cc-city">Laguna Beach, CA</div></div></div>
+              <div class="cc-badges"><span class="badge badge-partly">Partly Operational</span><span class="badge badge-partnered">partnered</span></div>
+              <div class="cc-notes">Open / thin. 31655 Coast Hwy Suite B. Rudy ops; Bobby Skincredible partner.</div>
+              <div class="cc-assigned">Responsible: Rudy Alvarez</div>
+            </div>
+            <div class="clinic-card" onclick="navigateClinic('c-riverside')">
+              <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Riverside</div><div class="cc-city">Riverside, CA</div></div></div>
+              <div class="cc-badges"><span class="badge badge-startup">Startup</span><span class="badge badge-independent">independent</span></div>
+              <div class="cc-notes">TI / early buildout. 6939 Palm Ct.</div>
+              <div class="cc-assigned">Responsible: Rudy Alvarez</div>
+            </div>
+            <div class="add-clinic-card" onclick="addClinic()">
+              <div class="add-icon">+</div>
+              <div>Add Clinic</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -275,44 +416,29 @@
 </div>
 
 <script src="/js/app.js?v=4"></script>
-<script src="/js/org-tree.js?v=1"></script>
 <script>
-// Node data — keep in sync with data/command-center.json (FACTORY_DEFAULTS)
+// Node data — pre-loaded for instant rendering
 const DEFAULT_NODES = {
-  hms: { id: 'hms', name: 'HMS', title: 'Hyperbaric Management Services', role: 'Organization', description: 'Organization apex for Pacific Hyperbarics / HMS. Peer founding lanes: Dr. David Erik Greene (50% clinic partner — do not contact) and Michael Greenhalgh (Managing Director / owner-operator).', parentId: null, treeRole: 'apex', nodeClass: 'node-apex', navigateId: 'org', inTree: true },
-  marketingOutreach: { id: 'marketingOutreach', name: 'Marketing Outreach', title: 'All Clinics — Marketing & Patient Acquisition', role: 'Function', description: 'Cross-clinic marketing staffing group: Rudy Alvarez, Stacey Vajrabukka, and Nikhil Narayan. Jointly responsible for marketing outreach across all 7 Pacific Hyperbarics clinics.', members: ['rudy', 'stacey', 'nikhil'], parentId: 'greenhalgh', treeRole: 'group', inTree: true, order: 3, vlineClass: 'vline-gray', opsNote: 'All 7 clinics — marketing & outreach' },
-  greenhalgh: { id: 'greenhalgh', name: 'Michael Greenhalgh', title: 'Managing Director', role: 'Owner-Operator', description: 'Owner-operator of Pacific Hyperbarics / HMS. Ultimate authority over clinic network operations and strategy.', parentId: 'hms', treeRole: 'founder', nodeClass: 'node-founder', lane: 'greenhalgh', order: 2, inTree: true },
-  greene: { id: 'greene', name: 'Dr. David Erik Greene', title: 'Medical Director · Site Selection · Strategy', role: 'Partner (Do Not Contact)', description: '50% clinic partner lane only. Site selection, strategy, funding, and medical director responsibilities. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.', parentId: 'hms', treeRole: 'founder', nodeClass: 'node-founder', lane: 'greene', order: 1, opsNote: 'Partner lane — do not contact', inTree: true },
-  rudy: { id: 'rudy', name: 'Rudy Alvarez', title: 'Regional Manager — all clinics · acting operator', role: 'Manager', description: 'Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed. Multi-home: also in Marketing Outreach group with Stacey and Nikhil.', multiHome: true, parentId: 'greenhalgh', treeRole: 'person', nodeClass: 'node-manager-orange', order: 5, vlineClass: 'vline-orange', home: 'ops', opsNote: 'Ops RM — see clinic cards below', inTree: true, edges: [{ from: 'greenhalgh', to: 'rudy', home: 'ops' }, { from: 'marketingOutreach', to: 'rudy', home: 'marketing' }] },
-  melinna: { id: 'melinna', name: 'Melinna Leon', title: 'EA / Payroll / Recruiting', role: 'Admin', description: 'Executive assistant, ADP payroll, and recruiting for open clinic seats.', parentId: 'greenhalgh', treeRole: 'person', nodeClass: 'node-manager-purple', order: 1, vlineClass: 'vline-purple', inTree: true },
-  mily: { id: 'mily', name: 'Mily (Emilia) Greenhalgh', title: 'Personnel & Clinic Design / Chula Manager', role: 'Manager', description: 'Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Michael Greenhalgh.', parentId: 'greenhalgh', treeRole: 'person', nodeClass: 'node-manager-green', order: 2, vlineClass: 'vline-purple', inTree: true },
-  monica: { id: 'monica', name: 'Monica Hernandez', title: 'Salinas Floor Ops', role: 'Staff', description: 'Salinas / Cypress Coast floor operations. Training visits from regional team.', parentId: null, inTree: false },
-  deb: { id: 'deb', name: 'Deborah Dunton', title: 'Madras Hyperbaric Tech', role: 'Staff', description: 'Hyperbaric technician at Madras, OR clinic.', parentId: null, inTree: false },
-  stacey: { id: 'stacey', name: 'Stacey Vajrabukka', title: 'Marketing & Referrals', role: 'Manager', description: 'Marketing, referrals, and patient acquisition across the clinic network. Member of Marketing Outreach group (with Rudy Alvarez and Nikhil Narayan) — responsible for all clinics.', multiHome: true, parentId: 'marketingOutreach', treeRole: 'person', nodeClass: 'node-manager-purple', home: 'marketing', inTree: true },
-  ben: { id: 'ben', name: 'Ben Stark', title: 'TMS Billings CRM', role: 'Vendor', description: 'TMS Billings CRM vendor. Not an HMS employee.', parentId: 'greenhalgh', treeRole: 'person', nodeClass: 'node-assistant', order: 4, vlineClass: 'vline-gray', inTree: true },
-  bobby: { id: 'bobby', name: 'Bobby Awadalla', title: 'Skincredible Partner', role: 'Partner (External)', description: 'Laguna Beach Skincredible partner. Not an HMS employee.', parentId: null, inTree: false },
-  nikhil: { id: 'nikhil', name: 'Nikhil Narayan', title: 'Marketing — Web & Digital', role: 'Staff', description: 'Member of Marketing Outreach group with Stacey Vajrabukka and Rudy Alvarez — web presence, digital tools, referrals support, and patient acquisition across all clinics.', multiHome: true, parentId: 'marketingOutreach', treeRole: 'person', nodeClass: 'node-assistant', home: 'marketing', inTree: true },
-  vacOceanside: { id: 'vacOceanside', name: 'Open Seat: Oceanside', title: 'Operator + Front Desk', role: 'Vacancy', description: 'Oceanside operator and front desk — recruiting via Melinna. Rudy Alvarez acting operator until filled.', parentId: null, inTree: false },
-  vacMonterey: { id: 'vacMonterey', name: 'Open Seat: Monterey', title: 'Clinic Operator', role: 'Vacancy', description: 'Monterey clinic operator — inactive staffing, seat open. Rudy Alvarez acting operator until filled.', parentId: null, inTree: false },
-  vacRiverside: { id: 'vacRiverside', name: 'Open Seat: Riverside', title: 'Clinic Operator', role: 'Vacancy', description: 'Riverside operator for TI / early buildout site. Rudy Alvarez acting operator until filled.', parentId: null, inTree: false },
-  vacLaguna: { id: 'vacLaguna', name: 'Open Seat: Laguna', title: 'Onsite Manager', role: 'Vacancy', description: 'Laguna Beach onsite manager — thin staffing, recruiting. Rudy Alvarez acting operator covering gaps.', parentId: null, inTree: false }
+  hms: { id: 'hms', name: 'HMS', title: 'Hyperbaric Management Services', role: 'Organization', description: 'Organization apex for Pacific Hyperbarics / HMS. Peer founding lanes: Dr. David Erik Greene (50% clinic partner — do not contact) and Michael Greenhalgh (Managing Director / owner-operator).' },
+  marketingOutreach: { id: 'marketingOutreach', name: 'Marketing Outreach', title: 'All Clinics — Marketing & Patient Acquisition', role: 'Function', description: 'Cross-clinic marketing staffing group: Rudy Alvarez, Stacey Vajrabukka, and Nikhil Narayan. Jointly responsible for marketing outreach across all 7 Pacific Hyperbarics clinics.', members: ['rudy', 'stacey', 'nikhil'] },
+  greenhalgh: { id: 'greenhalgh', name: 'Michael Greenhalgh', title: 'Managing Director', role: 'Owner-Operator', description: 'Owner-operator of Pacific Hyperbarics / HMS. Ultimate authority over clinic network operations and strategy.' },
+  greene: { id: 'greene', name: 'Dr. David Erik Greene', title: 'Medical Director · Site Selection · Strategy', role: 'Partner (Do Not Contact)', description: '50% clinic partner lane only. Site selection, strategy, funding, and medical director responsibilities. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.' },
+  rudy: { id: 'rudy', name: 'Rudy Alvarez', title: 'Regional Manager — all clinics · acting operator', role: 'Manager', description: 'Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed. Multi-home: also in Marketing Outreach group with Stacey and Nikhil.', multiHome: true },
+  melinna: { id: 'melinna', name: 'Melinna Leon', title: 'EA / Payroll / Recruiting', role: 'Admin', description: 'Executive assistant, ADP payroll, and recruiting for open clinic seats.' },
+  mily: { id: 'mily', name: 'Mily (Emilia) Greenhalgh', title: 'Personnel & Clinic Design / Chula Manager', role: 'Manager', description: 'Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Michael Greenhalgh.' },
+  monica: { id: 'monica', name: 'Monica Hernandez', title: 'Salinas Floor Ops', role: 'Staff', description: 'Salinas / Cypress Coast floor operations. Training visits from regional team.' },
+  deb: { id: 'deb', name: 'Deborah Dunton', title: 'Madras Hyperbaric Tech', role: 'Staff', description: 'Hyperbaric technician at Madras, OR clinic.' },
+  stacey: { id: 'stacey', name: 'Stacey Vajrabukka', title: 'Marketing & Referrals', role: 'Manager', description: 'Marketing, referrals, and patient acquisition across the clinic network. Member of Marketing Outreach group (with Rudy Alvarez and Nikhil Narayan) — responsible for all clinics.', multiHome: true },
+  ben: { id: 'ben', name: 'Ben Stark', title: 'TMS Billings CRM', role: 'Vendor', description: 'TMS Billings CRM vendor. Not an HMS employee.' },
+  bobby: { id: 'bobby', name: 'Bobby Awadalla', title: 'Skincredible Partner', role: 'Partner (External)', description: 'Laguna Beach Skincredible partner. Not an HMS employee.' },
+  nikhil: { id: 'nikhil', name: 'Nikhil Narayan', title: 'Marketing — Web & Digital', role: 'Staff', description: 'Member of Marketing Outreach group with Stacey Vajrabukka and Rudy Alvarez — web presence, digital tools, referrals support, and patient acquisition across all clinics.', multiHome: true },
+  vacOceanside: { id: 'vacOceanside', name: 'Open Seat: Oceanside', title: 'Operator + Front Desk', role: 'Vacancy', description: 'Oceanside operator and front desk — recruiting via Melinna. Rudy Alvarez acting operator until filled.' },
+  vacMonterey: { id: 'vacMonterey', name: 'Open Seat: Monterey', title: 'Clinic Operator', role: 'Vacancy', description: 'Monterey clinic operator — inactive staffing, seat open. Rudy Alvarez acting operator until filled.' },
+  vacRiverside: { id: 'vacRiverside', name: 'Open Seat: Riverside', title: 'Clinic Operator', role: 'Vacancy', description: 'Riverside operator for TI / early buildout site. Rudy Alvarez acting operator until filled.' },
+  vacLaguna: { id: 'vacLaguna', name: 'Open Seat: Laguna', title: 'Onsite Manager', role: 'Vacancy', description: 'Laguna Beach onsite manager — thin staffing, recruiting. Rudy Alvarez acting operator covering gaps.' }
 };
 
-const DEFAULT_EDGES = [
-  { from: 'hms', to: 'greene', order: 1 },
-  { from: 'hms', to: 'greenhalgh', order: 2 },
-  { from: 'greenhalgh', to: 'melinna', order: 1, vlineClass: 'vline-purple' },
-  { from: 'greenhalgh', to: 'mily', order: 2, vlineClass: 'vline-purple' },
-  { from: 'greenhalgh', to: 'marketingOutreach', order: 3, vlineClass: 'vline-gray' },
-  { from: 'greenhalgh', to: 'ben', order: 4, vlineClass: 'vline-gray' },
-  { from: 'greenhalgh', to: 'rudy', order: 5, vlineClass: 'vline-orange', home: 'ops' },
-  { from: 'marketingOutreach', to: 'rudy', home: 'marketing', order: 1 },
-  { from: 'marketingOutreach', to: 'stacey', home: 'marketing', order: 2 },
-  { from: 'marketingOutreach', to: 'nikhil', home: 'marketing', order: 3 }
-];
-
 let nodes = { ...DEFAULT_NODES };
-let orgEdges = DEFAULT_EDGES.map(e => ({ ...e }));
 let clinics = [
   { id:'c-chula', name:'Pacific Hyperbarics — Chula Vista', city:'Chula Vista, CA', status:'operational', type:'independent', notes:'Flagship — Open. 826 Starboard St, Chula Vista, CA 91914. RM: Rudy. Mily: local mgr, personnel oversight, new-clinic design.', assignedTo:'rudy' },
   { id:'c-oceanside', name:'Pacific Hyperbarics — Oceanside', city:'Oceanside, CA', status:'startup', type:'independent', notes:'TI / buildout. 1411 N Coast Hwy, Oceanside, CA 92054. Rudy standup. Operator + front desk open.', assignedTo:'rudy' },
@@ -331,24 +457,6 @@ const TYPE_CLASSES = { independent: 'badge-independent', partnered: 'badge-partn
 
 function nodeName(id) { return nodes[id]?.name || id; }
 
-function mergeNodes(incoming) {
-  const merged = { ...DEFAULT_NODES };
-  Object.keys(incoming || {}).forEach(id => {
-    merged[id] = { ...(DEFAULT_NODES[id] || {}), ...incoming[id] };
-  });
-  return merged;
-}
-
-function persistOrg() {
-  return saveState({ nodes, clinics, orgEdges });
-}
-
-function renderOrgChart() {
-  const host = document.getElementById('org-tree');
-  if (!host || !window.OrgTree) return;
-  host.innerHTML = OrgTree.renderTree(nodes, orgEdges);
-}
-
 function navigatePm(id) {
   window.location.href = `/modules/pm-chart.html?id=${encodeURIComponent(id)}`;
 }
@@ -362,22 +470,19 @@ function esc(s) {
 }
 
 async function init() {
-  renderOrgChart();
-  restoreClinicCards();
   try {
     const s = await loadState();
     if (s.success && s.data) {
-      nodes = mergeNodes(s.data.nodes || DEFAULT_NODES);
+      nodes = s.data.nodes || DEFAULT_NODES;
       clinics = s.data.clinics || clinics;
-      orgEdges = (s.data.orgEdges && s.data.orgEdges.length)
-        ? s.data.orgEdges
-        : OrgTree.resolveEdges(nodes, DEFAULT_EDGES);
     }
   } catch (e) {
     console.log('Using default data (server unavailable)');
   }
-  renderOrgChart();
-  restoreClinicCards();
+  // Update node names in the chart if they've been edited
+  updateNodeNames();
+  // Update clinic cards if data changed
+  updateClinicCards();
 }
 
 function updateNodeNames() {
@@ -478,8 +583,8 @@ async function saveNodeEdit() {
   nodes[activeNodeId].title = document.getElementById('ne-title').value.trim();
   nodes[activeNodeId].role = document.getElementById('ne-role').value.trim();
   nodes[activeNodeId].description = document.getElementById('ne-desc').value.trim();
-  await persistOrg();
-  renderOrgChart();
+  await saveState({ nodes, clinics, referrals: [], tasks: [], alerts: [] });
+  updateNodeNames();
   closePanel();
 }
 
@@ -490,7 +595,7 @@ function renderClinicEdit() {
   const grid = document.getElementById('clinic-grid');
   const cards = grid.querySelectorAll('.clinic-card:not(.add-clinic-card)');
   cards.forEach(card => {
-    const c = clinics.find(x => x.id === card.dataset.id);
+    const c = clinics.find(x => x.id === card.dataset.id || card.onclick.toString().includes(x.id));
     if (!c || c.id !== editingClinicId) return;
     const assignOptions = Object.keys(nodes).map(id => `<option value="${id}" ${c.assignedTo === id ? 'selected' : ''}>${esc(nodes[id]?.name || id)}</option>`).join('');
     card.classList.add('editing');
@@ -529,7 +634,7 @@ function restoreClinicCards() {
 
 function renderClinicCardHTML(c) {
   const assigned = nodeName(c.assignedTo);
-  return `<div class="clinic-card" data-id="${esc(c.id)}" onclick="navigateClinic('${c.id}')">
+  return `<div class="clinic-card" onclick="navigateClinic('${c.id}')">
     <div class="cc-header"><div><div class="cc-name">${esc(c.name)}</div><div class="cc-city">${esc(c.city)}</div></div></div>
     <div class="cc-badges">
       <span class="badge ${STATUS_CLASSES[c.status] || 'badge-prospective'}">${STATUS_LABELS[c.status] || c.status}</span>
@@ -549,7 +654,7 @@ async function saveClinic(id) {
   c.assignedTo = document.getElementById('ce-assigned').value;
   c.notes = document.getElementById('ce-notes').value.trim();
   editingClinicId = null;
-  await persistOrg();
+  await saveState({ nodes, clinics, referrals: [], tasks: [], alerts: [] });
   restoreClinicCards();
 }
 
@@ -558,7 +663,7 @@ async function addClinic() {
   clinics.push({ id, name: 'New Clinic', city: '', status: 'prospective', type: 'independent', notes: '', assignedTo: 'greenhalgh', revenue: 0, expenses: 0, patientsMonth: 0, lat: null, lng: null });
   editingClinicId = id;
   restoreClinicCards();
-  renderClinicEdit();
+  // Auto-focus the new clinic's name field
   setTimeout(() => {
     const input = document.getElementById('ce-name');
     if (input) { input.focus(); input.select(); }
@@ -568,12 +673,12 @@ async function addClinic() {
 async function deleteClinic(id) {
   clinics = clinics.filter(c => c.id !== id);
   editingClinicId = null;
-  await persistOrg();
+  await saveState({ nodes, clinics, referrals: [], tasks: [], alerts: [] });
   restoreClinicCards();
 }
 
 function exportJSON() {
-  const data = JSON.stringify({ nodes, clinics, orgEdges }, null, 2);
+  const data = JSON.stringify({ nodes, clinics }, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -591,12 +696,10 @@ function handleImportFile(e) {
   reader.onload = async (ev) => {
     try {
       const data = JSON.parse(ev.target.result);
-      if (data.nodes) nodes = mergeNodes(data.nodes);
+      if (data.nodes) nodes = data.nodes;
       if (data.clinics) clinics = data.clinics;
-      if (data.orgEdges) orgEdges = data.orgEdges;
-      else orgEdges = OrgTree.resolveEdges(nodes, DEFAULT_EDGES);
-      await persistOrg();
-      renderOrgChart();
+      await saveState({ nodes, clinics, referrals: [], tasks: [], alerts: [] });
+      updateNodeNames();
       restoreClinicCards();
       alert('Imported successfully');
     } catch (err) { alert('Invalid JSON file'); }
@@ -616,8 +719,7 @@ async function resetData() {
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
 
-renderOrgChart();
-restoreClinicCards();
+// Start — load server data in background, chart is already visible
 init();
 </script>
 </body>

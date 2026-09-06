@@ -55,12 +55,13 @@ let data = load();
 app.get('/api/state', (req, res) => res.json({ success: true, data }));
 
 app.post('/api/state', (req, res) => {
-  const { nodes, clinics, referrals, tasks, alerts } = req.body;
+  const { nodes, clinics, referrals, tasks, alerts, orgEdges } = req.body;
   if (nodes) data.nodes = nodes;
   if (clinics) data.clinics = clinics;
   if (referrals) data.referrals = referrals;
   if (tasks) data.tasks = tasks;
   if (alerts) data.alerts = alerts;
+  if (orgEdges) data.orgEdges = orgEdges;
   save(data);
   res.json({ success: true });
 });
