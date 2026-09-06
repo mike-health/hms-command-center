@@ -292,7 +292,7 @@
                 <div class="teams-row" style="flex-wrap:wrap;max-width:220px;">
                   <div class="node node-manager-green" data-id="mily" onclick="openNode('mily')">
                     <div class="n-name">Mily Greenhalgh</div>
-                    <div class="n-title">Chula local mgr</div>
+                    <div class="n-title">Personnel &amp; Clinic Design / Chula Manager</div>
                   </div>
                   <div class="node node-assistant" data-id="bobby" onclick="openNode('bobby')">
                     <div class="n-name">Bobby Awadalla</div>
@@ -325,7 +325,7 @@
             <div class="clinic-card" onclick="editClinic('c-chula')">
               <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Chula Vista</div><div class="cc-city">Chula Vista, CA</div></div></div>
               <div class="cc-badges"><span class="badge badge-operational">Operational</span><span class="badge badge-independent">independent</span></div>
-              <div class="cc-notes">Flagship — Open. 826 Starboard St. RM: Rudy. Local manager Mily.</div>
+              <div class="cc-notes">Flagship — Open. 826 Starboard St. RM: Rudy. Mily: local mgr, personnel oversight, new-clinic design.</div>
               <div class="cc-assigned">Responsible: Rudy Alvarez</div>
             </div>
             <div class="clinic-card" onclick="editClinic('c-oceanside')">
@@ -398,7 +398,7 @@ const DEFAULT_NODES = {
   greene: { id: 'greene', name: 'Dr. David Erik Greene', title: '50% Clinic Partner', role: 'Partner (Do Not Contact)', description: '50% clinic partner lane only. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.' },
   rudy: { id: 'rudy', name: 'Rudy Alvarez', title: 'Regional Manager — all clinics · acting operator', role: 'Manager', description: 'Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed.' },
   melinna: { id: 'melinna', name: 'Melinna Leon', title: 'EA / Payroll / Recruiting', role: 'Admin', description: 'Executive assistant, ADP payroll, and recruiting for open clinic seats.' },
-  mily: { id: 'mily', name: 'Mily (Emilia) Greenhalgh', title: 'Chula Vista Local Manager', role: 'Manager', description: 'Local manager for flagship Chula Vista clinic. Reports to Rudy Alvarez (regional line).' },
+  mily: { id: 'mily', name: 'Mily (Emilia) Greenhalgh', title: 'Personnel & Clinic Design / Chula Manager', role: 'Manager', description: 'Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Rudy Alvarez (regional line).' },
   monica: { id: 'monica', name: 'Monica Hernandez', title: 'Salinas Floor Ops', role: 'Staff', description: 'Salinas / Cypress Coast floor operations. Training visits from regional team.' },
   deb: { id: 'deb', name: 'Deborah Dunton', title: 'Madras Hyperbaric Tech', role: 'Staff', description: 'Hyperbaric technician at Madras, OR clinic.' },
   stacey: { id: 'stacey', name: 'Stacey Vajrabukka', title: 'Marketing & Referrals', role: 'Manager', description: 'Marketing, referrals, and patient acquisition across the clinic network.' },
@@ -413,7 +413,7 @@ const DEFAULT_NODES = {
 
 let nodes = { ...DEFAULT_NODES };
 let clinics = [
-  { id:'c-chula', name:'Pacific Hyperbarics — Chula Vista', city:'Chula Vista, CA', status:'operational', type:'independent', notes:'Flagship — Open. 826 Starboard St, Chula Vista, CA 91914. RM: Rudy. Local manager Mily.', assignedTo:'rudy' },
+  { id:'c-chula', name:'Pacific Hyperbarics — Chula Vista', city:'Chula Vista, CA', status:'operational', type:'independent', notes:'Flagship — Open. 826 Starboard St, Chula Vista, CA 91914. RM: Rudy. Mily: local mgr, personnel oversight, new-clinic design.', assignedTo:'rudy' },
   { id:'c-oceanside', name:'Pacific Hyperbarics — Oceanside', city:'Oceanside, CA', status:'startup', type:'independent', notes:'TI / buildout. 1411 N Coast Hwy, Oceanside, CA 92054. Rudy standup. Operator + front desk open.', assignedTo:'rudy' },
   { id:'c-salinas', name:'Pacific Hyperbarics — Salinas / Cypress Coast', city:'Salinas, CA', status:'operational', type:'independent', notes:'Open. 610 E Romie Ln Unit B, Salinas, CA. Monica floor ops. RM: Rudy.', assignedTo:'rudy' },
   { id:'c-monterey', name:'Pacific Hyperbarics — Monterey', city:'Monterey, CA', status:'partly', type:'independent', notes:'Inactive / not active staffing. 70 Garden Ct Suite 100, Monterey, CA. Operator seat open.', assignedTo:'rudy' },
@@ -524,7 +524,7 @@ function getReporting(id) {
     ben: 'Reports to Michael Greenhalgh. TMS Billings CRM vendor — not HMS employee.',
     nikhil: 'Reports to Michael Greenhalgh. Web and product.',
     rudy: 'Reports to Michael Greenhalgh. Regional Manager for all 7 clinics (including Chula Vista). Acting operator covering open operator, front desk, and floor seats.',
-    mily: 'Reports to Rudy Alvarez (regional line). Local manager — Chula Vista flagship.',
+    mily: 'Reports to Rudy Alvarez (regional line). Personnel & Clinic Design / Chula Manager — local manager, personnel oversight, new-clinic design.',
     monica: 'Reports to Rudy Alvarez. Salinas / Cypress floor ops; training visits.',
     deb: 'Reports to Rudy Alvarez. Madras hyperbaric tech.',
     bobby: 'Reports to Rudy Alvarez. Laguna Skincredible partner — not HMS employee.',

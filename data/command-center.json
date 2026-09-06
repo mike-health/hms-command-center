@@ -37,9 +37,9 @@
     "mily": {
       "id": "mily",
       "name": "Mily (Emilia) Greenhalgh",
-      "title": "Chula Vista Local Manager",
+      "title": "Personnel & Clinic Design / Chula Manager",
       "role": "Manager",
-      "description": "Local manager for flagship Chula Vista clinic. Reports to Rudy Alvarez (regional line).",
+      "description": "Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Rudy Alvarez (regional line).",
       "active": true
     },
     "monica": {
@@ -132,7 +132,7 @@
       "lng": -117.0842,
       "status": "operational",
       "type": "independent",
-      "notes": "Flagship — Open. 826 Starboard St, Chula Vista, CA 91914. RM: Rudy. Local manager Mily.",
+      "notes": "Flagship — Open. 826 Starboard St, Chula Vista, CA 91914. RM: Rudy. Mily: local mgr, personnel oversight, new-clinic design.",
       "assignedTo": "rudy",
       "revenue": 0,
       "expenses": 0,
