@@ -49,3 +49,38 @@ describe('HEA-97 Phase 1 org tree data', () => {
     assert.equal(OrgTree.childrenOf(data.orgEdges, 'greene').length, 0);
   });
 });
+
+describe('HEA-97 Phase 2 inline text', () => {
+  it('applies name/title (and role/description) without touching parentId or edges', () => {
+    const next = OrgTree.applyNodeText(data.nodes.mily, {
+      name: '  Mily Greenhalgh  ',
+      title: 'Personnel & Clinic Design',
+      role: 'Manager',
+      parentId: 'rudy',
+      drag: true
+    });
+    assert.equal(next.name, 'Mily Greenhalgh');
+    assert.equal(next.title, 'Personnel & Clinic Design');
+    assert.equal(next.role, 'Manager');
+    assert.equal(next.parentId, 'greenhalgh');
+    assert.equal(next.drag, undefined);
+  });
+
+  it('refuses an empty name so boxes never go blank', () => {
+    const next = OrgTree.applyNodeText(data.nodes.hms, { name: '   ', title: 'Hyperbaric Management Services' });
+    assert.equal(next.name, 'HMS');
+    assert.equal(next.title, 'Hyperbaric Management Services');
+  });
+
+  it('renders edit affordances and delegated nav data, not drag or chatbox', () => {
+    const html = OrgTree.renderTree(data.nodes, data.orgEdges);
+    assert.match(html, /n-edit-btn/);
+    assert.match(html, /data-field="name"/);
+    assert.match(html, /data-field="title"/);
+    assert.match(html, /data-nav="org"/);
+    assert.match(html, /data-nav="greene"/);
+    assert.doesNotMatch(html, /onclick="navigatePm/);
+    assert.doesNotMatch(html, /draggable|ondrag|chatbox|data-llm/i);
+    assert.equal((html.match(/n-edit-btn/g) || []).length > 8, true);
+  });
+});

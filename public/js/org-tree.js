@@ -1,5 +1,6 @@
 /**
- * HMS org tree — Phase 1 data-driven layout (no drag / no chatbox patch).
+ * HMS org tree — data-driven layout (HEA-97).
+ * Phase 2: inline name/title text. No drag reparent / no chatbox patch.
  * Works in the browser (global OrgTree) and in Node tests (module.exports).
  */
 (function (root, factory) {
@@ -138,6 +139,28 @@
     return problems;
   }
 
+  var TEXT_FIELDS = { name: true, title: true, role: true, description: true };
+
+  function applyNodeText(node, patch) {
+    if (!node) return node;
+    var next = {};
+    Object.keys(node).forEach(function (k) { next[k] = node[k]; });
+    Object.keys(patch || {}).forEach(function (k) {
+      if (!TEXT_FIELDS[k]) return;
+      if (patch[k] == null) return;
+      next[k] = String(patch[k]).replace(/\s+/g, ' ').trim();
+    });
+    if (!next.name) next.name = node.name;
+    return next;
+  }
+
+  function editButton(node) {
+    return (
+      '<button type="button" class="n-edit-btn" data-edit="' + esc(node.id) + '"' +
+      ' aria-label="Edit ' + esc(node.name) + '" title="Edit name and title">✎</button>'
+    );
+  }
+
   function personBox(node, attrs) {
     if (!node) return '';
     var extra = attrs || {};
@@ -145,10 +168,11 @@
     var nav = extra.navigateId || node.navigateId || node.id;
     var home = extra.home ? ' data-home="' + esc(extra.home) + '"' : '';
     return (
-      '<div class="node ' + esc(cls) + '" data-id="' + esc(node.id) + '"' + home +
-      ' onclick="navigatePm(\'' + esc(nav) + '\')">' +
-      '<div class="n-name">' + esc(node.name) + '</div>' +
-      '<div class="n-title">' + esc(node.title) + '</div>' +
+      '<div class="node ' + esc(cls) + '" data-id="' + esc(node.id) +
+      '" data-nav="' + esc(nav) + '"' + home + '>' +
+      editButton(node) +
+      '<div class="n-name" data-field="name">' + esc(node.name) + '</div>' +
+      '<div class="n-title" data-field="title">' + esc(node.title) + '</div>' +
       '</div>'
     );
   }
@@ -183,8 +207,11 @@
         var note = n.opsNote ? '<div class="ops-note">' + esc(n.opsNote) + '</div>' : '';
         return (
           '<div class="mg-col"><div class="node-group">' +
-          '<div class="node-group-header" data-id="' + esc(n.id) + '" onclick="navigatePm(\'' + esc(n.navigateId || n.id) + '\')">' +
-          esc(n.name) + '</div>' +
+          '<div class="node-group-header" data-id="' + esc(n.id) + '" data-nav="' + esc(n.navigateId || n.id) + '">' +
+          editButton(n) +
+          '<div class="n-name" data-field="name">' + esc(n.name) + '</div>' +
+          '<div class="n-title" data-field="title">' + esc(n.title || '') + '</div>' +
+          '</div>' +
           '<div class="node-group-members">' + membersHtml + '</div>' +
           note +
           '</div></div>'
@@ -241,6 +268,7 @@
     founderPeers: founderPeers,
     subtreeColumns: subtreeColumns,
     assertHardRules: assertHardRules,
+    applyNodeText: applyNodeText,
     renderTree: renderTree
   };
 });
