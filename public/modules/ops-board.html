@@ -59,6 +59,7 @@
 </div>
 
 <script src="/js/app.js?v=4"></script>
+<script src="/js/ops-board-format.js"></script>
 <script>
 let cadence = 'Daily';
 let selectedOwners = new Set();
@@ -155,16 +156,6 @@ function statusAccent(status, statusType) {
   if (type === 'started' || s.includes('progress')) return 'progress';
   if (type === 'unstarted' || s.includes('todo') || type === 'backlog' || s.includes('backlog')) return 'todo';
   return 'todo';
-}
-
-function formatDue(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso + (iso.length === 10 ? 'T12:00:00' : ''));
-  const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const overdue = d < today;
-  return { label, overdue };
 }
 
 function metaPart(value, overdue) {
