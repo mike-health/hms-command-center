@@ -21,9 +21,9 @@
     "rudy": {
       "id": "rudy",
       "name": "Rudy Alvarez",
-      "title": "Regional Manager",
+      "title": "Regional Manager — all clinics · acting operator",
       "role": "Manager",
-      "description": "Regional ops for Salinas, Madras, Monterey, Laguna, Riverside, and Oceanside. Chula Vista excluded from RM plan (Mily runs local).",
+      "description": "Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed.",
       "active": true
     },
     "melinna": {
@@ -37,9 +37,9 @@
     "mily": {
       "id": "mily",
       "name": "Mily (Emilia) Greenhalgh",
-      "title": "Chula Vista Local Manager",
+      "title": "Personnel & Clinic Design / Chula Manager",
       "role": "Manager",
-      "description": "Local manager for flagship Chula Vista clinic.",
+      "description": "Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Rudy Alvarez (regional line).",
       "active": true
     },
     "monica": {
@@ -95,7 +95,7 @@
       "name": "Open Seat: Oceanside",
       "title": "Operator + Front Desk",
       "role": "Vacancy",
-      "description": "Oceanside operator and front desk — recruiting via Melinna.",
+      "description": "Oceanside operator and front desk — recruiting via Melinna. Rudy Alvarez acting operator until filled.",
       "active": true
     },
     "vacMonterey": {
@@ -103,7 +103,7 @@
       "name": "Open Seat: Monterey",
       "title": "Clinic Operator",
       "role": "Vacancy",
-      "description": "Monterey clinic operator — inactive staffing, seat open.",
+      "description": "Monterey clinic operator — inactive staffing, seat open. Rudy Alvarez acting operator until filled.",
       "active": true
     },
     "vacRiverside": {
@@ -111,7 +111,7 @@
       "name": "Open Seat: Riverside",
       "title": "Clinic Operator",
       "role": "Vacancy",
-      "description": "Riverside operator for TI / early buildout site.",
+      "description": "Riverside operator for TI / early buildout site. Rudy Alvarez acting operator until filled.",
       "active": true
     },
     "vacLaguna": {
@@ -119,7 +119,7 @@
       "name": "Open Seat: Laguna",
       "title": "Onsite Manager",
       "role": "Vacancy",
-      "description": "Laguna Beach onsite manager — thin staffing, recruiting.",
+      "description": "Laguna Beach onsite manager — thin staffing, recruiting. Rudy Alvarez acting operator covering gaps.",
       "active": true
     }
   },
@@ -132,8 +132,8 @@
       "lng": -117.0842,
       "status": "operational",
       "type": "independent",
-      "notes": "Flagship — Open. 826 Starboard St, Chula Vista, CA 91914. Local manager Mily.",
-      "assignedTo": "mily",
+      "notes": "Flagship — Open. 826 Starboard St, Chula Vista, CA 91914. RM: Rudy. Mily: local mgr, personnel oversight, new-clinic design.",
+      "assignedTo": "rudy",
       "revenue": 0,
       "expenses": 0,
       "patientsMonth": 0
@@ -160,8 +160,8 @@
       "lng": -121.6555,
       "status": "operational",
       "type": "independent",
-      "notes": "Open. 610 E Romie Ln Unit B, Salinas, CA. Monica floor ops.",
-      "assignedTo": "monica",
+      "notes": "Open. 610 E Romie Ln Unit B, Salinas, CA. Monica floor ops. RM: Rudy.",
+      "assignedTo": "rudy",
       "revenue": 0,
       "expenses": 0,
       "patientsMonth": 0
@@ -188,8 +188,8 @@
       "lng": -121.1295,
       "status": "operational",
       "type": "independent",
-      "notes": "Open. ADDRESS CONFLICT: app lists 83 NW K St; Deb/listing shows 83 SW K St — do not collapse; verify before mail/maps. Deb hyperbaric tech.",
-      "assignedTo": "deb",
+      "notes": "Open. ADDRESS CONFLICT: app lists 83 NW K St; Deb/listing shows 83 SW K St — do not collapse; verify before mail/maps. Deb hyperbaric tech. RM: Rudy.",
+      "assignedTo": "rudy",
       "revenue": 0,
       "expenses": 0,
       "patientsMonth": 0
