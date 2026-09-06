@@ -81,7 +81,6 @@ let cadence = 'Daily';
 let selectedOwners = new Set();
 let ownerLabels = [];
 let issues = [];
-let activeIssueId = null;
 
 async function loadBoard() {
   showStatus('status-text', 'saving', 'Loading');
@@ -237,7 +236,6 @@ function openIssue(row) {
   if (!id) return;
   const issue = issues.find((i) => i.id === id);
   if (!issue) return;
-  activeIssueId = id;
   document.getElementById('ops-drawer-id').textContent = issue.identifier || '';
   document.getElementById('ops-drawer-title').textContent = issue.title || '';
   document.getElementById('ops-drawer-body').innerHTML = renderDrawerBody(issue);
@@ -252,7 +250,6 @@ function openIssue(row) {
 function closeDrawer(e) {
   if (e && e.target !== e.currentTarget) return;
   document.getElementById('ops-drawer-overlay').hidden = true;
-  activeIssueId = null;
   document.body.style.overflow = '';
 }
 
