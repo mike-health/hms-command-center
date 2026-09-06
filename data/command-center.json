@@ -2,6 +2,14 @@
   "version": "1.0.0",
   "lastModified": "2026-09-06T03:15:00.000Z",
   "nodes": {
+    "hms": {
+      "id": "hms",
+      "name": "HMS",
+      "title": "Hyperbaric Management Services",
+      "role": "Organization",
+      "description": "Organization apex for Pacific Hyperbarics / HMS. Peer founding lanes: Dr. David Erik Greene (50% clinic partner — do not contact) and Michael Greenhalgh (Managing Director / owner-operator).",
+      "active": true
+    },
     "greenhalgh": {
       "id": "greenhalgh",
       "name": "Michael Greenhalgh",

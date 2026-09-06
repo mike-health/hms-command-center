@@ -132,7 +132,7 @@ app.get('/api/summary', (req, res) => {
 
 /* ===== STATIC FILES ===== */
 // Explicitly serve each HTML module page (works even if static middleware fails)
-const modulePages = ['index.html', 'modules/org-chart.html', 'modules/map.html', 'modules/referrals.html', 'modules/tasks.html', 'modules/ops-board.html', 'modules/reports.html'];
+const modulePages = ['index.html', 'modules/org-chart.html', 'modules/map.html', 'modules/referrals.html', 'modules/tasks.html', 'modules/ops-board.html', 'modules/reports.html', 'modules/pm-chart.html', 'modules/clinic-detail.html'];
 
 modulePages.forEach(page => {
   const filePath = path.join(PUBLIC_DIR, page);

@@ -55,8 +55,8 @@ function showStatus(elId, type, text) {
 function setActiveNav() {
   const path = window.location.pathname;
   let page = 'dashboard';
-  if (path.includes('org-chart')) page = 'org-chart';
-  else if (path.includes('map')) page = 'map';
+  if (path.includes('org-chart') || path.includes('pm-chart')) page = 'org-chart';
+  else if (path.includes('map') || path.includes('clinic-detail')) page = 'map';
   else if (path.includes('referrals')) page = 'referrals';
   else if (path.includes('ops-board')) page = 'ops-board';
   else if (path.includes('tasks')) page = 'tasks';

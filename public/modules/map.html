@@ -88,6 +88,8 @@ async function init() {
     document.getElementById('clinic-count').textContent = clinics.length;
     renderList();
     initMap();
+    const focusId = new URLSearchParams(window.location.search).get('clinic');
+    if (focusId) setTimeout(() => focusClinic(focusId), 300);
   } catch (e) {
     console.error('Map init error:', e);
     document.getElementById('clinic-list').innerHTML = `
@@ -106,7 +108,7 @@ function renderList() {
     return;
   }
   list.innerHTML = clinics.map(c => `
-    <div class="map-card" data-id="${esc(c.id)}" onclick="focusClinic('${esc(c.id)}')">
+    <div class="map-card" data-id="${esc(c.id)}" onclick="window.location.href='/modules/clinic-detail.html?clinic=${encodeURIComponent(c.id)}'">
       <div class="map-card-name">${esc(c.name)}</div>
       <div class="map-card-city">${esc(c.city)}</div>
       <div class="map-card-badges">
@@ -136,7 +138,7 @@ function initMap() {
     const marker = L.circleMarker([c.lat, c.lng], {
       radius: 10, fillColor: colors[c.status] || '#94a3b8', color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.85
     }).addTo(map);
-    marker.bindPopup(`<div class="map-popup"><h4>${esc(c.name)}</h4><p>${esc(c.city)}</p><div class="badge-row"><span class="badge badge-${c.status==='operational'?'green':c.status==='startup'?'blue':'amber'}">${esc(c.status)}</span><span class="badge badge-${c.type==='independent'?'purple':'gray'}">${esc(c.type)}</span></div></div>`);
+    marker.bindPopup(`<div class="map-popup"><h4>${esc(c.name)}</h4><p>${esc(c.city)}</p><div class="badge-row"><span class="badge badge-${c.status==='operational'?'green':c.status==='startup'?'blue':'amber'}">${esc(c.status)}</span><span class="badge badge-${c.type==='independent'?'purple':'gray'}">${esc(c.type)}</span></div><p style="margin-top:8px;"><a href="/modules/clinic-detail.html?clinic=${encodeURIComponent(c.id)}" style="color:#2563eb;font-size:12px;">View clinic detail →</a></p></div>`);
     marker.on('click', () => highlightCard(c.id));
     markers.push({ id: c.id, marker });
   });

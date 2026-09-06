@@ -26,7 +26,7 @@
 .oc-btn.red { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
 
 /* Chart */
-.chart { display: flex; justify-content: center; gap: 60px; margin-bottom: 40px; }
+.chart { display: flex; justify-content: center; margin-bottom: 40px; }
 .tree { display: flex; flex-direction: column; align-items: center; }
 
 /* Node boxes */
@@ -37,6 +37,15 @@
 .node-founder { background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); border: 2px solid #93c5fd; }
 .node-founder .n-name { color: #1e40af; font-size: 15px; font-weight: 700; }
 .node-founder .n-title { color: #3b82f6; font-size: 11px; font-weight: 600; margin-top: 2px; }
+
+.node-apex { background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%); border: 2px solid #3b82f6; min-width: 200px; }
+.node-apex .n-name { color: #fff; font-size: 18px; font-weight: 800; }
+.node-apex .n-title { color: #93c5fd; font-size: 11px; font-weight: 500; margin-top: 2px; }
+
+.founders-bar { width: 300px; }
+.founders-drops { width: 300px; }
+.founders-row { display: flex; gap: 48px; align-items: flex-start; justify-content: center; }
+.tree-apex { width: 100%; }
 
 .node-function { background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%); border: 2px solid #bfdbfe; }
 .node-function .n-name { color: #1e40af; font-size: 13px; font-weight: 600; }
@@ -200,112 +209,118 @@
         </div>
 
         <div class="chart">
-          <!-- GREENE PARTNER LANE (do not contact) -->
-          <div class="tree tree-left">
-            <div class="node node-function" data-id="greene" onclick="openNode('greene')">
-              <div class="n-name">Dr. David Erik Greene</div>
-              <div class="n-title">50% Clinic Partner</div>
-            </div>
-            <div class="ops-note">Partner lane — do not contact</div>
-          </div>
-
-          <!-- CONNECTOR BRACKET -->
-          <div class="bracket-wrap">
-            <svg width="60" height="60" viewBox="0 0 60 60">
-              <path class="bracket-line" d="M 0 10 Q 30 10, 30 30 T 60 30" />
-              <path class="bracket-line" d="M 0 50 Q 30 50, 30 30 T 60 30" />
-              <polygon points="55,27 60,30 55,33" fill="#93c5fd" opacity="0.35" />
-            </svg>
-          </div>
-
-          <!-- GREENHALGH / HMS OPS TREE -->
-          <div class="tree tree-right">
-            <div class="node node-founder" data-id="greenhalgh" onclick="openNode('greenhalgh')">
-              <div class="n-name">Michael Greenhalgh</div>
-              <div class="n-title">Managing Director</div>
+          <div class="tree tree-apex">
+            <!-- HMS APEX -->
+            <div class="node node-apex" data-id="hms" onclick="navigatePm('org')">
+              <div class="n-name">HMS</div>
+              <div class="n-title">Hyperbaric Management Services</div>
             </div>
             <div class="vline"></div>
-            <div class="hub-bar"></div>
-            <div class="hub-drops">
-              <div class="vline vline-purple" style="height:28px;"></div>
-              <div class="vline vline-purple" style="height:28px;"></div>
-              <div class="vline vline-gray" style="height:28px;"></div>
-              <div class="vline vline-gray" style="height:28px;"></div>
-              <div class="vline vline-orange" style="height:28px;"></div>
+            <div class="hub-bar founders-bar"></div>
+            <div class="hub-drops founders-drops">
+              <div class="vline"></div>
+              <div class="vline"></div>
             </div>
-            <div class="mgrs">
-              <!-- Melinna -->
-              <div class="mg-col">
-                <div class="node node-manager-purple" data-id="melinna" onclick="openNode('melinna')">
-                  <div class="n-name">Melinna Leon</div>
-                  <div class="n-title">EA / Payroll / Recruiting</div>
+            <div class="founders-row">
+              <!-- GREENE PARTNER LANE (do not contact) -->
+              <div class="tree tree-left">
+                <div class="node node-function" data-id="greene" onclick="navigatePm('greene')">
+                  <div class="n-name">Dr. David Erik Greene</div>
+                  <div class="n-title">50% Clinic Partner</div>
                 </div>
+                <div class="ops-note">Partner lane — do not contact</div>
               </div>
-              <!-- Mily — direct under Mike -->
-              <div class="mg-col">
-                <div class="node node-manager-green" data-id="mily" onclick="openNode('mily')">
-                  <div class="n-name">Mily (Emilia) Greenhalgh</div>
-                  <div class="n-title">Personnel &amp; Clinic Design / Chula Manager</div>
+
+              <!-- GREENHALGH / HMS OPS TREE -->
+              <div class="tree tree-right">
+                <div class="node node-founder" data-id="greenhalgh" onclick="navigatePm('greenhalgh')">
+                  <div class="n-name">Michael Greenhalgh</div>
+                  <div class="n-title">Managing Director</div>
                 </div>
-              </div>
-              <!-- Stacey + Nikhil (marketing function) -->
-              <div class="mg-col">
-                <div class="node node-manager-purple" data-id="stacey" onclick="openNode('stacey')">
-                  <div class="n-name">Stacey Vajrabukka</div>
-                  <div class="n-title">Marketing &amp; Referrals</div>
+                <div class="vline"></div>
+                <div class="hub-bar"></div>
+                <div class="hub-drops">
+                  <div class="vline vline-purple" style="height:28px;"></div>
+                  <div class="vline vline-purple" style="height:28px;"></div>
+                  <div class="vline vline-gray" style="height:28px;"></div>
+                  <div class="vline vline-gray" style="height:28px;"></div>
+                  <div class="vline vline-orange" style="height:28px;"></div>
                 </div>
-                <div class="vline vline-purple" style="height:20px;"></div>
-                <div class="node node-assistant" data-id="nikhil" onclick="openNode('nikhil')">
-                  <div class="n-name">Nikhil Narayan</div>
-                  <div class="n-title">Marketing — Web &amp; Digital</div>
+                <div class="mgrs">
+                  <!-- Melinna -->
+                  <div class="mg-col">
+                    <div class="node node-manager-purple" data-id="melinna" onclick="navigatePm('melinna')">
+                      <div class="n-name">Melinna Leon</div>
+                      <div class="n-title">EA / Payroll / Recruiting</div>
+                    </div>
+                  </div>
+                  <!-- Mily — direct under Mike -->
+                  <div class="mg-col">
+                    <div class="node node-manager-green" data-id="mily" onclick="navigatePm('mily')">
+                      <div class="n-name">Mily (Emilia) Greenhalgh</div>
+                      <div class="n-title">Personnel &amp; Clinic Design / Chula Manager</div>
+                    </div>
+                  </div>
+                  <!-- Stacey + Nikhil (marketing function) -->
+                  <div class="mg-col">
+                    <div class="node node-manager-purple" data-id="stacey" onclick="navigatePm('stacey')">
+                      <div class="n-name">Stacey Vajrabukka</div>
+                      <div class="n-title">Marketing &amp; Referrals</div>
+                    </div>
+                    <div class="vline vline-purple" style="height:20px;"></div>
+                    <div class="node node-assistant" data-id="nikhil" onclick="navigatePm('nikhil')">
+                      <div class="n-name">Nikhil Narayan</div>
+                      <div class="n-title">Marketing — Web &amp; Digital</div>
+                    </div>
+                    <div class="ops-note">With Rudy — marketing function</div>
+                  </div>
+                  <!-- Ben (vendor) -->
+                  <div class="mg-col">
+                    <div class="node node-assistant" data-id="ben" onclick="navigatePm('ben')">
+                      <div class="n-name">Ben Stark</div>
+                      <div class="n-title">TMS CRM (vendor)</div>
+                    </div>
+                  </div>
+                  <!-- Rudy + 7 clinic nodes -->
+                  <div class="mg-col">
+                    <div class="node node-manager-orange" data-id="rudy" onclick="navigatePm('rudy')">
+                      <div class="n-name">Rudy Alvarez</div>
+                      <div class="n-title">Regional Manager — all clinics · acting operator</div>
+                    </div>
+                    <div class="vline vline-gray" style="height:20px;"></div>
+                    <div class="teams-row" style="flex-wrap:wrap;max-width:280px;">
+                      <div class="node node-team" onclick="navigateClinic('c-chula')">
+                        <div class="n-name">Chula Vista</div>
+                        <div class="n-title">Clinic</div>
+                      </div>
+                      <div class="node node-team" onclick="navigateClinic('c-oceanside')">
+                        <div class="n-name">Oceanside</div>
+                        <div class="n-title">Clinic</div>
+                      </div>
+                      <div class="node node-team" onclick="navigateClinic('c-salinas')">
+                        <div class="n-name">Salinas</div>
+                        <div class="n-title">Clinic</div>
+                      </div>
+                      <div class="node node-team" onclick="navigateClinic('c-monterey')">
+                        <div class="n-name">Monterey</div>
+                        <div class="n-title">Clinic</div>
+                      </div>
+                      <div class="node node-team" onclick="navigateClinic('c-madras')">
+                        <div class="n-name">Madras</div>
+                        <div class="n-title">Clinic</div>
+                      </div>
+                      <div class="node node-team" onclick="navigateClinic('c-laguna')">
+                        <div class="n-name">Laguna</div>
+                        <div class="n-title">Clinic</div>
+                      </div>
+                      <div class="node node-team" onclick="navigateClinic('c-riverside')">
+                        <div class="n-name">Riverside</div>
+                        <div class="n-title">Clinic</div>
+                      </div>
+                    </div>
+                    <div class="ops-note">Staff &amp; open seats on clinic cards</div>
+                  </div>
                 </div>
-                <div class="ops-note">With Rudy — marketing function</div>
-              </div>
-              <!-- Ben (vendor) -->
-              <div class="mg-col">
-                <div class="node node-assistant" data-id="ben" onclick="openNode('ben')">
-                  <div class="n-name">Ben Stark</div>
-                  <div class="n-title">TMS CRM (vendor)</div>
-                </div>
-              </div>
-              <!-- Rudy + 7 clinic nodes -->
-              <div class="mg-col">
-                <div class="node node-manager-orange" data-id="rudy" onclick="openNode('rudy')">
-                  <div class="n-name">Rudy Alvarez</div>
-                  <div class="n-title">Regional Manager — all clinics · acting operator</div>
-                </div>
-                <div class="vline vline-gray" style="height:20px;"></div>
-                <div class="teams-row" style="flex-wrap:wrap;max-width:280px;">
-                  <div class="node node-team" onclick="editClinic('c-chula')">
-                    <div class="n-name">Chula Vista</div>
-                    <div class="n-title">Clinic</div>
-                  </div>
-                  <div class="node node-team" onclick="editClinic('c-oceanside')">
-                    <div class="n-name">Oceanside</div>
-                    <div class="n-title">Clinic</div>
-                  </div>
-                  <div class="node node-team" onclick="editClinic('c-salinas')">
-                    <div class="n-name">Salinas</div>
-                    <div class="n-title">Clinic</div>
-                  </div>
-                  <div class="node node-team" onclick="editClinic('c-monterey')">
-                    <div class="n-name">Monterey</div>
-                    <div class="n-title">Clinic</div>
-                  </div>
-                  <div class="node node-team" onclick="editClinic('c-madras')">
-                    <div class="n-name">Madras</div>
-                    <div class="n-title">Clinic</div>
-                  </div>
-                  <div class="node node-team" onclick="editClinic('c-laguna')">
-                    <div class="n-name">Laguna</div>
-                    <div class="n-title">Clinic</div>
-                  </div>
-                  <div class="node node-team" onclick="editClinic('c-riverside')">
-                    <div class="n-name">Riverside</div>
-                    <div class="n-title">Clinic</div>
-                  </div>
-                </div>
-                <div class="ops-note">Staff &amp; open seats on clinic cards</div>
               </div>
             </div>
           </div>
@@ -321,43 +336,43 @@
             </div>
           </div>
           <div class="clinic-grid" id="clinic-grid">
-            <div class="clinic-card" onclick="editClinic('c-chula')">
+            <div class="clinic-card" onclick="navigateClinic('c-chula')">
               <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Chula Vista</div><div class="cc-city">Chula Vista, CA</div></div></div>
               <div class="cc-badges"><span class="badge badge-operational">Operational</span><span class="badge badge-independent">independent</span></div>
               <div class="cc-notes">Flagship — Open. 826 Starboard St. RM: Rudy. Mily: local mgr, personnel oversight, new-clinic design.</div>
               <div class="cc-assigned">Responsible: Rudy Alvarez</div>
             </div>
-            <div class="clinic-card" onclick="editClinic('c-oceanside')">
+            <div class="clinic-card" onclick="navigateClinic('c-oceanside')">
               <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Oceanside</div><div class="cc-city">Oceanside, CA</div></div></div>
               <div class="cc-badges"><span class="badge badge-startup">Startup</span><span class="badge badge-independent">independent</span></div>
               <div class="cc-notes">TI / buildout. 1411 N Coast Hwy. Rudy standup.</div>
               <div class="cc-assigned">Responsible: Rudy Alvarez</div>
             </div>
-            <div class="clinic-card" onclick="editClinic('c-salinas')">
+            <div class="clinic-card" onclick="navigateClinic('c-salinas')">
               <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Salinas / Cypress Coast</div><div class="cc-city">Salinas, CA</div></div></div>
               <div class="cc-badges"><span class="badge badge-operational">Operational</span><span class="badge badge-independent">independent</span></div>
               <div class="cc-notes">Open. 610 E Romie Ln Unit B. Monica floor ops. RM: Rudy.</div>
               <div class="cc-assigned">Responsible: Rudy Alvarez</div>
             </div>
-            <div class="clinic-card" onclick="editClinic('c-monterey')">
+            <div class="clinic-card" onclick="navigateClinic('c-monterey')">
               <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Monterey</div><div class="cc-city">Monterey, CA</div></div></div>
               <div class="cc-badges"><span class="badge badge-partly">Partly Operational</span><span class="badge badge-independent">independent</span></div>
               <div class="cc-notes">Inactive / not active staffing. 70 Garden Ct Suite 100.</div>
               <div class="cc-assigned">Responsible: Rudy Alvarez</div>
             </div>
-            <div class="clinic-card" onclick="editClinic('c-madras')">
+            <div class="clinic-card" onclick="navigateClinic('c-madras')">
               <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Madras, OR</div><div class="cc-city">Madras, OR</div></div></div>
               <div class="cc-badges"><span class="badge badge-operational">Operational</span><span class="badge badge-independent">independent</span></div>
               <div class="cc-notes">Open. ADDRESS CONFLICT: 83 NW K St vs 83 SW K St — verify before mail/maps. Deb tech. RM: Rudy.</div>
               <div class="cc-assigned">Responsible: Rudy Alvarez</div>
             </div>
-            <div class="clinic-card" onclick="editClinic('c-laguna')">
+            <div class="clinic-card" onclick="navigateClinic('c-laguna')">
               <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Laguna Beach</div><div class="cc-city">Laguna Beach, CA</div></div></div>
               <div class="cc-badges"><span class="badge badge-partly">Partly Operational</span><span class="badge badge-partnered">partnered</span></div>
               <div class="cc-notes">Open / thin. 31655 Coast Hwy Suite B. Rudy ops; Bobby Skincredible partner.</div>
               <div class="cc-assigned">Responsible: Rudy Alvarez</div>
             </div>
-            <div class="clinic-card" onclick="editClinic('c-riverside')">
+            <div class="clinic-card" onclick="navigateClinic('c-riverside')">
               <div class="cc-header"><div><div class="cc-name">Pacific Hyperbarics — Riverside</div><div class="cc-city">Riverside, CA</div></div></div>
               <div class="cc-badges"><span class="badge badge-startup">Startup</span><span class="badge badge-independent">independent</span></div>
               <div class="cc-notes">TI / early buildout. 6939 Palm Ct.</div>
@@ -393,6 +408,7 @@
 <script>
 // Node data — pre-loaded for instant rendering
 const DEFAULT_NODES = {
+  hms: { id: 'hms', name: 'HMS', title: 'Hyperbaric Management Services', role: 'Organization', description: 'Organization apex for Pacific Hyperbarics / HMS. Peer founding lanes: Dr. David Erik Greene (50% clinic partner — do not contact) and Michael Greenhalgh (Managing Director / owner-operator).' },
   greenhalgh: { id: 'greenhalgh', name: 'Michael Greenhalgh', title: 'Managing Director', role: 'Owner-Operator', description: 'Owner-operator of Pacific Hyperbarics / HMS. Ultimate authority over clinic network operations and strategy.' },
   greene: { id: 'greene', name: 'Dr. David Erik Greene', title: '50% Clinic Partner', role: 'Partner (Do Not Contact)', description: '50% clinic partner lane only. Site selection, strategy, funding, and medical director responsibilities. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.' },
   rudy: { id: 'rudy', name: 'Rudy Alvarez', title: 'Regional Manager — all clinics · acting operator', role: 'Manager', description: 'Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed.' },
@@ -428,6 +444,14 @@ const STATUS_CLASSES = { operational: 'badge-operational', partly: 'badge-partly
 const TYPE_CLASSES = { independent: 'badge-independent', partnered: 'badge-partnered' };
 
 function nodeName(id) { return nodes[id]?.name || id; }
+
+function navigatePm(id) {
+  window.location.href = `/modules/pm-chart.html?id=${encodeURIComponent(id)}`;
+}
+
+function navigateClinic(clinicId) {
+  window.location.href = `/modules/clinic-detail.html?clinic=${encodeURIComponent(clinicId)}`;
+}
 
 function esc(s) {
   return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -467,7 +491,7 @@ function updateClinicCards() {
   const existing = Array.from(grid.querySelectorAll('.clinic-card:not(.add-clinic-card)'));
   clinics.forEach((c, i) => {
     if (existing[i]) {
-      existing[i].onclick = () => editClinic(c.id);
+      existing[i].onclick = () => navigateClinic(c.id);
       existing[i].querySelector('.cc-name').textContent = c.name;
       existing[i].querySelector('.cc-city').textContent = c.city;
       existing[i].querySelector('.cc-notes').textContent = c.notes;
@@ -516,8 +540,9 @@ function renderPanel() {
 
 function getReporting(id) {
   const h = {
-    greenhalgh: 'Managing Director / owner-operator. Direct reports: Greene (partner lane), Melinna, Mily, Stacey, Ben (vendor), Rudy (regional — all 7 clinics). Nikhil in marketing function under Stacey.',
-    greene: '50% clinic partner — do-not-contact lane. Site selection, strategy, funding, medical director. Not in HMS ops reporting chain.',
+    hms: 'Organization apex. Peer founding lanes under HMS: Dr. David Erik Greene (50% clinic partner — do not contact) and Michael Greenhalgh (Managing Director). All ops reporting flows through Mike\'s subtree.',
+    greenhalgh: 'Reports under HMS apex alongside Greene (partner lane). Direct reports: Melinna, Mily, Stacey, Ben (vendor), Rudy (regional — all 7 clinics). Nikhil in marketing function under Stacey.',
+    greene: 'Reports under HMS apex as 50% clinic partner — do-not-contact lane. Not under Mike. Site selection, strategy, funding, medical director. Not in HMS ops reporting chain.',
     melinna: 'Reports to Michael Greenhalgh. Owns EA, ADP payroll, and recruiting for open seats. No direct reports in org tree.',
     mily: 'Reports to Michael Greenhalgh. Personnel & Clinic Design / Chula Manager — local manager, personnel oversight, new-clinic design.',
     stacey: 'Reports to Michael Greenhalgh. Marketing and referrals. Nikhil reports into marketing function here; Rudy collaborates on marketing.',
@@ -592,7 +617,7 @@ function restoreClinicCards() {
 
 function renderClinicCardHTML(c) {
   const assigned = nodeName(c.assignedTo);
-  return `<div class="clinic-card" onclick="editClinic('${c.id}')">
+  return `<div class="clinic-card" onclick="navigateClinic('${c.id}')">
     <div class="cc-header"><div><div class="cc-name">${esc(c.name)}</div><div class="cc-city">${esc(c.city)}</div></div></div>
     <div class="cc-badges">
       <span class="badge ${STATUS_CLASSES[c.status] || 'badge-prospective'}">${STATUS_LABELS[c.status] || c.status}</span>
