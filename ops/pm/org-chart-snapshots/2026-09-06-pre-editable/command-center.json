@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastModified": "2026-09-06T15:20:00.000Z",
+  "lastModified": "2026-09-06T04:22:00.000Z",
   "nodes": {
     "hms": {
       "id": "hms",
@@ -8,12 +8,7 @@
       "title": "Hyperbaric Management Services",
       "role": "Organization",
       "description": "Organization apex for Pacific Hyperbarics / HMS. Peer founding lanes: Dr. David Erik Greene (50% clinic partner — do not contact) and Michael Greenhalgh (Managing Director / owner-operator).",
-      "active": true,
-      "parentId": null,
-      "treeRole": "apex",
-      "nodeClass": "node-apex",
-      "navigateId": "org",
-      "inTree": true
+      "active": true
     },
     "greenhalgh": {
       "id": "greenhalgh",
@@ -21,13 +16,7 @@
       "title": "Managing Director",
       "role": "Owner-Operator",
       "description": "Owner-operator of Pacific Hyperbarics / HMS. Ultimate authority over clinic network operations and strategy.",
-      "active": true,
-      "parentId": "hms",
-      "treeRole": "founder",
-      "nodeClass": "node-founder",
-      "lane": "greenhalgh",
-      "order": 2,
-      "inTree": true
+      "active": true
     },
     "greene": {
       "id": "greene",
@@ -35,14 +24,7 @@
       "title": "Medical Director · Site Selection · Strategy",
       "role": "Partner (Do Not Contact)",
       "description": "50% clinic partner lane only. Site selection, strategy, funding, and medical director responsibilities. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.",
-      "active": true,
-      "parentId": "hms",
-      "treeRole": "founder",
-      "nodeClass": "node-founder",
-      "lane": "greene",
-      "order": 1,
-      "opsNote": "Partner lane — do not contact",
-      "inTree": true
+      "active": true
     },
     "marketingOutreach": {
       "id": "marketingOutreach",
@@ -50,18 +32,8 @@
       "title": "All Clinics — Marketing & Patient Acquisition",
       "role": "Function",
       "description": "Cross-clinic marketing staffing group: Rudy Alvarez, Stacey Vajrabukka, and Nikhil Narayan. Jointly responsible for marketing outreach across all 7 Pacific Hyperbarics clinics.",
-      "members": [
-        "rudy",
-        "stacey",
-        "nikhil"
-      ],
-      "active": true,
-      "parentId": "greenhalgh",
-      "treeRole": "group",
-      "order": 3,
-      "vlineClass": "vline-gray",
-      "inTree": true,
-      "opsNote": "All 7 clinics — marketing & outreach"
+      "members": ["rudy", "stacey", "nikhil"],
+      "active": true
     },
     "rudy": {
       "id": "rudy",
@@ -70,27 +42,7 @@
       "role": "Manager",
       "description": "Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed. Multi-home: also in Marketing Outreach group with Stacey and Nikhil.",
       "multiHome": true,
-      "active": true,
-      "parentId": "greenhalgh",
-      "treeRole": "person",
-      "nodeClass": "node-manager-orange",
-      "order": 5,
-      "vlineClass": "vline-orange",
-      "home": "ops",
-      "inTree": true,
-      "opsNote": "Ops RM — see clinic cards below",
-      "edges": [
-        {
-          "from": "greenhalgh",
-          "to": "rudy",
-          "home": "ops"
-        },
-        {
-          "from": "marketingOutreach",
-          "to": "rudy",
-          "home": "marketing"
-        }
-      ]
+      "active": true
     },
     "melinna": {
       "id": "melinna",
@@ -98,13 +50,7 @@
       "title": "EA / Payroll / Recruiting",
       "role": "Admin",
       "description": "Executive assistant, ADP payroll, and recruiting for open clinic seats.",
-      "active": true,
-      "parentId": "greenhalgh",
-      "treeRole": "person",
-      "nodeClass": "node-manager-purple",
-      "order": 1,
-      "vlineClass": "vline-purple",
-      "inTree": true
+      "active": true
     },
     "mily": {
       "id": "mily",
@@ -112,13 +58,7 @@
       "title": "Personnel & Clinic Design / Chula Manager",
       "role": "Manager",
       "description": "Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Michael Greenhalgh.",
-      "active": true,
-      "parentId": "greenhalgh",
-      "treeRole": "person",
-      "nodeClass": "node-manager-green",
-      "order": 2,
-      "vlineClass": "vline-purple",
-      "inTree": true
+      "active": true
     },
     "monica": {
       "id": "monica",
@@ -126,9 +66,7 @@
       "title": "Salinas Floor Ops",
       "role": "Staff",
       "description": "Salinas / Cypress Coast floor operations. Training visits from regional team.",
-      "active": true,
-      "parentId": null,
-      "inTree": false
+      "active": true
     },
     "deb": {
       "id": "deb",
@@ -136,9 +74,7 @@
       "title": "Madras Hyperbaric Tech",
       "role": "Staff",
       "description": "Hyperbaric technician at Madras, OR clinic.",
-      "active": true,
-      "parentId": null,
-      "inTree": false
+      "active": true
     },
     "stacey": {
       "id": "stacey",
@@ -147,12 +83,7 @@
       "role": "Manager",
       "description": "Marketing, referrals, and patient acquisition across the clinic network. Member of Marketing Outreach group (with Rudy Alvarez and Nikhil Narayan) — responsible for all clinics.",
       "multiHome": true,
-      "active": true,
-      "parentId": "marketingOutreach",
-      "treeRole": "person",
-      "nodeClass": "node-manager-purple",
-      "home": "marketing",
-      "inTree": true
+      "active": true
     },
     "ben": {
       "id": "ben",
@@ -160,13 +91,7 @@
       "title": "TMS Billings CRM",
       "role": "Vendor",
       "description": "TMS Billings CRM vendor. Not an HMS employee.",
-      "active": true,
-      "parentId": "greenhalgh",
-      "treeRole": "person",
-      "nodeClass": "node-assistant",
-      "order": 4,
-      "vlineClass": "vline-gray",
-      "inTree": true
+      "active": true
     },
     "bobby": {
       "id": "bobby",
@@ -174,9 +99,7 @@
       "title": "Skincredible Partner",
       "role": "Partner (External)",
       "description": "Laguna Beach Skincredible partner. Not an HMS employee.",
-      "active": true,
-      "parentId": null,
-      "inTree": false
+      "active": true
     },
     "nikhil": {
       "id": "nikhil",
@@ -185,12 +108,7 @@
       "role": "Staff",
       "description": "Member of Marketing Outreach group with Stacey Vajrabukka and Rudy Alvarez — web presence, digital tools, referrals support, and patient acquisition across all clinics.",
       "multiHome": true,
-      "active": true,
-      "parentId": "marketingOutreach",
-      "treeRole": "person",
-      "nodeClass": "node-assistant",
-      "home": "marketing",
-      "inTree": true
+      "active": true
     },
     "vacOceanside": {
       "id": "vacOceanside",
@@ -198,9 +116,7 @@
       "title": "Operator + Front Desk",
       "role": "Vacancy",
       "description": "Oceanside operator and front desk — recruiting via Melinna. Rudy Alvarez acting operator until filled.",
-      "active": true,
-      "parentId": null,
-      "inTree": false
+      "active": true
     },
     "vacMonterey": {
       "id": "vacMonterey",
@@ -208,9 +124,7 @@
       "title": "Clinic Operator",
       "role": "Vacancy",
       "description": "Monterey clinic operator — inactive staffing, seat open. Rudy Alvarez acting operator until filled.",
-      "active": true,
-      "parentId": null,
-      "inTree": false
+      "active": true
     },
     "vacRiverside": {
       "id": "vacRiverside",
@@ -218,9 +132,7 @@
       "title": "Clinic Operator",
       "role": "Vacancy",
       "description": "Riverside operator for TI / early buildout site. Rudy Alvarez acting operator until filled.",
-      "active": true,
-      "parentId": null,
-      "inTree": false
+      "active": true
     },
     "vacLaguna": {
       "id": "vacLaguna",
@@ -228,9 +140,7 @@
       "title": "Onsite Manager",
       "role": "Vacancy",
       "description": "Laguna Beach onsite manager — thin staffing, recruiting. Rudy Alvarez acting operator covering gaps.",
-      "active": true,
-      "parentId": null,
-      "inTree": false
+      "active": true
     }
   },
   "clinics": [
@@ -394,67 +304,6 @@
       "message": "Madras address conflict: 83 NW K St vs 83 SW K St",
       "module": "map",
       "time": "2026-09-06T01:00:00Z"
-    }
-  ],
-  "orgEdges": [
-    {
-      "from": "hms",
-      "to": "greene",
-      "order": 1
-    },
-    {
-      "from": "hms",
-      "to": "greenhalgh",
-      "order": 2
-    },
-    {
-      "from": "greenhalgh",
-      "to": "melinna",
-      "order": 1,
-      "vlineClass": "vline-purple"
-    },
-    {
-      "from": "greenhalgh",
-      "to": "mily",
-      "order": 2,
-      "vlineClass": "vline-purple"
-    },
-    {
-      "from": "greenhalgh",
-      "to": "marketingOutreach",
-      "order": 3,
-      "vlineClass": "vline-gray"
-    },
-    {
-      "from": "greenhalgh",
-      "to": "ben",
-      "order": 4,
-      "vlineClass": "vline-gray"
-    },
-    {
-      "from": "greenhalgh",
-      "to": "rudy",
-      "order": 5,
-      "vlineClass": "vline-orange",
-      "home": "ops"
-    },
-    {
-      "from": "marketingOutreach",
-      "to": "rudy",
-      "home": "marketing",
-      "order": 1
-    },
-    {
-      "from": "marketingOutreach",
-      "to": "stacey",
-      "home": "marketing",
-      "order": 2
-    },
-    {
-      "from": "marketingOutreach",
-      "to": "nikhil",
-      "home": "marketing",
-      "order": 3
     }
   ]
 }
