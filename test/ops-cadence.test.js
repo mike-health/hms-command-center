@@ -21,6 +21,7 @@ describe('mapLinearIssue', () => {
         url: 'https://linear.app/healthi/issue/HEA-82',
         dueDate: null,
         state: { name: 'Backlog', type: 'backlog' },
+        description: 'Fix the door frame before install.',
         labels: {
           nodes: [
             { name: 'Daily', parent: { name: 'Cadence' } },
@@ -36,6 +37,7 @@ describe('mapLinearIssue', () => {
     assert.equal(mapped.status, 'Backlog');
     assert.equal(mapped.streamLabel, null);
     assert.equal(mapped.priority, null);
+    assert.equal(mapped.description, 'Fix the door frame before install.');
   });
 
   it('maps Stream label group and Linear priority', () => {
