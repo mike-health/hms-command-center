@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastModified": "2026-09-06T01:00:00.000Z",
+  "lastModified": "2026-09-06T03:15:00.000Z",
   "nodes": {
     "greenhalgh": {
       "id": "greenhalgh",
@@ -15,7 +15,7 @@
       "name": "Dr. David Erik Greene",
       "title": "50% Clinic Partner",
       "role": "Partner (Do Not Contact)",
-      "description": "50% clinic partner lane only. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.",
+      "description": "50% clinic partner lane only. Site selection, strategy, funding, and medical director responsibilities. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.",
       "active": true
     },
     "rudy": {
@@ -39,7 +39,7 @@
       "name": "Mily (Emilia) Greenhalgh",
       "title": "Personnel & Clinic Design / Chula Manager",
       "role": "Manager",
-      "description": "Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Rudy Alvarez (regional line).",
+      "description": "Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Michael Greenhalgh.",
       "active": true
     },
     "monica": {
@@ -85,9 +85,9 @@
     "nikhil": {
       "id": "nikhil",
       "name": "Nikhil Narayan",
-      "title": "Web / Product",
+      "title": "Marketing — Web & Digital",
       "role": "Staff",
-      "description": "Web and product development for HMS command center and digital tools.",
+      "description": "Works with Stacey Vajrabukka and Rudy Alvarez in the marketing function — web presence, digital tools, referrals support, and patient acquisition.",
       "active": true
     },
     "vacOceanside": {
