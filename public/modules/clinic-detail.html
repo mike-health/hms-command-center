@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clinic Detail — HMS Command</title>
+<link rel="stylesheet" href="/css/app.css?v=4">
+<style>
+.cd-wrap { max-width: 800px; margin: 0 auto; }
+.cd-back { font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 500; display: inline-block; margin-bottom: 12px; }
+.cd-back:hover { text-decoration: underline; }
+.cd-header { margin-bottom: 24px; }
+.cd-header h1 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 6px; }
+.cd-city { font-size: 14px; color: #64748b; }
+.cd-badges { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.cd-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+.cd-card h2 { font-size: 13px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 12px; }
+.cd-notes { font-size: 14px; color: #334155; line-height: 1.6; }
+.cd-meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.cd-meta-item label { display: block; font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; }
+.cd-meta-item span { font-size: 14px; color: #1e293b; font-weight: 500; }
+.cd-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.cd-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; text-decoration: none; transition: all 0.15s; }
+.cd-btn-primary { background: #2563eb; color: #fff; }
+.cd-btn-primary:hover { background: #1d4ed8; }
+.cd-btn-secondary { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+.cd-btn-secondary:hover { background: #e2e8f0; }
+.cd-empty { padding: 40px; text-align: center; color: #94a3b8; }
+.badge-operational { background: #dcfce7; color: #166534; }
+.badge-partly { background: #fef3c7; color: #92400e; }
+.badge-startup { background: #dbeafe; color: #1e40af; }
+.badge-prospective { background: #f1f5f9; color: #475569; }
+.badge-independent { background: #ede9fe; color: #6b21a8; }
+.badge-partnered { background: #fce7f3; color: #9d174d; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><h1>HMS Command</h1><div class="sub">Hyperbaric Management</div></div>
+    <nav class="nav">
+      <div class="nav-section"><div class="nav-section-title">Overview</div>
+        <a href="/" class="nav-item" data-page="dashboard"><span class="nav-icon">◈</span><span>Dashboard</span></a>
+      </div>
+      <div class="nav-section"><div class="nav-section-title">Operations</div>
+        <a href="/modules/org-chart.html" class="nav-item" data-page="org-chart"><span class="nav-icon">⚙</span><span>Org Chart</span></a>
+        <a href="/modules/map.html" class="nav-item active" data-page="map"><span class="nav-icon">◎</span><span>Clinic Map</span></a>
+        <a href="/modules/referrals.html" class="nav-item" data-page="referrals"><span class="nav-icon">⇄</span><span>Referrals</span></a>
+        <a href="/modules/tasks.html" class="nav-item" data-page="tasks"><span class="nav-icon">☰</span><span>Tasks</span></a>
+        <a href="/modules/ops-board.html" class="nav-item" data-page="ops-board"><span class="nav-icon">▦</span><span>Ops board</span></a>
+      </div>
+      <div class="nav-section"><div class="nav-section-title">Analytics</div>
+        <a href="/modules/reports.html" class="nav-item" data-page="reports"><span class="nav-icon">▤</span><span>Reports</span></a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">v1.0 · Auto-saving</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Clinic Detail</div>
+      <div class="topbar-actions">
+        <div class="status-pill"><span class="status-dot"></span><span id="status-text">Live</span></div>
+      </div>
+    </header>
+    <div class="content">
+      <div class="cd-wrap" id="cd-content">
+        <div class="loading" style="padding:40px;text-align:center;color:#94a3b8;">Loading clinic…</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js?v=4"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const clinicId = params.get('clinic');
+
+const STATUS_LABELS = { operational: 'Operational', partly: 'Partly Operational', startup: 'Startup', prospective: 'Prospective' };
+const STATUS_CLASSES = { operational: 'badge-operational', partly: 'badge-partly', startup: 'badge-startup', prospective: 'badge-prospective' };
+const TYPE_CLASSES = { independent: 'badge-independent', partnered: 'badge-partnered' };
+
+async function init() {
+  const el = document.getElementById('cd-content');
+  if (!clinicId) {
+    el.innerHTML = `<div class="cd-empty">No clinic specified.<br><br><a class="cd-back" href="/modules/org-chart.html">← Back to Org Chart</a></div>`;
+    return;
+  }
+
+  try {
+    const s = await loadState();
+    if (!s.success || !s.data) throw new Error('Failed to load state');
+    const { nodes, clinics, referrals, tasks } = s.data;
+    const clinic = clinics.find(c => c.id === clinicId);
+
+    if (!clinic) {
+      el.innerHTML = `<div class="cd-empty">Clinic not found: <strong>${esc(clinicId)}</strong><br><br><a class="cd-back" href="/modules/org-chart.html">← Back to Org Chart</a></div>`;
+      return;
+    }
+
+    const manager = nodes[clinic.assignedTo];
+    const clinicReferrals = referrals.filter(r => r.clinicId === clinicId);
+    const clinicTasks = tasks.filter(t => t.assignee === clinic.assignedTo && t.module === 'org-chart');
+
+    el.innerHTML = `
+      <a class="cd-back" href="/modules/org-chart.html">← Org Chart</a>
+      <div class="cd-header">
+        <h1>${esc(clinic.name)}</h1>
+        <div class="cd-city">${esc(clinic.city)}</div>
+        <div class="cd-badges">
+          <span class="badge ${STATUS_CLASSES[clinic.status] || 'badge-prospective'}">${STATUS_LABELS[clinic.status] || clinic.status}</span>
+          <span class="badge ${TYPE_CLASSES[clinic.type] || 'badge-independent'}">${esc(clinic.type)}</span>
+        </div>
+      </div>
+
+      <div class="cd-card">
+        <h2>Notes</h2>
+        <div class="cd-notes">${esc(clinic.notes || 'No notes.')}</div>
+      </div>
+
+      <div class="cd-card">
+        <h2>Details</h2>
+        <div class="cd-meta">
+          <div class="cd-meta-item"><label>Responsible</label><span>${esc(manager?.name || clinic.assignedTo)}</span></div>
+          <div class="cd-meta-item"><label>Status</label><span>${STATUS_LABELS[clinic.status] || clinic.status}</span></div>
+          <div class="cd-meta-item"><label>Type</label><span>${esc(clinic.type)}</span></div>
+          ${clinic.lat != null ? `<div class="cd-meta-item"><label>Coordinates</label><span>${clinic.lat}, ${clinic.lng}</span></div>` : ''}
+          <div class="cd-meta-item"><label>Patients / Month</label><span>${clinic.patientsMonth || 0}</span></div>
+          <div class="cd-meta-item"><label>Revenue</label><span>$${(clinic.revenue || 0).toLocaleString()}</span></div>
+        </div>
+        <div class="cd-actions">
+          <a class="cd-btn cd-btn-primary" href="/modules/map.html?clinic=${encodeURIComponent(clinicId)}">View on Map</a>
+          ${manager ? `<a class="cd-btn cd-btn-secondary" href="/modules/pm-chart.html?id=${encodeURIComponent(clinic.assignedTo)}">RM PM Chart →</a>` : ''}
+        </div>
+      </div>
+
+      ${clinicReferrals.length ? `
+      <div class="cd-card">
+        <h2>Referrals (${clinicReferrals.length})</h2>
+        <table class="data-table" style="width:100%;font-size:13px;">
+          <thead><tr><th>Patient</th><th>Source</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody>${clinicReferrals.map(r => `
+            <tr><td>${esc(r.patientName)}</td><td>${esc(r.source)}</td><td>${esc(r.status)}</td><td>${esc(r.date)}</td></tr>
+          `).join('')}</tbody>
+        </table>
+      </div>` : ''}
+
+      ${clinicTasks.length ? `
+      <div class="cd-card">
+        <h2>Related Tasks</h2>
+        <ul style="margin:0;padding-left:18px;font-size:13px;color:#334155;line-height:1.8;">
+          ${clinicTasks.map(t => `<li>${esc(t.title)} <span style="color:#94a3b8;">(${esc(t.status)})</span></li>`).join('')}
+        </ul>
+      </div>` : ''}
+    `;
+
+    document.title = `${clinic.name} — HMS Command`;
+  } catch (e) {
+    el.innerHTML = `<div class="cd-empty">Failed to load clinic: ${esc(e.message)}<br><br><a class="cd-back" href="/modules/org-chart.html">← Back to Org Chart</a></div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

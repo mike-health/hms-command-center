@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM Chart — HMS Command</title>
+<link rel="stylesheet" href="/css/app.css?v=4">
+<style>
+.pm-wrap { max-width: 900px; margin: 0 auto; }
+.pm-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.pm-header h1 { font-size: 22px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+.pm-subtitle { font-size: 13px; color: #64748b; }
+.pm-back { font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 500; }
+.pm-back:hover { text-decoration: underline; }
+.pm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.pm-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; }
+.pm-card h3 { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 10px; }
+.pm-stat { font-size: 28px; font-weight: 700; color: #1e293b; }
+.pm-stat-label { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.pm-section { margin-bottom: 28px; }
+.pm-section h2 { font-size: 15px; font-weight: 600; color: #0f172a; margin: 0 0 12px; }
+.pm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pm-table th { text-align: left; padding: 8px 10px; background: #f8fafc; color: #64748b; font-size: 11px; font-weight: 600; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
+.pm-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+.pm-empty { padding: 24px; text-align: center; color: #94a3b8; font-size: 13px; background: #f8fafc; border-radius: 8px; }
+.pm-clinic-list { display: flex; flex-direction: column; gap: 8px; }
+.pm-clinic-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+.pm-clinic-item a { font-size: 13px; font-weight: 500; color: #2563eb; text-decoration: none; }
+.pm-clinic-item a:hover { text-decoration: underline; }
+.badge-priority-high { background: #fef2f2; color: #dc2626; }
+.badge-priority-medium { background: #fef3c7; color: #92400e; }
+.badge-priority-low { background: #f1f5f9; color: #475569; }
+.badge-status-in-progress { background: #dbeafe; color: #1e40af; }
+.badge-status-not-started { background: #f1f5f9; color: #475569; }
+.badge-status-completed { background: #dcfce7; color: #166534; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><h1>HMS Command</h1><div class="sub">Hyperbaric Management</div></div>
+    <nav class="nav">
+      <div class="nav-section"><div class="nav-section-title">Overview</div>
+        <a href="/" class="nav-item" data-page="dashboard"><span class="nav-icon">◈</span><span>Dashboard</span></a>
+      </div>
+      <div class="nav-section"><div class="nav-section-title">Operations</div>
+        <a href="/modules/org-chart.html" class="nav-item active" data-page="org-chart"><span class="nav-icon">⚙</span><span>Org Chart</span></a>
+        <a href="/modules/map.html" class="nav-item" data-page="map"><span class="nav-icon">◎</span><span>Clinic Map</span></a>
+        <a href="/modules/referrals.html" class="nav-item" data-page="referrals"><span class="nav-icon">⇄</span><span>Referrals</span></a>
+        <a href="/modules/tasks.html" class="nav-item" data-page="tasks"><span class="nav-icon">☰</span><span>Tasks</span></a>
+        <a href="/modules/ops-board.html" class="nav-item" data-page="ops-board"><span class="nav-icon">▦</span><span>Ops board</span></a>
+      </div>
+      <div class="nav-section"><div class="nav-section-title">Analytics</div>
+        <a href="/modules/reports.html" class="nav-item" data-page="reports"><span class="nav-icon">▤</span><span>Reports</span></a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">v1.0 · Auto-saving</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">PM Chart</div>
+      <div class="topbar-actions">
+        <div class="status-pill"><span class="status-dot"></span><span id="status-text">Live</span></div>
+      </div>
+    </header>
+    <div class="content">
+      <div class="pm-wrap" id="pm-content">
+        <div class="loading" style="padding:40px;text-align:center;color:#94a3b8;">Loading PM chart…</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js?v=4"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const viewId = params.get('id') || 'org';
+
+function nodeName(nodes, id) { return nodes[id]?.name || id; }
+
+function clinicLink(id) {
+  return `/modules/clinic-detail.html?clinic=${encodeURIComponent(id)}`;
+}
+
+async function init() {
+  const el = document.getElementById('pm-content');
+  try {
+    const s = await loadState();
+    if (!s.success || !s.data) throw new Error('Failed to load state');
+    const { nodes, clinics, tasks, referrals, alerts } = s.data;
+    const isOrg = viewId === 'org';
+    const node = isOrg ? nodes.hms : nodes[viewId];
+    const isMarketingOutreach = viewId === 'marketingOutreach';
+    const outreachMembers = (nodes.marketingOutreach && nodes.marketingOutreach.members) || ['rudy', 'stacey', 'nikhil'];
+
+    if (!isOrg && !node) {
+      el.innerHTML = `<div class="pm-empty">Person not found: <strong>${esc(viewId)}</strong><br><br><a class="pm-back" href="/modules/org-chart.html">← Back to Org Chart</a></div>`;
+      return;
+    }
+
+    const title = isOrg ? 'HMS — Whole Organization' : node.name;
+    const subtitle = isOrg ? 'Hyperbaric Management Services — all clinics & personnel' : `${node.title} · ${node.role}`;
+
+    let myTasks, myClinics, myReferrals;
+    if (isOrg) {
+      myTasks = tasks;
+      myClinics = clinics;
+      myReferrals = referrals;
+    } else if (isMarketingOutreach) {
+      myTasks = tasks.filter(t => outreachMembers.includes(t.assignee));
+      myClinics = clinics;
+      myReferrals = referrals;
+    } else {
+      myTasks = tasks.filter(t => t.assignee === viewId);
+      myClinics = clinics.filter(c => c.assignedTo === viewId);
+      myReferrals = referrals.filter(r => myClinics.some(c => c.id === r.clinicId));
+    }
+    const myClinicIds = new Set(myClinics.map(c => c.id));
+    const myAlerts = isOrg ? alerts : alerts.filter(a => {
+      if (a.module === 'org-chart' && viewId === 'greenhalgh') return true;
+      return myTasks.some(t => t.module === a.module);
+    });
+
+    const openTasks = myTasks.filter(t => t.status !== 'completed');
+    const highPriority = myTasks.filter(t => t.priority === 'high' && t.status !== 'completed');
+
+    el.innerHTML = `
+      <div class="pm-header">
+        <div>
+          <a class="pm-back" href="/modules/org-chart.html">← Org Chart</a>
+          <h1>${esc(title)}</h1>
+          <div class="pm-subtitle">${esc(subtitle)}</div>
+          ${!isOrg && node.description ? `<div class="pm-subtitle" style="margin-top:8px;max-width:600px;">${esc(node.description)}</div>` : ''}
+        </div>
+      </div>
+
+      <div class="pm-grid">
+        <div class="pm-card"><h3>Open Tasks</h3><div class="pm-stat">${openTasks.length}</div><div class="pm-stat-label">of ${myTasks.length} total</div></div>
+        <div class="pm-card"><h3>High Priority</h3><div class="pm-stat">${highPriority.length}</div><div class="pm-stat-label">needs attention</div></div>
+        <div class="pm-card"><h3>Clinics</h3><div class="pm-stat">${myClinics.length}</div><div class="pm-stat-label">${isOrg || isMarketingOutreach ? 'network-wide' : 'assigned'}</div></div>
+        <div class="pm-card"><h3>Referrals</h3><div class="pm-stat">${myReferrals.length}</div><div class="pm-stat-label">linked</div></div>
+      </div>
+
+      <div class="pm-section">
+        <h2>Tasks</h2>
+        ${myTasks.length ? `
+          <table class="pm-table">
+            <thead><tr><th>Task</th><th>Due</th><th>Status</th><th>Priority</th></tr></thead>
+            <tbody>${myTasks.map(t => `
+              <tr>
+                <td>${esc(t.title)}</td>
+                <td>${esc(t.due || '—')}</td>
+                <td><span class="badge badge-status-${(t.status||'').replace(/\s/g,'-')}">${esc(t.status)}</span></td>
+                <td><span class="badge badge-priority-${t.priority||'low'}">${esc(t.priority)}</span></td>
+              </tr>`).join('')}
+            </tbody>
+          </table>` : '<div class="pm-empty">No tasks assigned.</div>'}
+      </div>
+
+      ${myClinics.length ? `
+      <div class="pm-section">
+        <h2>Clinics</h2>
+        <div class="pm-clinic-list">${myClinics.map(c => `
+          <div class="pm-clinic-item">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#1e293b;">${esc(c.name)}</div>
+              <div style="font-size:11px;color:#64748b;">${esc(c.city)} · ${esc(c.status)}</div>
+            </div>
+            <a href="${clinicLink(c.id)}">View clinic →</a>
+          </div>`).join('')}
+        </div>
+      </div>` : ''}
+
+      ${myAlerts.length ? `
+      <div class="pm-section">
+        <h2>Alerts</h2>
+        <div class="pm-clinic-list">${myAlerts.map(a => `
+          <div class="pm-clinic-item">
+            <div style="font-size:13px;color:#334155;"><span class="badge badge-${a.type==='urgent'?'red':a.type==='warning'?'amber':'blue'}" style="margin-right:6px;">${esc(a.type)}</span>${esc(a.message)}</div>
+          </div>`).join('')}
+        </div>
+      </div>` : ''}
+    `;
+
+    document.title = `PM Chart — ${title} — HMS Command`;
+  } catch (e) {
+    el.innerHTML = `<div class="pm-empty">Failed to load PM chart: ${esc(e.message)}<br><br><a class="pm-back" href="/modules/org-chart.html">← Back to Org Chart</a></div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
