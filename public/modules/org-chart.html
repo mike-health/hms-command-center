@@ -85,6 +85,12 @@
 .mg-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
 .teams-row { display: flex; gap: 10px; justify-content: center; margin-top: 0; }
 
+.node-group { border: 2px dashed #c4b5fd; border-radius: 12px; padding: 10px 12px 12px; background: #faf5ff; min-width: 170px; }
+.node-group-header { font-size: 10px; font-weight: 700; color: #6b21a8; text-transform: uppercase; letter-spacing: 0.4px; text-align: center; margin-bottom: 8px; cursor: pointer; padding: 4px 6px; border-radius: 4px; }
+.node-group-header:hover { color: #7c3aed; background: #f3e8ff; }
+.node-group-members { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.node-group-members .node { min-width: 140px; max-width: 170px; padding: 10px 12px; }
+
 .bracket-wrap { position: relative; width: 60px; height: 60px; }
 .bracket-line { stroke: #93c5fd; stroke-width: 1.5; fill: none; stroke-dasharray: 4 4; opacity: 0.35; }
 
@@ -261,18 +267,26 @@
                       <div class="n-title">Personnel &amp; Clinic Design / Chula Manager</div>
                     </div>
                   </div>
-                  <!-- Stacey + Nikhil (marketing function) -->
+                  <!-- Marketing Outreach — Rudy + Stacey + Nikhil (multi-home; all clinics) -->
                   <div class="mg-col">
-                    <div class="node node-manager-purple" data-id="stacey" onclick="navigatePm('stacey')">
-                      <div class="n-name">Stacey Vajrabukka</div>
-                      <div class="n-title">Marketing &amp; Referrals</div>
+                    <div class="node-group">
+                      <div class="node-group-header" data-id="marketingOutreach" onclick="navigatePm('marketingOutreach')">Marketing Outreach</div>
+                      <div class="node-group-members">
+                        <div class="node node-manager-orange" data-id="rudy" data-home="marketing" onclick="navigatePm('rudy')">
+                          <div class="n-name">Rudy Alvarez</div>
+                          <div class="n-title">Regional Manager — all clinics · acting operator</div>
+                        </div>
+                        <div class="node node-manager-purple" data-id="stacey" data-home="marketing" onclick="navigatePm('stacey')">
+                          <div class="n-name">Stacey Vajrabukka</div>
+                          <div class="n-title">Marketing &amp; Referrals</div>
+                        </div>
+                        <div class="node node-assistant" data-id="nikhil" data-home="marketing" onclick="navigatePm('nikhil')">
+                          <div class="n-name">Nikhil Narayan</div>
+                          <div class="n-title">Marketing — Web &amp; Digital</div>
+                        </div>
+                      </div>
+                      <div class="ops-note">All 7 clinics — marketing &amp; outreach</div>
                     </div>
-                    <div class="vline vline-purple" style="height:20px;"></div>
-                    <div class="node node-assistant" data-id="nikhil" onclick="navigatePm('nikhil')">
-                      <div class="n-name">Nikhil Narayan</div>
-                      <div class="n-title">Marketing — Web &amp; Digital</div>
-                    </div>
-                    <div class="ops-note">With Rudy — marketing function</div>
                   </div>
                   <!-- Ben (vendor) -->
                   <div class="mg-col">
@@ -281,44 +295,13 @@
                       <div class="n-title">TMS CRM (vendor)</div>
                     </div>
                   </div>
-                  <!-- Rudy + 7 clinic nodes -->
+                  <!-- Rudy RM — multi-home ops lane (no clinic tree children) -->
                   <div class="mg-col">
-                    <div class="node node-manager-orange" data-id="rudy" onclick="navigatePm('rudy')">
+                    <div class="node node-manager-orange" data-id="rudy" data-home="ops" onclick="navigatePm('rudy')">
                       <div class="n-name">Rudy Alvarez</div>
                       <div class="n-title">Regional Manager — all clinics · acting operator</div>
                     </div>
-                    <div class="vline vline-gray" style="height:20px;"></div>
-                    <div class="teams-row" style="flex-wrap:wrap;max-width:280px;">
-                      <div class="node node-team" onclick="navigateClinic('c-chula')">
-                        <div class="n-name">Chula Vista</div>
-                        <div class="n-title">Clinic</div>
-                      </div>
-                      <div class="node node-team" onclick="navigateClinic('c-oceanside')">
-                        <div class="n-name">Oceanside</div>
-                        <div class="n-title">Clinic</div>
-                      </div>
-                      <div class="node node-team" onclick="navigateClinic('c-salinas')">
-                        <div class="n-name">Salinas</div>
-                        <div class="n-title">Clinic</div>
-                      </div>
-                      <div class="node node-team" onclick="navigateClinic('c-monterey')">
-                        <div class="n-name">Monterey</div>
-                        <div class="n-title">Clinic</div>
-                      </div>
-                      <div class="node node-team" onclick="navigateClinic('c-madras')">
-                        <div class="n-name">Madras</div>
-                        <div class="n-title">Clinic</div>
-                      </div>
-                      <div class="node node-team" onclick="navigateClinic('c-laguna')">
-                        <div class="n-name">Laguna</div>
-                        <div class="n-title">Clinic</div>
-                      </div>
-                      <div class="node node-team" onclick="navigateClinic('c-riverside')">
-                        <div class="n-name">Riverside</div>
-                        <div class="n-title">Clinic</div>
-                      </div>
-                    </div>
-                    <div class="ops-note">Staff &amp; open seats on clinic cards</div>
+                    <div class="ops-note">Ops RM — see clinic cards below</div>
                   </div>
                 </div>
               </div>
@@ -409,17 +392,18 @@
 // Node data — pre-loaded for instant rendering
 const DEFAULT_NODES = {
   hms: { id: 'hms', name: 'HMS', title: 'Hyperbaric Management Services', role: 'Organization', description: 'Organization apex for Pacific Hyperbarics / HMS. Peer founding lanes: Dr. David Erik Greene (50% clinic partner — do not contact) and Michael Greenhalgh (Managing Director / owner-operator).' },
+  marketingOutreach: { id: 'marketingOutreach', name: 'Marketing Outreach', title: 'All Clinics — Marketing & Patient Acquisition', role: 'Function', description: 'Cross-clinic marketing staffing group: Rudy Alvarez, Stacey Vajrabukka, and Nikhil Narayan. Jointly responsible for marketing outreach across all 7 Pacific Hyperbarics clinics.', members: ['rudy', 'stacey', 'nikhil'] },
   greenhalgh: { id: 'greenhalgh', name: 'Michael Greenhalgh', title: 'Managing Director', role: 'Owner-Operator', description: 'Owner-operator of Pacific Hyperbarics / HMS. Ultimate authority over clinic network operations and strategy.' },
   greene: { id: 'greene', name: 'Dr. David Erik Greene', title: '50% Clinic Partner', role: 'Partner (Do Not Contact)', description: '50% clinic partner lane only. Site selection, strategy, funding, and medical director responsibilities. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.' },
-  rudy: { id: 'rudy', name: 'Rudy Alvarez', title: 'Regional Manager — all clinics · acting operator', role: 'Manager', description: 'Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed.' },
+  rudy: { id: 'rudy', name: 'Rudy Alvarez', title: 'Regional Manager — all clinics · acting operator', role: 'Manager', description: 'Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed. Multi-home: also in Marketing Outreach group with Stacey and Nikhil.', multiHome: true },
   melinna: { id: 'melinna', name: 'Melinna Leon', title: 'EA / Payroll / Recruiting', role: 'Admin', description: 'Executive assistant, ADP payroll, and recruiting for open clinic seats.' },
   mily: { id: 'mily', name: 'Mily (Emilia) Greenhalgh', title: 'Personnel & Clinic Design / Chula Manager', role: 'Manager', description: 'Chula Vista local manager. Personnel oversight across the network. Leads new-clinic design. Reports to Michael Greenhalgh.' },
   monica: { id: 'monica', name: 'Monica Hernandez', title: 'Salinas Floor Ops', role: 'Staff', description: 'Salinas / Cypress Coast floor operations. Training visits from regional team.' },
   deb: { id: 'deb', name: 'Deborah Dunton', title: 'Madras Hyperbaric Tech', role: 'Staff', description: 'Hyperbaric technician at Madras, OR clinic.' },
-  stacey: { id: 'stacey', name: 'Stacey Vajrabukka', title: 'Marketing & Referrals', role: 'Manager', description: 'Marketing, referrals, and patient acquisition across the clinic network.' },
+  stacey: { id: 'stacey', name: 'Stacey Vajrabukka', title: 'Marketing & Referrals', role: 'Manager', description: 'Marketing, referrals, and patient acquisition across the clinic network. Member of Marketing Outreach group (with Rudy Alvarez and Nikhil Narayan) — responsible for all clinics.', multiHome: true },
   ben: { id: 'ben', name: 'Ben Stark', title: 'TMS Billings CRM', role: 'Vendor', description: 'TMS Billings CRM vendor. Not an HMS employee.' },
   bobby: { id: 'bobby', name: 'Bobby Awadalla', title: 'Skincredible Partner', role: 'Partner (External)', description: 'Laguna Beach Skincredible partner. Not an HMS employee.' },
-  nikhil: { id: 'nikhil', name: 'Nikhil Narayan', title: 'Marketing — Web & Digital', role: 'Staff', description: 'Works with Stacey Vajrabukka and Rudy Alvarez in the marketing function — web presence, digital tools, referrals support, and patient acquisition.' },
+  nikhil: { id: 'nikhil', name: 'Nikhil Narayan', title: 'Marketing — Web & Digital', role: 'Staff', description: 'Member of Marketing Outreach group with Stacey Vajrabukka and Rudy Alvarez — web presence, digital tools, referrals support, and patient acquisition across all clinics.', multiHome: true },
   vacOceanside: { id: 'vacOceanside', name: 'Open Seat: Oceanside', title: 'Operator + Front Desk', role: 'Vacancy', description: 'Oceanside operator and front desk — recruiting via Melinna. Rudy Alvarez acting operator until filled.' },
   vacMonterey: { id: 'vacMonterey', name: 'Open Seat: Monterey', title: 'Clinic Operator', role: 'Vacancy', description: 'Monterey clinic operator — inactive staffing, seat open. Rudy Alvarez acting operator until filled.' },
   vacRiverside: { id: 'vacRiverside', name: 'Open Seat: Riverside', title: 'Clinic Operator', role: 'Vacancy', description: 'Riverside operator for TI / early buildout site. Rudy Alvarez acting operator until filled.' },
@@ -474,13 +458,17 @@ async function init() {
 }
 
 function updateNodeNames() {
-  document.querySelectorAll('.node').forEach(el => {
+  // Multi-home OK: same data-id may appear in multiple boxes; all instances update together.
+  document.querySelectorAll('.node, .node-group-header').forEach(el => {
     const id = el.dataset.id;
     if (!id || !nodes[id]) return;
     const nameEl = el.querySelector('.n-name');
     const titleEl = el.querySelector('.n-title');
     if (nameEl) nameEl.textContent = nodes[id].name;
     if (titleEl) titleEl.textContent = nodes[id].title;
+    if (el.classList.contains('node-group-header') && !nameEl) {
+      el.textContent = nodes[id].name;
+    }
   });
 }
 
@@ -541,14 +529,15 @@ function renderPanel() {
 function getReporting(id) {
   const h = {
     hms: 'Organization apex. Peer founding lanes under HMS: Dr. David Erik Greene (50% clinic partner — do not contact) and Michael Greenhalgh (Managing Director). All ops reporting flows through Mike\'s subtree.',
-    greenhalgh: 'Reports under HMS apex alongside Greene (partner lane). Direct reports: Melinna, Mily, Stacey, Ben (vendor), Rudy (regional — all 7 clinics). Nikhil in marketing function under Stacey.',
+    greenhalgh: 'Reports under HMS apex alongside Greene (partner lane). Direct reports: Melinna, Mily, Marketing Outreach (Rudy + Stacey + Nikhil), Ben (vendor), Rudy RM (ops lane — multi-home).',
     greene: 'Reports under HMS apex as 50% clinic partner — do-not-contact lane. Not under Mike. Site selection, strategy, funding, medical director. Not in HMS ops reporting chain.',
+    marketingOutreach: 'Marketing staffing group under Michael Greenhalgh. Members: Rudy Alvarez, Stacey Vajrabukka, Nikhil Narayan. Jointly responsible for marketing outreach across all 7 clinics. Rudy is multi-homed (also in ops RM lane).',
     melinna: 'Reports to Michael Greenhalgh. Owns EA, ADP payroll, and recruiting for open seats. No direct reports in org tree.',
     mily: 'Reports to Michael Greenhalgh. Personnel & Clinic Design / Chula Manager — local manager, personnel oversight, new-clinic design.',
-    stacey: 'Reports to Michael Greenhalgh. Marketing and referrals. Nikhil reports into marketing function here; Rudy collaborates on marketing.',
+    stacey: 'Reports to Michael Greenhalgh via Marketing Outreach group. Marketing and referrals across all clinics. Multi-home in Marketing Outreach box with Rudy and Nikhil.',
     ben: 'Reports to Michael Greenhalgh. TMS Billings CRM vendor — not HMS employee.',
-    nikhil: 'Reports to Stacey Vajrabukka (marketing function). Works with Stacey and Rudy Alvarez on marketing, web, and digital patient acquisition.',
-    rudy: 'Reports to Michael Greenhalgh. Regional Manager for all 7 clinics. Direct reports are the 7 clinic locations (not individual staff). Acting operator covering open operator, front desk, and floor seats. Collaborates with Stacey and Nikhil on marketing.',
+    nikhil: 'Reports to Michael Greenhalgh via Marketing Outreach group. Works with Stacey and Rudy on marketing, web, and digital patient acquisition across all clinics.',
+    rudy: 'Reports to Michael Greenhalgh. Multi-home: Marketing Outreach group (with Stacey + Nikhil, all-clinic marketing) and ops RM lane. Regional Manager for all 7 clinics — acting operator. Clinic locations shown in clinic cards section, not org-tree children.',
     monica: 'Salinas / Cypress Coast floor ops — assigned to clinic card, not a direct report in org tree.',
     deb: 'Madras hyperbaric tech — assigned to clinic card, not a direct report in org tree.',
     bobby: 'Laguna Skincredible partner — on Laguna clinic card, not HMS employee.',

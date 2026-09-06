@@ -91,6 +91,8 @@ async function init() {
     const { nodes, clinics, tasks, referrals, alerts } = s.data;
     const isOrg = viewId === 'org';
     const node = isOrg ? nodes.hms : nodes[viewId];
+    const isMarketingOutreach = viewId === 'marketingOutreach';
+    const outreachMembers = (nodes.marketingOutreach && nodes.marketingOutreach.members) || ['rudy', 'stacey', 'nikhil'];
 
     if (!isOrg && !node) {
       el.innerHTML = `<div class="pm-empty">Person not found: <strong>${esc(viewId)}</strong><br><br><a class="pm-back" href="/modules/org-chart.html">← Back to Org Chart</a></div>`;
@@ -100,10 +102,21 @@ async function init() {
     const title = isOrg ? 'HMS — Whole Organization' : node.name;
     const subtitle = isOrg ? 'Hyperbaric Management Services — all clinics & personnel' : `${node.title} · ${node.role}`;
 
-    const myTasks = isOrg ? tasks : tasks.filter(t => t.assignee === viewId);
-    const myClinics = isOrg ? clinics : clinics.filter(c => c.assignedTo === viewId);
+    let myTasks, myClinics, myReferrals;
+    if (isOrg) {
+      myTasks = tasks;
+      myClinics = clinics;
+      myReferrals = referrals;
+    } else if (isMarketingOutreach) {
+      myTasks = tasks.filter(t => outreachMembers.includes(t.assignee));
+      myClinics = clinics;
+      myReferrals = referrals;
+    } else {
+      myTasks = tasks.filter(t => t.assignee === viewId);
+      myClinics = clinics.filter(c => c.assignedTo === viewId);
+      myReferrals = referrals.filter(r => myClinics.some(c => c.id === r.clinicId));
+    }
     const myClinicIds = new Set(myClinics.map(c => c.id));
-    const myReferrals = isOrg ? referrals : referrals.filter(r => myClinicIds.has(r.clinicId));
     const myAlerts = isOrg ? alerts : alerts.filter(a => {
       if (a.module === 'org-chart' && viewId === 'greenhalgh') return true;
       return myTasks.some(t => t.module === a.module);
@@ -125,7 +138,7 @@ async function init() {
       <div class="pm-grid">
         <div class="pm-card"><h3>Open Tasks</h3><div class="pm-stat">${openTasks.length}</div><div class="pm-stat-label">of ${myTasks.length} total</div></div>
         <div class="pm-card"><h3>High Priority</h3><div class="pm-stat">${highPriority.length}</div><div class="pm-stat-label">needs attention</div></div>
-        <div class="pm-card"><h3>Clinics</h3><div class="pm-stat">${myClinics.length}</div><div class="pm-stat-label">${isOrg ? 'network-wide' : 'assigned'}</div></div>
+        <div class="pm-card"><h3>Clinics</h3><div class="pm-stat">${myClinics.length}</div><div class="pm-stat-label">${isOrg || isMarketingOutreach ? 'network-wide' : 'assigned'}</div></div>
         <div class="pm-card"><h3>Referrals</h3><div class="pm-stat">${myReferrals.length}</div><div class="pm-stat-label">linked</div></div>
       </div>
 

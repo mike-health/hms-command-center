@@ -26,12 +26,22 @@
       "description": "50% clinic partner lane only. Site selection, strategy, funding, and medical director responsibilities. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.",
       "active": true
     },
+    "marketingOutreach": {
+      "id": "marketingOutreach",
+      "name": "Marketing Outreach",
+      "title": "All Clinics — Marketing & Patient Acquisition",
+      "role": "Function",
+      "description": "Cross-clinic marketing staffing group: Rudy Alvarez, Stacey Vajrabukka, and Nikhil Narayan. Jointly responsible for marketing outreach across all 7 Pacific Hyperbarics clinics.",
+      "members": ["rudy", "stacey", "nikhil"],
+      "active": true
+    },
     "rudy": {
       "id": "rudy",
       "name": "Rudy Alvarez",
       "title": "Regional Manager — all clinics · acting operator",
       "role": "Manager",
-      "description": "Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed.",
+      "description": "Regional Manager for all 7 Pacific Hyperbarics clinics (including Chula Vista). Also acting as operator covering open operator seats, front desk gaps, and floor coverage where needed. Multi-home: also in Marketing Outreach group with Stacey and Nikhil.",
+      "multiHome": true,
       "active": true
     },
     "melinna": {
@@ -71,7 +81,8 @@
       "name": "Stacey Vajrabukka",
       "title": "Marketing & Referrals",
       "role": "Manager",
-      "description": "Marketing, referrals, and patient acquisition across the clinic network.",
+      "description": "Marketing, referrals, and patient acquisition across the clinic network. Member of Marketing Outreach group (with Rudy Alvarez and Nikhil Narayan) — responsible for all clinics.",
+      "multiHome": true,
       "active": true
     },
     "ben": {
@@ -95,7 +106,8 @@
       "name": "Nikhil Narayan",
       "title": "Marketing — Web & Digital",
       "role": "Staff",
-      "description": "Works with Stacey Vajrabukka and Rudy Alvarez in the marketing function — web presence, digital tools, referrals support, and patient acquisition.",
+      "description": "Member of Marketing Outreach group with Stacey Vajrabukka and Rudy Alvarez — web presence, digital tools, referrals support, and patient acquisition across all clinics.",
+      "multiHome": true,
       "active": true
     },
     "vacOceanside": {
