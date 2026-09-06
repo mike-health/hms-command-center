@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ops board — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=5">
+<link rel="stylesheet" href="/css/app.css?v=6">
 </head>
 <body>
 <div class="app">
@@ -58,6 +58,22 @@
   </main>
 </div>
 
+<div class="ops-drawer-overlay" id="ops-drawer-overlay" hidden onclick="closeDrawer(event)">
+  <aside class="ops-drawer" role="dialog" aria-modal="true" aria-labelledby="ops-drawer-title" onclick="event.stopPropagation()">
+    <header class="ops-drawer-header">
+      <div>
+        <div class="ops-drawer-id" id="ops-drawer-id"></div>
+        <h2 class="ops-drawer-title" id="ops-drawer-title"></h2>
+      </div>
+      <button type="button" class="panel-close ops-drawer-close" aria-label="Close drawer" onclick="closeDrawer()">×</button>
+    </header>
+    <div class="ops-drawer-body" id="ops-drawer-body"></div>
+    <footer class="ops-drawer-footer">
+      <a class="btn btn-primary btn-sm" id="ops-drawer-linear" href="#" target="_blank" rel="noopener">Open in Linear</a>
+    </footer>
+  </aside>
+</div>
+
 <script src="/js/app.js?v=4"></script>
 <script src="/js/ops-board-format.js"></script>
 <script>
@@ -65,6 +81,7 @@ let cadence = 'Daily';
 let selectedOwners = new Set();
 let ownerLabels = [];
 let issues = [];
+let activeIssueId = null;
 
 async function loadBoard() {
   showStatus('status-text', 'saving', 'Loading');
@@ -170,7 +187,6 @@ function renderOpsCard(issue) {
   const owner = (issue.ownerLabels || []).join(', ') || '—';
   const due = formatDue(issue.dueDate);
   const priority = issue.priority || '—';
-  const url = esc(issue.url || '#');
   const meta = [
     metaPart(stream),
     metaPart(owner),
@@ -178,11 +194,71 @@ function renderOpsCard(issue) {
     metaPart(priority)
   ].join('<span class="ops-meta-sep">·</span>');
 
-  return `<article class="ops-card ops-accent-${accent}" role="listitem" tabindex="0" data-url="${url}" onclick="openIssue(this)" onkeydown="if(event.key==='Enter')openIssue(this)">
+  return `<article class="ops-card ops-accent-${accent}" role="listitem" tabindex="0" data-issue-id="${esc(issue.id)}" onclick="openIssue(this)" onkeydown="if(event.key==='Enter')openIssue(this)">
     <div class="ops-card-line1">${esc(issue.title)}</div>
     <div class="ops-card-line2">${meta}</div>
   </article>`;
 }
+
+function detailValue(value, overdue) {
+  if (!value || value === '—') return '<span class="ops-detail-value">—</span>';
+  if (overdue) return `<span class="ops-detail-value due-overdue">${esc(value)}</span>`;
+  return `<span class="ops-detail-value">${esc(value)}</span>`;
+}
+
+function renderDrawerBody(issue) {
+  const stream = issue.streamLabel || '—';
+  const owner = (issue.ownerLabels || []).join(', ') || '—';
+  const cadenceLabels = (issue.cadenceLabels || []).join(', ') || '—';
+  const due = formatDue(issue.dueDate);
+  const priority = issue.priority || '—';
+  const status = issue.status || '—';
+  const notes = (issue.description || '').trim();
+  const notesHtml = notes
+    ? `<div class="ops-detail-notes-body">${esc(notes)}</div>`
+    : '<div class="ops-detail-notes-body ops-detail-notes-empty">No notes in Linear.</div>';
+
+  return `<dl class="ops-detail-grid">
+    <dt class="ops-detail-label">Status</dt><dd>${detailValue(status)}</dd>
+    <dt class="ops-detail-label">Owner</dt><dd>${detailValue(owner)}</dd>
+    <dt class="ops-detail-label">Cadence</dt><dd>${detailValue(cadenceLabels)}</dd>
+    <dt class="ops-detail-label">Stream</dt><dd>${detailValue(stream)}</dd>
+    <dt class="ops-detail-label">Due</dt><dd>${detailValue(due.label, due.overdue)}</dd>
+    <dt class="ops-detail-label">Priority</dt><dd>${detailValue(priority)}</dd>
+  </dl>
+  <div class="ops-detail-notes">
+    <div class="ops-detail-notes-label">Notes</div>
+    ${notesHtml}
+  </div>`;
+}
+
+function openIssue(row) {
+  const id = row && row.dataset && row.dataset.issueId;
+  if (!id) return;
+  const issue = issues.find((i) => i.id === id);
+  if (!issue) return;
+  activeIssueId = id;
+  document.getElementById('ops-drawer-id').textContent = issue.identifier || '';
+  document.getElementById('ops-drawer-title').textContent = issue.title || '';
+  document.getElementById('ops-drawer-body').innerHTML = renderDrawerBody(issue);
+  const linearLink = document.getElementById('ops-drawer-linear');
+  linearLink.href = issue.url || '#';
+  linearLink.hidden = !issue.url;
+  document.getElementById('ops-drawer-overlay').hidden = false;
+  document.body.style.overflow = 'hidden';
+  document.querySelector('.ops-drawer-close').focus();
+}
+
+function closeDrawer(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('ops-drawer-overlay').hidden = true;
+  activeIssueId = null;
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('ops-drawer-overlay').hidden) closeDrawer();
+});
 
 function render() {
   const rows = visibleIssues();
@@ -194,11 +270,6 @@ function render() {
     return;
   }
   list.innerHTML = rows.map(renderOpsCard).join('');
-}
-
-function openIssue(row) {
-  const url = row && row.dataset && row.dataset.url;
-  if (url && url !== '#') window.open(url, '_blank', 'noopener');
 }
 
 loadBoard();
