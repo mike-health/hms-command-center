@@ -1,262 +1,289 @@
 {
   "version": "1.0.0",
-  "lastModified": "2026-05-26T21:37:15.220Z",
+  "lastModified": "2026-09-06T01:00:00.000Z",
   "nodes": {
-    "greene": {
-      "id": "greene",
-      "name": "Greene",
-      "title": "Deals & Funding",
-      "role": "Partner",
-      "description": "Finds locations, builds partnerships, secures funding.",
-      "active": true
-    },
     "greenhalgh": {
       "id": "greenhalgh",
-      "name": "Greenhalgh",
-      "title": "Build & Operate",
-      "role": "Partner",
-      "description": "Feasibility analysis, site approval, operations oversight.",
+      "name": "Michael Greenhalgh",
+      "title": "Managing Director",
+      "role": "Owner-Operator",
+      "description": "Owner-operator of Pacific Hyperbarics / HMS. Ultimate authority over clinic network operations and strategy.",
       "active": true
     },
-    "locfund": {
-      "id": "locfund",
-      "name": "Location Cooperation & Funding",
-      "title": "Partnerships & Capital",
-      "role": "Function",
-      "description": "Negotiates leases, secures funding, manages investor relations.",
+    "greene": {
+      "id": "greene",
+      "name": "Dr. David Erik Greene",
+      "title": "50% Clinic Partner",
+      "role": "Partner (Do Not Contact)",
+      "description": "50% clinic partner lane only. Do not contact for ops, payroll, or automation. Partner relationship — not in HMS reporting chain.",
       "active": true
     },
-    "construction": {
-      "id": "construction",
-      "name": "Construction Mgr",
-      "title": "Build & Install",
+    "rudy": {
+      "id": "rudy",
+      "name": "Rudy Alvarez",
+      "title": "Regional Manager",
       "role": "Manager",
-      "description": "Manages all installation teams across sites.",
+      "description": "Regional ops for Salinas, Madras, Monterey, Laguna, Riverside, and Oceanside. Chula Vista excluded from RM plan (Mily runs local).",
       "active": true
     },
-    "operations": {
-      "id": "operations",
-      "name": "Operations Mgr",
-      "title": "Run & Report",
+    "melinna": {
+      "id": "melinna",
+      "name": "Melinna Leon",
+      "title": "EA / Payroll / Recruiting",
+      "role": "Admin",
+      "description": "Executive assistant, ADP payroll, and recruiting for open clinic seats.",
+      "active": true
+    },
+    "mily": {
+      "id": "mily",
+      "name": "Mily (Emilia) Greenhalgh",
+      "title": "Chula Vista Local Manager",
       "role": "Manager",
-      "description": "Oversees day-to-day clinic operations. Will be replaced by dedicated hire.",
+      "description": "Local manager for flagship Chula Vista clinic.",
       "active": true
     },
-    "marketing": {
-      "id": "marketing",
-      "name": "Marketing Mgr",
-      "title": "Grow & Retain",
+    "monica": {
+      "id": "monica",
+      "name": "Monica Hernandez",
+      "title": "Salinas Floor Ops",
+      "role": "Staff",
+      "description": "Salinas / Cypress Coast floor operations. Training visits from regional team.",
+      "active": true
+    },
+    "deb": {
+      "id": "deb",
+      "name": "Deborah Dunton",
+      "title": "Madras Hyperbaric Tech",
+      "role": "Staff",
+      "description": "Hyperbaric technician at Madras, OR clinic.",
+      "active": true
+    },
+    "stacey": {
+      "id": "stacey",
+      "name": "Stacey Vajrabukka",
+      "title": "Marketing & Referrals",
       "role": "Manager",
-      "description": "Assesses marketing needs per clinic, rolls out campaigns, maintains brand presence across all locations.",
+      "description": "Marketing, referrals, and patient acquisition across the clinic network.",
       "active": true
     },
-    "teamA": {
-      "id": "teamA",
-      "name": "Install Team A",
-      "title": "Site Build",
-      "role": "Team",
-      "description": "Handles initial construction, equipment install, site commissioning.",
+    "ben": {
+      "id": "ben",
+      "name": "Ben Stark",
+      "title": "TMS Billings CRM",
+      "role": "Vendor",
+      "description": "TMS Billings CRM vendor. Not an HMS employee.",
       "active": true
     },
-    "teamB": {
-      "id": "teamB",
-      "name": "Install Team B",
-      "title": "Site Build",
-      "role": "Team",
-      "description": "Handles initial construction, equipment install, site commissioning.",
+    "bobby": {
+      "id": "bobby",
+      "name": "Bobby Awadalla",
+      "title": "Skincredible Partner",
+      "role": "Partner (External)",
+      "description": "Laguna Beach Skincredible partner. Not an HMS employee.",
       "active": true
     },
-    "teamC": {
-      "id": "teamC",
-      "name": "Install Team C",
-      "title": "Site Build",
-      "role": "Team",
-      "description": "Handles initial construction, equipment install, site commissioning.",
+    "nikhil": {
+      "id": "nikhil",
+      "name": "Nikhil Narayan",
+      "title": "Web / Product",
+      "role": "Staff",
+      "description": "Web and product development for HMS command center and digital tools.",
       "active": true
     },
-    "mktgAsst": {
-      "id": "mktgAsst",
-      "name": "Mktg Assistant",
-      "title": "Support",
-      "role": "Assistant",
-      "description": "Supports marketing campaigns, social media, collateral production.",
+    "vacOceanside": {
+      "id": "vacOceanside",
+      "name": "Open Seat: Oceanside",
+      "title": "Operator + Front Desk",
+      "role": "Vacancy",
+      "description": "Oceanside operator and front desk — recruiting via Melinna.",
+      "active": true
+    },
+    "vacMonterey": {
+      "id": "vacMonterey",
+      "name": "Open Seat: Monterey",
+      "title": "Clinic Operator",
+      "role": "Vacancy",
+      "description": "Monterey clinic operator — inactive staffing, seat open.",
+      "active": true
+    },
+    "vacRiverside": {
+      "id": "vacRiverside",
+      "name": "Open Seat: Riverside",
+      "title": "Clinic Operator",
+      "role": "Vacancy",
+      "description": "Riverside operator for TI / early buildout site.",
+      "active": true
+    },
+    "vacLaguna": {
+      "id": "vacLaguna",
+      "name": "Open Seat: Laguna",
+      "title": "Onsite Manager",
+      "role": "Vacancy",
+      "description": "Laguna Beach onsite manager — thin staffing, recruiting.",
       "active": true
     }
   },
   "clinics": [
     {
-      "id": "c1",
-      "name": "Austin Hyperbaric",
-      "city": "Austin, TX",
-      "lat": 30.2672,
-      "lng": -97.7431,
+      "id": "c-chula",
+      "name": "Pacific Hyperbarics — Chula Vista",
+      "city": "Chula Vista, CA",
+      "lat": 32.6401,
+      "lng": -117.0842,
       "status": "operational",
       "type": "independent",
-      "notes": "Running 12 chambers, 3 staff",
-      "assignedTo": "teamA",
-      "revenue": 45000,
-      "expenses": 28000,
-      "patientsMonth": 85
+      "notes": "Flagship — Open. 826 Starboard St, Chula Vista, CA 91914. Local manager Mily.",
+      "assignedTo": "mily",
+      "revenue": 0,
+      "expenses": 0,
+      "patientsMonth": 0
     },
     {
-      "id": "c2",
-      "name": "Phoenix Wellness",
-      "city": "Phoenix, AZ",
-      "lat": 33.4484,
-      "lng": -112.074,
+      "id": "c-oceanside",
+      "name": "Pacific Hyperbarics — Oceanside",
+      "city": "Oceanside, CA",
+      "lat": 33.1959,
+      "lng": -117.3795,
+      "status": "startup",
+      "type": "independent",
+      "notes": "TI / buildout. 1411 N Coast Hwy, Oceanside, CA 92054. Rudy standup. Operator + front desk open.",
+      "assignedTo": "rudy",
+      "revenue": 0,
+      "expenses": 0,
+      "patientsMonth": 0
+    },
+    {
+      "id": "c-salinas",
+      "name": "Pacific Hyperbarics — Salinas / Cypress Coast",
+      "city": "Salinas, CA",
+      "lat": 36.6777,
+      "lng": -121.6555,
       "status": "operational",
       "type": "independent",
-      "notes": "Fully staffed, expanding hours",
-      "assignedTo": "teamB",
-      "revenue": 38000,
-      "expenses": 24000,
-      "patientsMonth": 72
+      "notes": "Open. 610 E Romie Ln Unit B, Salinas, CA. Monica floor ops.",
+      "assignedTo": "monica",
+      "revenue": 0,
+      "expenses": 0,
+      "patientsMonth": 0
     },
     {
-      "id": "c3",
-      "name": "Portland O2 Center",
-      "city": "Portland, OR",
-      "lat": 45.5152,
-      "lng": -122.6784,
+      "id": "c-monterey",
+      "name": "Pacific Hyperbarics — Monterey",
+      "city": "Monterey, CA",
+      "lat": 36.6002,
+      "lng": -121.8947,
       "status": "partly",
       "type": "independent",
-      "notes": "Partial staff, hiring 2 techs",
-      "assignedTo": "teamC",
-      "revenue": 22000,
-      "expenses": 21000,
-      "patientsMonth": 45
-    },
-    {
-      "id": "c4",
-      "name": "Nashville Recovery",
-      "city": "Nashville, TN",
-      "lat": 36.1627,
-      "lng": -86.7816,
-      "status": "startup",
-      "type": "partnered",
-      "notes": "Equipment ordered, opening Q3",
-      "assignedTo": "construction",
+      "notes": "Inactive / not active staffing. 70 Garden Ct Suite 100, Monterey, CA. Operator seat open.",
+      "assignedTo": "rudy",
       "revenue": 0,
-      "expenses": 15000,
+      "expenses": 0,
       "patientsMonth": 0
     },
     {
-      "id": "c5",
-      "name": "Denver O2 Hub",
-      "city": "Denver, CO",
-      "lat": 39.7392,
-      "lng": -104.9903,
-      "status": "prospective",
-      "type": "partnered",
-      "notes": "Lease negotiations ongoing",
-      "assignedTo": "greene",
-      "revenue": 0,
-      "expenses": 5000,
-      "patientsMonth": 0
-    },
-    {
-      "id": "c6",
-      "name": "Miami HBOT",
-      "city": "Miami, FL",
-      "lat": 25.7617,
-      "lng": -80.1918,
-      "status": "prospective",
+      "id": "c-madras",
+      "name": "Pacific Hyperbarics — Madras, OR",
+      "city": "Madras, OR",
+      "lat": 44.6335,
+      "lng": -121.1295,
+      "status": "operational",
       "type": "independent",
-      "notes": "Market analysis complete",
-      "assignedTo": "marketing",
+      "notes": "Open. ADDRESS CONFLICT: app lists 83 NW K St; Deb/listing shows 83 SW K St — do not collapse; verify before mail/maps. Deb hyperbaric tech.",
+      "assignedTo": "deb",
       "revenue": 0,
-      "expenses": 3000,
+      "expenses": 0,
+      "patientsMonth": 0
+    },
+    {
+      "id": "c-laguna",
+      "name": "Pacific Hyperbarics — Laguna Beach",
+      "city": "Laguna Beach, CA",
+      "lat": 33.5427,
+      "lng": -117.7854,
+      "status": "partly",
+      "type": "partnered",
+      "notes": "Open / thin staffing. 31655 Coast Hwy Suite B, Laguna Beach, CA 92651. Rudy ops; Bobby Awadalla Skincredible partner.",
+      "assignedTo": "rudy",
+      "revenue": 0,
+      "expenses": 0,
+      "patientsMonth": 0
+    },
+    {
+      "id": "c-riverside",
+      "name": "Pacific Hyperbarics — Riverside",
+      "city": "Riverside, CA",
+      "lat": 33.9533,
+      "lng": -117.3962,
+      "status": "startup",
+      "type": "independent",
+      "notes": "TI / early buildout. 6939 Palm Ct, Riverside, CA 92506. Operator seat open.",
+      "assignedTo": "rudy",
+      "revenue": 0,
+      "expenses": 0,
       "patientsMonth": 0
     }
   ],
   "referrals": [
     {
       "id": "r1",
-      "patientName": "John Doe",
-      "source": "Dr. Smith",
-      "clinicId": "c1",
-      "status": "active",
-      "date": "2026-05-15",
-      "notes": "Chronic wound, 20 sessions prescribed"
-    },
-    {
-      "id": "r2",
-      "patientName": "Jane Miller",
-      "source": "Self",
-      "clinicId": "c2",
-      "status": "active",
-      "date": "2026-05-18",
-      "notes": "Sports injury, 10 sessions"
-    },
-    {
-      "id": "r3",
-      "patientName": "Robert Chen",
-      "source": "Dr. Patel",
-      "clinicId": "c1",
-      "status": "completed",
-      "date": "2026-04-10",
-      "notes": "Post-surgical recovery, 15 sessions"
-    },
-    {
-      "id": "r4",
-      "patientName": "Sarah Wilson",
-      "source": "Dr. Johnson",
-      "clinicId": "c2",
+      "patientName": "Sample Referral",
+      "source": "Physician",
+      "clinicId": "c-chula",
       "status": "pending",
-      "date": "2026-05-25",
-      "notes": "Awaiting insurance approval"
+      "date": "2026-09-01",
+      "notes": "Placeholder — update with live referral data"
     }
   ],
   "tasks": [
     {
       "id": "t1",
-      "title": "Finalize Denver lease",
-      "assignee": "greene",
-      "due": "2026-06-15",
+      "title": "Recruit Oceanside operator + front desk",
+      "assignee": "melinna",
+      "due": "2026-09-30",
       "status": "in-progress",
       "priority": "high",
-      "module": "map"
+      "module": "org-chart"
     },
     {
       "id": "t2",
-      "title": "Hire 2 techs for Portland",
-      "assignee": "operations",
-      "due": "2026-06-01",
+      "title": "Oceanside TI buildout standup",
+      "assignee": "rudy",
+      "due": "2026-09-15",
       "status": "in-progress",
       "priority": "high",
       "module": "org-chart"
     },
     {
       "id": "t3",
-      "title": "Launch Miami marketing campaign",
-      "assignee": "marketing",
-      "due": "2026-06-30",
+      "title": "Resolve Madras address conflict (NW vs SW K St)",
+      "assignee": "greenhalgh",
+      "due": "2026-09-20",
       "status": "not-started",
       "priority": "medium",
-      "module": "referrals"
+      "module": "map"
     }
   ],
   "alerts": [
     {
       "id": "a1",
       "type": "warning",
-      "message": "Portland O2 Center operating below capacity",
-      "module": "map",
-      "time": "2026-05-26T10:00:00Z"
+      "message": "Monterey clinic inactive — operator seat open",
+      "module": "org-chart",
+      "time": "2026-09-06T01:00:00Z"
     },
     {
       "id": "a2",
       "type": "info",
-      "message": "Nashville equipment delivery scheduled June 5",
+      "message": "Oceanside TI buildout in progress — Rudy standup",
       "module": "org-chart",
-      "time": "2026-05-25T14:00:00Z"
+      "time": "2026-09-05T14:00:00Z"
     },
     {
       "id": "a3",
       "type": "urgent",
-      "message": "Denver lease expires in 45 days",
+      "message": "Madras address conflict: 83 NW K St vs 83 SW K St",
       "module": "map",
-      "time": "2026-05-27T08:00:00Z"
+      "time": "2026-09-06T01:00:00Z"
     }
   ]
 }
