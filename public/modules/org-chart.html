@@ -339,6 +339,7 @@ const DEFAULT_NODES = {
   deb: { id: 'deb', name: 'Deborah Dunton', title: 'Madras Hyperbaric Tech', role: 'Staff', description: 'Hyperbaric technician at Madras, OR clinic.', parentId: null, inTree: false },
   stacey: { id: 'stacey', name: 'Stacey Vajrabukka', title: 'Marketing & Referrals', role: 'Manager', description: 'Marketing, referrals, and patient acquisition across the clinic network. Member of Marketing Outreach group (with Rudy Alvarez and Nikhil Narayan) — responsible for all clinics.', multiHome: true, parentId: 'marketingOutreach', treeRole: 'person', nodeClass: 'node-manager-purple', home: 'marketing', inTree: true },
   ben: { id: 'ben', name: 'Ben Stark', title: 'TMS Billings CRM', role: 'Vendor', description: 'TMS Billings CRM vendor. Not an HMS employee.', parentId: 'greenhalgh', treeRole: 'person', nodeClass: 'node-assistant', order: 4, vlineClass: 'vline-gray', inTree: true },
+  todd: { id: 'todd', name: 'Todd Slayden', title: 'Development Manager — Clinic Development', role: 'Manager', description: 'Clinic development. Reports to Michael Greenhalgh.', parentId: 'greenhalgh', treeRole: 'person', nodeClass: 'node-manager-purple', order: 6, vlineClass: 'vline-purple', inTree: true },
   bobby: { id: 'bobby', name: 'Bobby Awadalla', title: 'Skincredible Partner', role: 'Partner (External)', description: 'Laguna Beach Skincredible partner. Not an HMS employee.', parentId: null, inTree: false },
   nikhil: { id: 'nikhil', name: 'Nikhil Narayan', title: 'Marketing — Web & Digital', role: 'Staff', description: 'Member of Marketing Outreach group with Stacey Vajrabukka and Rudy Alvarez — web presence, digital tools, referrals support, and patient acquisition across all clinics.', multiHome: true, parentId: 'marketingOutreach', treeRole: 'person', nodeClass: 'node-assistant', home: 'marketing', inTree: true },
   vacOceanside: { id: 'vacOceanside', name: 'Open Seat: Oceanside', title: 'Operator + Front Desk', role: 'Vacancy', description: 'Oceanside operator and front desk — recruiting via Melinna. Rudy Alvarez acting operator until filled.', parentId: null, inTree: false },
@@ -355,6 +356,7 @@ const DEFAULT_EDGES = [
   { from: 'greenhalgh', to: 'marketingOutreach', order: 3, vlineClass: 'vline-gray' },
   { from: 'greenhalgh', to: 'ben', order: 4, vlineClass: 'vline-gray' },
   { from: 'greenhalgh', to: 'rudy', order: 5, vlineClass: 'vline-orange', home: 'ops' },
+  { from: 'greenhalgh', to: 'todd', order: 6, vlineClass: 'vline-purple' },
   { from: 'marketingOutreach', to: 'rudy', home: 'marketing', order: 1 },
   { from: 'marketingOutreach', to: 'stacey', home: 'marketing', order: 2 },
   { from: 'marketingOutreach', to: 'nikhil', home: 'marketing', order: 3 }
@@ -689,7 +691,7 @@ function renderPanel() {
 function getReporting(id) {
   const h = {
     hms: 'Organization apex. Peer founding lanes under HMS: Dr. David Erik Greene (50% clinic partner — do not contact) and Michael Greenhalgh (Managing Director). All ops reporting flows through Mike\'s subtree.',
-    greenhalgh: 'Reports under HMS apex alongside Greene (partner lane). Direct reports: Melinna, Mily, Marketing Outreach (Rudy + Stacey + Nikhil), Ben (vendor), Rudy RM (ops lane — multi-home).',
+    greenhalgh: 'Reports under HMS apex alongside Greene (partner lane). Direct reports: Melinna, Mily, Marketing Outreach (Rudy + Stacey + Nikhil), Ben (vendor), Rudy RM (ops lane — multi-home), Todd Slayden (clinic development).',
     greene: 'Reports under HMS apex as 50% clinic partner — do-not-contact lane. Not under Mike. Site selection, strategy, funding, medical director. Not in HMS ops reporting chain.',
     marketingOutreach: 'Marketing staffing group under Michael Greenhalgh. Members: Rudy Alvarez, Stacey Vajrabukka, Nikhil Narayan. Jointly responsible for marketing outreach across all 7 clinics. Rudy is multi-homed (also in ops RM lane).',
     melinna: 'Reports to Michael Greenhalgh. Owns EA, ADP payroll, and recruiting for open seats. No direct reports in org tree.',
@@ -698,6 +700,7 @@ function getReporting(id) {
     ben: 'Reports to Michael Greenhalgh. TMS Billings CRM vendor — not HMS employee.',
     nikhil: 'Reports to Michael Greenhalgh via Marketing Outreach group. Works with Stacey and Rudy on marketing, web, and digital patient acquisition across all clinics.',
     rudy: 'Reports to Michael Greenhalgh. Multi-home: Marketing Outreach group (with Stacey + Nikhil, all-clinic marketing) and ops RM lane. Regional Manager for all 7 clinics — acting operator. Clinic locations shown in clinic cards section, not org-tree children.',
+    todd: 'Reports to Michael Greenhalgh. Development Manager — Clinic Development.',
     monica: 'Salinas / Cypress Coast floor ops — assigned to clinic card, not a direct report in org tree.',
     deb: 'Madras hyperbaric tech — assigned to clinic card, not a direct report in org tree.',
     bobby: 'Laguna Skincredible partner — on Laguna clinic card, not HMS employee.',
