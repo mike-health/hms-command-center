@@ -168,6 +168,20 @@
       "vlineClass": "vline-gray",
       "inTree": true
     },
+    "todd": {
+      "id": "todd",
+      "name": "Todd Slayden",
+      "title": "Development Manager — Clinic Development",
+      "role": "Manager",
+      "description": "Clinic development. Reports to Michael Greenhalgh.",
+      "active": true,
+      "parentId": "greenhalgh",
+      "treeRole": "person",
+      "nodeClass": "node-manager-purple",
+      "order": 6,
+      "vlineClass": "vline-purple",
+      "inTree": true
+    },
     "bobby": {
       "id": "bobby",
       "name": "Bobby Awadalla",
@@ -437,6 +451,12 @@
       "order": 5,
       "vlineClass": "vline-orange",
       "home": "ops"
+    },
+    {
+      "from": "greenhalgh",
+      "to": "todd",
+      "order": 6,
+      "vlineClass": "vline-purple"
     },
     {
       "from": "marketingOutreach",

@@ -39,7 +39,7 @@ describe('HEA-97 Phase 1 org tree data', () => {
     assert.equal((html.match(/data-id="melinna"/g) || []).length, 1);
     assert.doesNotMatch(html, /c-chula|Monica Hernandez|Deborah Dunton/);
     assert.equal(OrgTree.childrenOf(data.orgEdges, 'rudy').length, 0);
-    assert.equal(OrgTree.subtreeColumns(data.nodes, data.orgEdges, 'greenhalgh').length, 5);
+    assert.equal(OrgTree.subtreeColumns(data.nodes, data.orgEdges, 'greenhalgh').length, 6);
   });
 
   it('keeps Greene title/role as Partner DNC and not in Mike reporting chain', () => {
