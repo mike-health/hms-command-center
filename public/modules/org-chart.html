@@ -61,11 +61,13 @@
 .founder-col--greene { grid-column: 1; grid-row: 2; }
 .founder-col--greenhalgh { grid-column: 2; grid-row: 2; }
 .mike-subtree {
-  grid-column: 2;
+  grid-column: 1 / -1;
   grid-row: 3;
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: max-content;
+  justify-self: center;
 }
 .tree-apex { width: 100%; }
 
@@ -99,9 +101,15 @@
 .vline-purple { background: #c4b5fd; }
 .vline-gray { background: #cbd5e1; }
 
-.hub-bar { width: 520px; height: 2px; background: #93c5fd; }
+.hub-cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: max-content;
+}
+.hub-bar { width: 100%; height: 2px; background: #93c5fd; }
 .sub-hub-bar { width: 200px; height: 2px; background: #cbd5e1; }
-.hub-drops { display: flex; justify-content: space-between; width: 520px; }
+.hub-drops { display: flex; justify-content: space-between; width: 100%; }
 .sub-hub-drops { display: flex; justify-content: space-between; width: 240px; }
 .mgrs { display: flex; gap: 16px; justify-content: center; }
 .mg-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
@@ -231,7 +239,7 @@
   .chart { gap: 20px; flex-direction: column; align-items: center; }
   .founders-stage { grid-template-columns: 1fr 1fr; column-gap: 24px; }
   .founders-bar, .founders-drops { width: 200px; }
-  .hub-bar, .hub-drops { width: 280px; }
+  .chart { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
   .sub-hub-bar, .sub-hub-drops { width: 200px; }
   .mgrs { gap: 8px; }
   .node { min-width: 120px; padding: 10px 12px; }
@@ -324,7 +332,7 @@
 </div>
 
 <script src="/js/app.js?v=4"></script>
-<script src="/js/org-tree.js?v=2"></script>
+<script src="/js/org-tree.js?v=3"></script>
 <script>
 // Node data — keep in sync with data/command-center.json (FACTORY_DEFAULTS)
 const DEFAULT_NODES = {
