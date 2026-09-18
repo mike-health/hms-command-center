@@ -237,9 +237,11 @@
     var subtree = mike && cols.length ? (
       '<div class="mike-subtree">' +
       '<div class="vline"></div>' +
+      '<div class="hub-cluster">' +
       '<div class="hub-bar"></div>' +
       '<div class="hub-drops">' + hubDrops + '</div>' +
       '<div class="mgrs">' + mgrs + '</div>' +
+      '</div>' +
       '</div>'
     ) : '';
 
