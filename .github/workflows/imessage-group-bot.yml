@@ -1,0 +1,23 @@
+name: imessage-group-bot
+
+on:
+  push:
+    paths:
+      - "tools/imessage-group-bot/**"
+      - ".github/workflows/imessage-group-bot.yml"
+  pull_request:
+    paths:
+      - "tools/imessage-group-bot/**"
+      - ".github/workflows/imessage-group-bot.yml"
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run stdlib unit tests
+        working-directory: tools/imessage-group-bot
+        run: python3 -m unittest discover -s tests -v

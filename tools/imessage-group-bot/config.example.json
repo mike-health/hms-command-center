@@ -1,0 +1,40 @@
+{
+  "dry_run": true,
+  "enabled": true,
+  "chat_db_path": "~/Library/Messages/chat.db",
+  "group_guid": "iMessage;+;chatXXXXXXXXXXXXXXXX",
+  "trigger_word": "@dev",
+  "bot_prefix": "🤖 Dev:",
+  "max_reply_chars": 200,
+  "allowlist_handles": [
+    "+15555550101",
+    "todd@example.com",
+    "+15555550102",
+    "rudy@example.com"
+  ],
+  "poll_interval_seconds": 10,
+  "delivery_confirm_seconds": 15,
+  "rate_caps": {
+    "min_seconds_between_replies": 20,
+    "max_replies_per_hour": 10,
+    "max_replies_per_day": 40
+  },
+  "quiet_hours": {
+    "start": "21:00",
+    "end": "06:00",
+    "timezone": "America/Los_Angeles"
+  },
+  "kill_flag_file": "./data/imessage-group-bot.disabled",
+  "state_file": "./data/state.json",
+  "events_log": "./data/events.jsonl",
+  "alerts_log": "./data/alerts.jsonl",
+  "queue_file": "./data/desk-queue.jsonl",
+  "alert_hook_command": "",
+  "responder": {
+    "type": "stub",
+    "api_key_env": "IMESSAGE_BOT_API_KEY",
+    "base_url": "https://api.openai.com/v1",
+    "model": "gpt-4o-mini",
+    "timeout_seconds": 20
+  }
+}
