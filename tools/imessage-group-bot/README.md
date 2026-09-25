@@ -59,6 +59,42 @@ launchctl load ~/Library/LaunchAgents/com.healthai.imessage-group-bot.plist
 
 Logs: `data/launchd.out.log`, `data/launchd.err.log`, plus JSONL under `data/`.
 
+## Log retention
+
+The bot **never rotates or deletes** `events.jsonl`, `alerts.jsonl`, `desk-queue.jsonl`, `state.json`, or the launchd logs. They grow until an operator prunes them. Keep **30 days** of JSONL unless ops policy says otherwise.
+
+Prune by timestamp (ISO `ts` field) or truncate:
+
+```bash
+# Keep roughly the last 30 days of events (requires GNU date); review before replacing:
+python3 - <<'PY'
+import json, time
+from datetime import datetime, timezone, timedelta
+path = "data/events.jsonl"
+cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+keep = []
+with open(path, encoding="utf-8") as handle:
+    for line in handle:
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        ts = row.get("ts") or ""
+        try:
+            when = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        except ValueError:
+            keep.append(line)
+            continue
+        if when >= cutoff:
+            keep.append(line)
+open(path, "w", encoding="utf-8").writelines(keep)
+PY
+
+# Or start a new file after archiving:
+mv data/events.jsonl data/events-$(date +%Y%m%d).jsonl
+```
+
+Do not prune `state.json` (high-water mark and rate-cap timestamps) unless you intend to ignore backlog / reset caps.
+
 ## Commands
 
 | Command | What it does |
@@ -80,12 +116,12 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 
 | Key | Meaning |
 |---|---|
-| `dry_run` | Default `true`. Must be `false` for live send. |
-| `enabled` | Kill switch. `false` blocks sends (stop/start ack still logs). |
+| `dry_run` | JSON `true`/`false` only. Any other value (null, 0, `""`, strings) is treated as `true`. |
+| `enabled` | JSON `true`/`false` only. Any other value is treated as `false`. |
+| `bot_prefix` | Default `🤖 Dev:`. Must start with 🤖. |
 | `chat_db_path` | Usually `~/Library/Messages/chat.db` |
 | `group_guid` | Only this chat is watched |
 | `trigger_word` | Confirmed `@dev` |
-| `bot_prefix` | Default `🤖 Dev:` |
 | `max_reply_chars` | Default `200` |
 | `allowlist_handles` | Todd/Rudy handles (Mike = `is_from_me`) |
 | `poll_interval_seconds` | Default `10` |
@@ -111,11 +147,11 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 - Skip: leading `🤖` (self-loop), `associated_message_type != 0` (tapbacks/reactions), edits (`date_edited`), empty/attachment-only, item_type ≠ 0, backlog from before first start (high-water ROWID), quiet hours (`suppressed: quiet_hours`, not queued).
 - One reply per trigger message (idempotent on ROWID/guid).
 - Reply: one line, ≤200 chars, prefix `🤖 Dev:`, markdown/newlines stripped.
-- `stub` responder: `🤖 Dev: got it, routing to the dev desk: <question>`.
-- `openai_compatible`: POST `{base_url}/chat/completions`; on any error, fall back to stub and log it. Money / leases / partners / Greene / JV → `🤖 Dev: Mike will answer that`.
+- `stub` responder (default, only author unless `openai_compatible` is set): `🤖 Dev: got it, routing to the dev desk: <question>`. A bare `@dev` with no question gets `🤖 Dev: got it, standing by at the dev desk`.
+- `openai_compatible` is off unless `responder.type` is exactly `openai_compatible`. It is not called until kill-switch, `enabled`, quiet hours, and rate caps have already allowed a reply. On any error it falls back to stub. Money / leases / partners / Greene / JV → `🤖 Dev: Mike will answer that`.
 - Triggers that would be answered (not suppressed by quiet hours) are appended to `queue_file` for a later desk agent.
-- Live send: `send … to chat id "<guid>"`, then look for a new `is_from_me` row with that text within 15s; retry once; then alerts log + optional hook. The hook must not send iMessage.
-- Kill switch (any one blocks send): `enabled: false`, kill flag file, `@dev stop` from **Mike only**. `@dev start` from Mike clears the flag file and runtime pause (it cannot override `enabled: false`).
+- Live send: `osascript` with text and chat GUID as argv (so 🤖 is never JSON `\\u`-escaped into AppleScript), then look for a new `is_from_me` row with that text within 15s; retry once; each osascript attempt counts toward rate caps whether or not delivery confirms; then alerts log + optional hook. The hook must not send iMessage.
+- Kill switch (any one blocks send): `enabled: false`, kill flag file, `@dev stop` from **Mike only**. `@dev start` from Mike clears the flag file and runtime pause (it cannot override `enabled: false`). Mike's stop/start still apply the flag during quiet hours; the acknowledgement reply is suppressed.
 
 ## Throwaway-group test plan
 

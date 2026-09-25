@@ -5,7 +5,9 @@ from __future__ import print_function
 import re
 
 
-BOT_PREFIX_START = "🤖"
+from .config import DEFAULT_BOT_PREFIX
+
+BOT_EMOJI = "🤖"
 SENSITIVE_TERMS = (
     "lease",
     "leases",
@@ -51,19 +53,25 @@ def handle_allowed(handle, is_from_me, allowlist_handles):
     return wanted in allowed
 
 
-def is_self_loop_text(text):
+def is_self_loop_text(text, bot_prefix=None):
+    """True if the line looks like a bot send, derived from bot_prefix (must start with 🤖)."""
     if not text:
         return False
+    prefix = (bot_prefix or DEFAULT_BOT_PREFIX).strip()
     stripped = text.lstrip()
-    return stripped.startswith(BOT_PREFIX_START)
+    if prefix and stripped.startswith(prefix):
+        return True
+    # Prefix is required to start with 🤖; any 🤖-prefixed line is a self-loop.
+    marker = prefix[: len(BOT_EMOJI)] if prefix.startswith(BOT_EMOJI) else BOT_EMOJI
+    return stripped.startswith(marker)
 
 
-def trigger_match(text, trigger_word):
+def trigger_match(text, trigger_word, bot_prefix=None):
     """Return remaining text after the trigger, or None if not a trigger."""
     if not text or not trigger_word:
         return None
     stripped = text.strip()
-    if is_self_loop_text(stripped):
+    if is_self_loop_text(stripped, bot_prefix=bot_prefix):
         return None
     trigger = trigger_word.strip()
     if not stripped.lower().startswith(trigger.lower()):

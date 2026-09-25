@@ -8,6 +8,7 @@ from copy import deepcopy
 
 
 DEFAULT_TRIGGER_WORD = "@dev"
+DEFAULT_BOT_PREFIX = "🤖 Dev:"
 DEFAULT_QUIET_HOURS_START = "21:00"
 DEFAULT_QUIET_HOURS_END = "06:00"
 DEFAULT_QUIET_HOURS_TIMEZONE = "America/Los_Angeles"
@@ -40,6 +41,36 @@ def load_config(path):
     return Config(raw, base_dir=base_dir, source_path=os.path.abspath(path))
 
 
+class ConfigError(ValueError):
+    pass
+
+
+def _strict_bool(raw, key, missing_default, non_bool_value):
+    """Only JSON true/false count as bools. Any other value is non_bool_value."""
+    if key not in raw:
+        return missing_default
+    value = raw[key]
+    if isinstance(value, bool):
+        return value
+    return non_bool_value
+
+
+def _require_timezone(name):
+    from .guardrails import resolve_timezone
+
+    try:
+        resolve_timezone(name)
+    except Exception as exc:
+        raise ConfigError("invalid quiet_hours.timezone %r: %s" % (name, exc))
+
+
+def _require_bot_prefix(prefix):
+    text = (prefix or "").strip()
+    if not text.startswith("🤖"):
+        raise ConfigError("bot_prefix must start with 🤖, got %r" % prefix)
+    return text
+
+
 def _hhmm_field(quiet, key, default):
     """Missing key → decided default. Explicit empty string disables that bound."""
     if key not in quiet:
@@ -61,14 +92,17 @@ class Config(object):
         self.raw = deepcopy(raw)
         self.base_dir = base_dir
         self.source_path = source_path
-        self.dry_run = bool(raw.get("dry_run", True))
-        self.enabled = bool(raw.get("enabled", True))
+        # Non-bool values (null, 0, "", strings) → dry_run true, enabled false.
+        self.dry_run = _strict_bool(raw, "dry_run", True, True)
+        self.enabled = _strict_bool(raw, "enabled", True, False)
         self.chat_db_path = _expand_path(raw["chat_db_path"], base_dir)
         self.group_guid = str(raw["group_guid"]).strip()
         self.trigger_word = (
             str(raw.get("trigger_word") or DEFAULT_TRIGGER_WORD).strip() or DEFAULT_TRIGGER_WORD
         )
-        self.bot_prefix = str(raw.get("bot_prefix") or "🤖 Dev:").strip() or "🤖 Dev:"
+        self.bot_prefix = _require_bot_prefix(
+            str(raw.get("bot_prefix") or DEFAULT_BOT_PREFIX).strip() or DEFAULT_BOT_PREFIX
+        )
         self.max_reply_chars = int(raw.get("max_reply_chars") or 200)
         handles = raw.get("allowlist_handles") or []
         if not isinstance(handles, list):
@@ -93,6 +127,7 @@ class Config(object):
         self.quiet_hours_timezone = (
             str(tz or DEFAULT_QUIET_HOURS_TIMEZONE).strip() or DEFAULT_QUIET_HOURS_TIMEZONE
         )
+        _require_timezone(self.quiet_hours_timezone)
         self.kill_flag_file = _expand_path(raw["kill_flag_file"], base_dir)
         self.state_file = _expand_path(raw["state_file"], base_dir)
         self.events_log = _expand_path(raw["events_log"], base_dir)

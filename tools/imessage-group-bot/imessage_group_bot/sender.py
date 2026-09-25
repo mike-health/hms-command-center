@@ -1,13 +1,14 @@
 """AppleScript send into a group chat id, with chat.db delivery confirmation.
 
-This module is never imported by dry-run send paths in a way that invokes
-osascript: ``send_to_chat`` is only called when both config.dry_run is false
-and the process was started with ``--live``.
+Text and chat GUID are passed as osascript argv so emoji (🤖) is never
+JSON-escaped into AppleScript source (AppleScript has no \\u escapes).
+
+``send_to_chat`` is only called when both config.dry_run is false and the
+process was started with ``--live``.
 """
 
 from __future__ import print_function
 
-import json
 import subprocess
 import time as time_mod
 
@@ -16,21 +17,29 @@ class SendError(Exception):
     pass
 
 
-def applescript_for_send(chat_guid, text):
-    # json.dumps produces a quoted JS/JSON string that is also valid AppleScript.
-    return (
-        'tell application "Messages"\n'
-        "    send %s to chat id %s\n"
-        "end tell\n" % (json.dumps(text), json.dumps(chat_guid))
-    )
+# Static source only — never interpolate message text into -e snippets.
+OSASCRIPT_SEND_LINES = (
+    "on run argv",
+    'tell application "Messages" to send (item 1 of argv) to chat id (item 2 of argv)',
+    "end run",
+)
+
+
+def osascript_send_argv(chat_guid, text):
+    """Build the osascript argv list: script via -e, payload after --."""
+    args = ["osascript"]
+    for line in OSASCRIPT_SEND_LINES:
+        args.extend(["-e", line])
+    args.extend(["--", text, chat_guid])
+    return args
 
 
 def send_to_chat(chat_guid, text, runner=None):
-    script = applescript_for_send(chat_guid, text)
+    argv = osascript_send_argv(chat_guid, text)
     invoke = runner or subprocess.run
     try:
         result = invoke(
-            ["osascript", "-e", script],
+            argv,
             check=False,
             capture_output=True,
             text=True,

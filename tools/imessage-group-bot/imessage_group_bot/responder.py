@@ -11,7 +11,9 @@ from .guardrails import clamp_reply
 from .trigger import looks_sensitive
 
 STUB_LEAD = "got it, routing to the dev desk:"
+STUB_BARE = "got it, standing by at the dev desk"
 SENSITIVE_REPLY_BODY = "Mike will answer that"
+EXPLICIT_OPENAI_TYPE = "openai_compatible"
 
 
 class ResponderError(Exception):
@@ -19,7 +21,11 @@ class ResponderError(Exception):
 
 
 def build_stub_reply(question, prefix, max_chars):
-    body = "%s %s" % (STUB_LEAD, " ".join((question or "").split()))
+    q = " ".join((question or "").split())
+    if not q:
+        body = STUB_BARE
+    else:
+        body = "%s %s" % (STUB_LEAD, q)
     return clamp_reply(body, prefix, max_chars)
 
 
@@ -34,11 +40,8 @@ def generate_reply(config, question, http_post=None):
     if looks_sensitive(question):
         return sensitive_reply(prefix, max_chars), {"responder": "sensitive_guard"}
 
-    kind = (config.responder_type or "stub").lower()
-    if kind in ("stub", "", "default"):
-        return build_stub_reply(question, prefix, max_chars), {"responder": "stub"}
-
-    if kind in ("openai_compatible", "openai", "chat"):
+    kind = (config.responder_type or "stub").strip().lower()
+    if kind == EXPLICIT_OPENAI_TYPE:
         try:
             text = _openai_compatible(config, question, http_post=http_post)
             return clamp_reply(text, prefix, max_chars), {"responder": "openai_compatible"}
@@ -49,10 +52,10 @@ def generate_reply(config, question, http_post=None):
                 "openai_error": str(exc),
             }
 
-    return build_stub_reply(question, prefix, max_chars), {
-        "responder": "stub",
-        "unknown_type": kind,
-    }
+    meta = {"responder": "stub"}
+    if kind not in ("stub", "", "default"):
+        meta["unknown_type"] = kind
+    return build_stub_reply(question, prefix, max_chars), meta
 
 
 def _openai_compatible(config, question, http_post=None):

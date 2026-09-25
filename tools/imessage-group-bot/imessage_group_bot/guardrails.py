@@ -53,15 +53,21 @@ def parse_hhmm(value):
     return time(hour, minute)
 
 
+def resolve_timezone(tz_name):
+    """Return ZoneInfo(tz_name) or raise. Never fall back to local time."""
+    if not tz_name:
+        raise ValueError("timezone name is empty")
+    if ZoneInfo is None:
+        raise ValueError("zoneinfo is unavailable; cannot resolve %r" % tz_name)
+    try:
+        return ZoneInfo(tz_name)
+    except Exception as exc:
+        raise ValueError("unknown timezone %r: %s" % (tz_name, exc))
+
+
 def local_now(now_ts, tz_name):
     dt = datetime.fromtimestamp(now_ts, tz=timezone.utc)
-    if tz_name and ZoneInfo is not None:
-        try:
-            dt = dt.astimezone(ZoneInfo(tz_name))
-            return dt
-        except Exception:
-            pass
-    return dt.astimezone()
+    return dt.astimezone(resolve_timezone(tz_name))
 
 
 def in_quiet_hours(now_ts, start_hhmm, end_hhmm, tz_name):

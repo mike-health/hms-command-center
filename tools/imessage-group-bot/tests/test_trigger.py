@@ -18,8 +18,9 @@ class TriggerTests(unittest.TestCase):
         self.assertIsNone(trigger_match("hey @dev later", "@dev"))
 
     def test_self_loop_guard(self):
-        self.assertTrue(is_self_loop_text("🤖 Dev: already me"))
-        self.assertIsNone(trigger_match("🤖 Dev: @dev nested", "@dev"))
+        self.assertTrue(is_self_loop_text("🤖 Dev: already me", "🤖 Dev:"))
+        self.assertTrue(is_self_loop_text("🤖 other", "🤖 Dev:"))
+        self.assertIsNone(trigger_match("🤖 Dev: @dev nested", "@dev", bot_prefix="🤖 Dev:"))
 
     def test_allowlist_mike_is_from_me(self):
         self.assertTrue(handle_allowed("", True, ["+15555550101"]))

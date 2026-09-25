@@ -120,7 +120,9 @@ class Engine(object):
             )
             return False
 
-        rest = trigger_match(message.text, self.config.trigger_word)
+        rest = trigger_match(
+            message.text, self.config.trigger_word, bot_prefix=self.config.bot_prefix
+        )
         if rest is None:
             log_event(
                 self.config.events_log,
@@ -166,13 +168,13 @@ class Engine(object):
         decisions.append("allowlisted")
         decisions.append("trigger_matched")
 
-        if self.config.quiet_hours_enabled() and in_quiet_hours(
-            now,
-            self.config.quiet_hours_start,
-            self.config.quiet_hours_end,
-            self.config.quiet_hours_timezone,
-        ):
-            # Dry-run and live: log only. Do not queue for later and do not send.
+        command = parse_kill_command(rest)
+        if command == "stop" and message.is_from_me:
+            return self._command_stop(state, message, rest, decisions, now)
+        if command == "start" and message.is_from_me:
+            return self._command_start(state, message, rest, decisions, now)
+
+        if self._in_quiet_hours(now):
             decisions.append(SKIP_QUIET_HOURS)
             log_event(
                 self.config.events_log,
@@ -187,18 +189,15 @@ class Engine(object):
             return False
 
         self._enqueue(message, rest, now)
+        return self._maybe_send(state, message, rest, decisions, now)
 
-        command = parse_kill_command(rest)
-        if command == "stop" and message.is_from_me:
-            return self._command_stop(state, message, rest, decisions, now)
-        if command == "start" and message.is_from_me:
-            return self._command_start(state, message, rest, decisions, now)
-
-        reply, meta = generate_reply(self.config, rest, http_post=self.http_post)
-        if meta.get("openai_error"):
-            decisions.append("openai_fallback_stub")
-        decisions.append("responder:%s" % meta.get("responder"))
-        return self._maybe_send(state, message, rest, reply, decisions, now)
+    def _in_quiet_hours(self, now):
+        return self.config.quiet_hours_enabled() and in_quiet_hours(
+            now,
+            self.config.quiet_hours_start,
+            self.config.quiet_hours_end,
+            self.config.quiet_hours_timezone,
+        )
 
     def _skip_reason(self, message):
         if int(message.associated_message_type or 0) != 0:
@@ -210,7 +209,7 @@ class Engine(object):
         text = (message.text or "").strip()
         if not text:
             return SKIP_UNSEND_OR_EMPTY
-        if is_self_loop_text(text):
+        if is_self_loop_text(text, bot_prefix=self.config.bot_prefix):
             return SKIP_SELF_LOOP
         return None
 
@@ -237,11 +236,9 @@ class Engine(object):
                 now_ts=now,
             )
             return False
-        reply = clamp_reply("paused", self.config.bot_prefix, self.config.max_reply_chars)
         state["stop_ack_sent"] = True
-        return self._maybe_send(
-            state, message, rest, reply, decisions, now, bypass_kill=True, bypass_rate=True
-        )
+        reply = clamp_reply("paused", self.config.bot_prefix, self.config.max_reply_chars)
+        return self._maybe_ack(state, message, rest, reply, decisions, now)
 
     def _command_start(self, state, message, rest, decisions, now):
         state["runtime_paused"] = False
@@ -256,8 +253,26 @@ class Engine(object):
             )
         else:
             reply = clamp_reply("running", self.config.bot_prefix, self.config.max_reply_chars)
+        return self._maybe_ack(state, message, rest, reply, decisions, now)
+
+    def _maybe_ack(self, state, message, rest, reply, decisions, now):
+        if self._in_quiet_hours(now):
+            decisions.append(SKIP_QUIET_HOURS)
+            log_event(
+                self.config.events_log,
+                self._base_event(message, decisions, would_send=None, trigger_text=message.text),
+                now_ts=now,
+            )
+            return False
         return self._maybe_send(
-            state, message, rest, reply, decisions, now, bypass_kill=True, bypass_rate=True
+            state,
+            message,
+            rest,
+            decisions,
+            now,
+            bypass_kill=True,
+            bypass_rate=True,
+            canned_reply=reply,
         )
 
     def _maybe_send(
@@ -265,11 +280,11 @@ class Engine(object):
         state,
         message,
         rest,
-        reply,
         decisions,
         now,
         bypass_kill=False,
         bypass_rate=False,
+        canned_reply=None,
     ):
         if not bypass_kill:
             kills = self._kill_reasons(state)
@@ -278,7 +293,7 @@ class Engine(object):
                 decisions.append("send_blocked_kill_switch")
                 log_event(
                     self.config.events_log,
-                    self._base_event(message, decisions, would_send=reply, trigger_text=message.text),
+                    self._base_event(message, decisions, would_send=None, trigger_text=message.text),
                     now_ts=now,
                 )
                 return False
@@ -296,10 +311,19 @@ class Engine(object):
             decisions.append("send_blocked_rate_cap")
             log_event(
                 self.config.events_log,
-                self._base_event(message, decisions, would_send=reply, trigger_text=message.text),
+                self._base_event(message, decisions, would_send=None, trigger_text=message.text),
                 now_ts=now,
             )
             return False
+
+        if canned_reply is not None:
+            reply = canned_reply
+            meta = {"responder": "canned"}
+        else:
+            reply, meta = generate_reply(self.config, rest, http_post=self.http_post)
+            if meta.get("openai_error"):
+                decisions.append("openai_fallback_stub")
+        decisions.append("responder:%s" % meta.get("responder"))
 
         live = self.live_send_allowed()
         if not live:
@@ -308,7 +332,6 @@ class Engine(object):
             else:
                 decisions.append("dry_run_missing_live_flag")
             decisions.append("osascript_not_invoked")
-            # Exercise rate caps in dry-run: count a would-be send.
             times.append(now)
             state["send_times"] = times
             log_event(
@@ -319,18 +342,27 @@ class Engine(object):
             return True
 
         decisions.append("live_send")
+
+        def counting_send(guid, text):
+            times.append(self.clock())
+            state["send_times"] = times
+            sender = self.send_fn
+            if sender is None:
+                from .sender import send_to_chat
+
+                sender = send_to_chat
+            return sender(guid, text)
+
         try:
             result = send_and_confirm(
                 self.config.group_guid,
                 reply,
                 self.chat_db,
                 self.config.delivery_confirm_seconds,
-                send_fn=self.send_fn,
+                send_fn=counting_send,
                 clock=self.clock,
                 sleeper=self.sleeper,
             )
-            times.append(now)
-            state["send_times"] = times
             decisions.append("delivery_confirmed")
             log_event(
                 self.config.events_log,

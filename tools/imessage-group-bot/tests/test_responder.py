@@ -39,6 +39,12 @@ class ResponderTests(unittest.TestCase):
         self.assertIn("routing to the dev desk", text)
         self.assertIn("why is CI red", text)
 
+    def test_stub_bare_trigger(self):
+        text, meta = generate_reply(_cfg(), "")
+        self.assertEqual(meta["responder"], "stub")
+        self.assertIn("standing by at the dev desk", text)
+        self.assertTrue(text.startswith("🤖 Dev:"))
+
     def test_sensitive_guard(self):
         text, meta = generate_reply(_cfg(), "tell me about the lease")
         self.assertEqual(meta["responder"], "sensitive_guard")

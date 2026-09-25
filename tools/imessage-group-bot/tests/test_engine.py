@@ -176,7 +176,7 @@ class EngineTests(unittest.TestCase):
         hit = [e for e in _events(self.config) if e.get("rowid") == 12][-1]
         self.assertIn("kill_flag_file", hit["decisions"])
         self.assertIn("send_blocked_kill_switch", hit["decisions"])
-        self.assertTrue(hit["would_send"])
+        self.assertIsNone(hit["would_send"])
         self.assertEqual(self.sender.calls, [])
 
         os.remove(self.config.kill_flag_file)
@@ -201,6 +201,32 @@ class EngineTests(unittest.TestCase):
         self.assertIn("kill_command_stop", mike["decisions"])
         self.assertTrue(os.path.exists(self.config.kill_flag_file))
         self.assertIn("paused", mike["would_send"])
+
+    def test_mike_stop_at_night_sets_flag_without_ack(self):
+        try:
+            from zoneinfo import ZoneInfo
+
+            tz = ZoneInfo("America/Los_Angeles")
+        except Exception:
+            self.skipTest("America/Los_Angeles timezone data is required")
+        self.config.quiet_hours_start = "21:00"
+        self.config.quiet_hours_end = "06:00"
+        self.config.quiet_hours_timezone = "America/Los_Angeles"
+        self._prime_high_water(0)
+        night = datetime(2026, 9, 25, 23, 0, tzinfo=tz).timestamp()
+        engine, _ = self._engine(
+            [msg(rowid=30, text="@dev stop", is_from_me=1, handle="")],
+            clock=lambda: night,
+        )
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 30][-1]
+        self.assertIn("kill_command_stop", hit["decisions"])
+        self.assertIn("suppressed: quiet_hours", hit["decisions"])
+        self.assertTrue(os.path.exists(self.config.kill_flag_file))
+        self.assertIsNone(hit["would_send"])
+        self.assertEqual(self.sender.calls, [])
+        self.assertTrue(load_state(self.config.state_file).get("runtime_paused"))
+        self.assertFalse(os.path.exists(self.config.queue_file))
 
     def test_quiet_hours_overnight_wrap_not_queued(self):
         """21:00–06:00 America/Los_Angeles: 20:59 and 06:00 send (dry-run), 21:00 and 05:59 suppressed."""
@@ -313,6 +339,98 @@ class EngineTests(unittest.TestCase):
         hit = [e for e in _events(self.config) if e.get("rowid") == 21][-1]
         self.assertIn("live_send", hit["decisions"])
         self.assertIn("delivery_confirmed", hit["decisions"])
+
+    def test_failed_sends_count_toward_rate_caps(self):
+        """Each osascript attempt counts, even when delivery confirm fails (QC: 5 triggers → 10 sends)."""
+        self.config.dry_run = False
+        self.config.min_seconds_between_replies = 0
+        self.config.max_replies_per_hour = 40
+        self.config.max_replies_per_day = 40
+        self.config.delivery_confirm_seconds = 1
+        self._prime_high_water(0)
+        sent = []
+
+        class Clock(object):
+            def __init__(self):
+                self.t = 20_000.0
+
+            def __call__(self):
+                return self.t
+
+            def sleep(self, seconds):
+                self.t += float(seconds)
+
+        clock = Clock()
+
+        def send_no_confirm(guid, text):
+            sent.append((guid, text))
+
+        messages = [msg(rowid=50 + i, text="@dev n%s" % i) for i in range(5)]
+        db = FakeDB(messages=messages, max_id=49)
+        engine = Engine(
+            self.config,
+            live_flag=True,
+            chat_db=db,
+            send_fn=send_no_confirm,
+            clock=clock,
+            sleeper=clock.sleep,
+        )
+        engine.process_once()
+        self.assertEqual(len(sent), 10)
+        times = load_state(self.config.state_file).get("send_times") or []
+        self.assertEqual(len(times), 10)
+        failed = [e for e in _events(self.config) if "delivery_failed" in e.get("decisions", [])]
+        self.assertEqual(len(failed), 5)
+
+    def test_openai_not_called_before_guards(self):
+        self.config.responder_type = "openai_compatible"
+        calls = []
+
+        def http_post(*_args, **_kwargs):
+            calls.append(1)
+            raise AssertionError("openai_compatible must not run before guards")
+
+        self._prime_high_water(0)
+        with open(self.config.kill_flag_file, "w", encoding="utf-8") as handle:
+            handle.write("x")
+        engine, _ = self._engine([msg(rowid=60, text="@dev guarded")], http_post=http_post)
+        engine.process_once()
+        self.assertEqual(calls, [])
+        os.remove(self.config.kill_flag_file)
+
+        self.config.enabled = False
+        self._prime_high_water(60)
+        engine, _ = self._engine([msg(rowid=61, text="@dev guarded2")], http_post=http_post)
+        engine.process_once()
+        self.assertEqual(calls, [])
+        self.config.enabled = True
+
+        self.config.min_seconds_between_replies = 20
+        state = load_state(self.config.state_file)
+        state["high_water_rowid"] = 61
+        state["send_times"] = [1_000_000.0]
+        save_state(self.config.state_file, state)
+        engine, _ = self._engine([msg(rowid=62, text="@dev guarded3")], http_post=http_post)
+        engine.process_once()
+        self.assertEqual(calls, [])
+
+        try:
+            from zoneinfo import ZoneInfo
+
+            tz = ZoneInfo("America/Los_Angeles")
+        except Exception:
+            return
+        self.config.quiet_hours_start = "21:00"
+        self.config.quiet_hours_end = "06:00"
+        night = datetime(2026, 9, 25, 23, 0, tzinfo=tz).timestamp()
+        self._prime_high_water(62)
+        engine, _ = self._engine(
+            [msg(rowid=63, text="@dev guarded4")],
+            clock=lambda: night,
+            http_post=http_post,
+        )
+        engine.process_once()
+        self.assertEqual(calls, [])
 
 
 if __name__ == "__main__":

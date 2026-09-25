@@ -12,10 +12,11 @@ from imessage_group_bot.config import (
     DEFAULT_QUIET_HOURS_TIMEZONE,
     DEFAULT_TRIGGER_WORD,
     Config,
+    ConfigError,
     load_config,
 )
 from imessage_group_bot.guardrails import in_quiet_hours, rate_cap_decision
-from imessage_group_bot.sender import applescript_for_send
+from imessage_group_bot.sender import OSASCRIPT_SEND_LINES, osascript_send_argv
 
 
 class GuardrailUnitTests(unittest.TestCase):
@@ -102,11 +103,79 @@ class ListGroupsCliTests(unittest.TestCase):
         self.assertEqual(cfg.quiet_hours_timezone, DEFAULT_QUIET_HOURS_TIMEZONE)
         self.assertTrue(cfg.dry_run)
 
-    def test_applescript_quotes_text(self):
-        script = applescript_for_send('iMessage;+;chatX', '🤖 Dev: hi "there"')
-        self.assertIn("tell application \"Messages\"", script)
-        self.assertIn("chat id", script)
-        self.assertNotIn("osascript", script)
+    def test_osascript_argv_carries_raw_emoji(self):
+        text = "🤖 Dev: hi there"
+        guid = "iMessage;+;chatX"
+        argv = osascript_send_argv(guid, text)
+        self.assertEqual(argv[0], "osascript")
+        self.assertIn("--", argv)
+        dash = argv.index("--")
+        self.assertEqual(argv[dash + 1], text)
+        self.assertIn("🤖", argv[dash + 1])
+        self.assertEqual(argv[dash + 2], guid)
+        script_src = "\n".join(OSASCRIPT_SEND_LINES)
+        self.assertNotIn("\\u", script_src)
+        self.assertNotIn("\\u", text)
+        self.assertNotIn("ud83e", script_src.lower())
+        for part in argv[1:dash]:
+            self.assertNotIn("\\u", part)
+            self.assertNotIn("🤖", part)
+        captured = {}
+
+        class Result(object):
+            returncode = 0
+            stderr = ""
+            stdout = ""
+
+        def runner(args, **_kwargs):
+            captured["args"] = args
+            return Result()
+
+        from imessage_group_bot.sender import send_to_chat
+
+        send_to_chat(guid, text, runner=runner)
+        self.assertEqual(captured["args"][captured["args"].index("--") + 1], text)
+
+    def test_strict_bools_and_prefix_timezone(self):
+        base = {
+            "chat_db_path": "chat.db",
+            "group_guid": "g",
+            "trigger_word": "@dev",
+            "allowlist_handles": [],
+            "poll_interval_seconds": 10,
+            "kill_flag_file": "k",
+            "state_file": "s",
+            "events_log": "e",
+            "alerts_log": "a",
+            "queue_file": "q",
+        }
+        for dry, enabled in ((None, 0), (0, ""), ("false", "true"), ("yes", 1)):
+            raw = dict(base)
+            raw["dry_run"] = dry
+            raw["enabled"] = enabled
+            cfg = Config(raw, base_dir=".", source_path="./config.json")
+            self.assertTrue(cfg.dry_run)
+            self.assertFalse(cfg.enabled)
+        raw = dict(base)
+        raw["dry_run"] = False
+        raw["enabled"] = True
+        cfg = Config(raw, base_dir=".", source_path="./config.json")
+        self.assertFalse(cfg.dry_run)
+        self.assertTrue(cfg.enabled)
+
+        bad_prefix = dict(base)
+        bad_prefix["dry_run"] = True
+        bad_prefix["enabled"] = True
+        bad_prefix["bot_prefix"] = "Dev:"
+        with self.assertRaises(ConfigError):
+            Config(bad_prefix, base_dir=".", source_path="./config.json")
+
+        bad_tz = dict(base)
+        bad_tz["dry_run"] = True
+        bad_tz["enabled"] = True
+        bad_tz["quiet_hours"] = {"start": "21:00", "end": "06:00", "timezone": "Not/A_Zone"}
+        with self.assertRaises(ConfigError):
+            Config(bad_tz, base_dir=".", source_path="./config.json")
 
 
 if __name__ == "__main__":
