@@ -20,8 +20,8 @@
     "max_replies_per_day": 40
   },
   "quiet_hours": {
-    "start": "",
-    "end": "",
+    "start": "21:00",
+    "end": "06:00",
     "timezone": "America/Los_Angeles"
   },
   "kill_flag_file": "./data/imessage-group-bot.disabled",

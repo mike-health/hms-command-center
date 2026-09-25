@@ -38,6 +38,7 @@ def write_config(directory, **overrides):
             "max_replies_per_hour": 10,
             "max_replies_per_day": 40,
         },
+        # Explicit empty start/end disables quiet hours so other tests are isolated.
         "quiet_hours": {"start": "", "end": "", "timezone": "America/Los_Angeles"},
         "kill_flag_file": os.path.join(directory, "bot.disabled"),
         "state_file": os.path.join(directory, "state.json"),

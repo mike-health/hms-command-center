@@ -28,6 +28,7 @@ SKIP_NOT_TRIGGER = "not_trigger"
 SKIP_ALLOWLIST = "not_allowlisted"
 SKIP_BACKLOG = "backlog_before_start"
 SKIP_IDEMPOTENT = "already_processed"
+SKIP_QUIET_HOURS = "suppressed: quiet_hours"
 
 
 class Engine(object):
@@ -164,6 +165,27 @@ class Engine(object):
 
         decisions.append("allowlisted")
         decisions.append("trigger_matched")
+
+        if self.config.quiet_hours_enabled() and in_quiet_hours(
+            now,
+            self.config.quiet_hours_start,
+            self.config.quiet_hours_end,
+            self.config.quiet_hours_timezone,
+        ):
+            # Dry-run and live: log only. Do not queue for later and do not send.
+            decisions.append(SKIP_QUIET_HOURS)
+            log_event(
+                self.config.events_log,
+                self._base_event(
+                    message,
+                    decisions,
+                    would_send=None,
+                    trigger_text=message.text,
+                ),
+                now_ts=now,
+            )
+            return False
+
         self._enqueue(message, rest, now)
 
         command = parse_kill_command(rest)
@@ -260,21 +282,6 @@ class Engine(object):
                     now_ts=now,
                 )
                 return False
-
-        if self.config.quiet_hours_enabled() and in_quiet_hours(
-            now,
-            self.config.quiet_hours_start,
-            self.config.quiet_hours_end,
-            self.config.quiet_hours_timezone,
-        ):
-            decisions.append("quiet_hours")
-            decisions.append("send_blocked_quiet_hours")
-            log_event(
-                self.config.events_log,
-                self._base_event(message, decisions, would_send=reply, trigger_text=message.text),
-                now_ts=now,
-            )
-            return False
 
         cap, times = rate_cap_decision(
             state.get("send_times") or [],

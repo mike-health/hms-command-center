@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 import json
 import os
 import tempfile
@@ -202,17 +202,59 @@ class EngineTests(unittest.TestCase):
         self.assertTrue(os.path.exists(self.config.kill_flag_file))
         self.assertIn("paused", mike["would_send"])
 
-    def test_quiet_hours_config(self):
-        self.config.quiet_hours_start = "22:00"
-        self.config.quiet_hours_end = "08:00"
+    def test_quiet_hours_overnight_wrap_not_queued(self):
+        """21:00–06:00 America/Los_Angeles: 20:59 and 06:00 send (dry-run), 21:00 and 05:59 suppressed."""
+        try:
+            from zoneinfo import ZoneInfo
+
+            ZoneInfo("America/Los_Angeles")
+        except Exception:
+            self.skipTest("America/Los_Angeles timezone data is required")
+
+        tz = ZoneInfo("America/Los_Angeles")
+        self.config.quiet_hours_start = "21:00"
+        self.config.quiet_hours_end = "06:00"
         self.config.quiet_hours_timezone = "America/Los_Angeles"
         self._prime_high_water(0)
-        quiet_ts = datetime(2026, 9, 26, 6, 30, tzinfo=timezone.utc).timestamp()
-        engine, _ = self._engine([msg(rowid=16, text="@dev late")], clock=lambda: quiet_ts)
+
+        stamps = [
+            datetime(2026, 9, 25, 20, 59, tzinfo=tz).timestamp(),
+            datetime(2026, 9, 25, 21, 0, tzinfo=tz).timestamp(),
+            datetime(2026, 9, 26, 5, 59, tzinfo=tz).timestamp(),
+            datetime(2026, 9, 26, 6, 0, tzinfo=tz).timestamp(),
+        ]
+        cursor = {"i": 0}
+
+        def clock():
+            i = min(cursor["i"], len(stamps) - 1)
+            value = stamps[i]
+            cursor["i"] += 1
+            return value
+
+        messages = [
+            msg(rowid=100, text="@dev 2059"),
+            msg(rowid=101, text="@dev 2100"),
+            msg(rowid=102, text="@dev 0559"),
+            msg(rowid=103, text="@dev 0600"),
+        ]
+        engine, _ = self._engine(messages, clock=clock)
         engine.process_once()
-        hit = [e for e in _events(self.config) if e.get("rowid") == 16][-1]
-        self.assertIn("quiet_hours", hit["decisions"])
+        by_id = {e["rowid"]: e for e in _events(self.config) if e.get("rowid") in (100, 101, 102, 103)}
+        self.assertIn("osascript_not_invoked", by_id[100]["decisions"])
+        self.assertTrue(by_id[100]["would_send"])
+        self.assertNotIn("suppressed: quiet_hours", by_id[100]["decisions"])
+        self.assertIn("suppressed: quiet_hours", by_id[101]["decisions"])
+        self.assertIsNone(by_id[101]["would_send"])
+        self.assertIn("suppressed: quiet_hours", by_id[102]["decisions"])
+        self.assertIsNone(by_id[102]["would_send"])
+        self.assertIn("osascript_not_invoked", by_id[103]["decisions"])
+        self.assertTrue(by_id[103]["would_send"])
         self.assertEqual(self.sender.calls, [])
+        queued_rowids = []
+        if os.path.exists(self.config.queue_file):
+            with open(self.config.queue_file, encoding="utf-8") as handle:
+                queued_rowids = [json.loads(line)["rowid"] for line in handle if line.strip()]
+        self.assertEqual(queued_rowids, [100, 103])
 
     def test_live_requires_both_flags(self):
         self.config.dry_run = False

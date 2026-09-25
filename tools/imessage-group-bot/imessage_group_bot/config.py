@@ -7,6 +7,11 @@ import os
 from copy import deepcopy
 
 
+DEFAULT_TRIGGER_WORD = "@dev"
+DEFAULT_QUIET_HOURS_START = "21:00"
+DEFAULT_QUIET_HOURS_END = "06:00"
+DEFAULT_QUIET_HOURS_TIMEZONE = "America/Los_Angeles"
+
 REQUIRED_KEYS = (
     "dry_run",
     "enabled",
@@ -35,6 +40,13 @@ def load_config(path):
     return Config(raw, base_dir=base_dir, source_path=os.path.abspath(path))
 
 
+def _hhmm_field(quiet, key, default):
+    """Missing key → decided default. Explicit empty string disables that bound."""
+    if key not in quiet:
+        return default
+    return str(quiet.get(key) or "").strip()
+
+
 def _expand_path(value, base_dir):
     if not value:
         return value
@@ -53,7 +65,9 @@ class Config(object):
         self.enabled = bool(raw.get("enabled", True))
         self.chat_db_path = _expand_path(raw["chat_db_path"], base_dir)
         self.group_guid = str(raw["group_guid"]).strip()
-        self.trigger_word = str(raw.get("trigger_word") or "@dev").strip() or "@dev"
+        self.trigger_word = (
+            str(raw.get("trigger_word") or DEFAULT_TRIGGER_WORD).strip() or DEFAULT_TRIGGER_WORD
+        )
         self.bot_prefix = str(raw.get("bot_prefix") or "🤖 Dev:").strip() or "🤖 Dev:"
         self.max_reply_chars = int(raw.get("max_reply_chars") or 200)
         handles = raw.get("allowlist_handles") or []
@@ -66,20 +80,19 @@ class Config(object):
         self.min_seconds_between_replies = float(rate.get("min_seconds_between_replies") or 20)
         self.max_replies_per_hour = int(rate.get("max_replies_per_hour") or 10)
         self.max_replies_per_day = int(rate.get("max_replies_per_day") or 40)
-        quiet = raw.get("quiet_hours") or {}
-        if quiet is None:
+        quiet = raw.get("quiet_hours")
+        if quiet is None or isinstance(quiet, list):
             quiet = {}
-        if isinstance(quiet, list):
-            # Empty list means disabled (pending Mike).
-            self.quiet_hours_start = ""
-            self.quiet_hours_end = ""
-            self.quiet_hours_timezone = "America/Los_Angeles"
-        else:
-            self.quiet_hours_start = str(quiet.get("start") or "").strip()
-            self.quiet_hours_end = str(quiet.get("end") or "").strip()
-            self.quiet_hours_timezone = str(
-                quiet.get("timezone") or "America/Los_Angeles"
-            ).strip()
+        if not isinstance(quiet, dict):
+            quiet = {}
+        self.quiet_hours_start = _hhmm_field(
+            quiet, "start", DEFAULT_QUIET_HOURS_START
+        )
+        self.quiet_hours_end = _hhmm_field(quiet, "end", DEFAULT_QUIET_HOURS_END)
+        tz = quiet.get("timezone", DEFAULT_QUIET_HOURS_TIMEZONE)
+        self.quiet_hours_timezone = (
+            str(tz or DEFAULT_QUIET_HOURS_TIMEZONE).strip() or DEFAULT_QUIET_HOURS_TIMEZONE
+        )
         self.kill_flag_file = _expand_path(raw["kill_flag_file"], base_dir)
         self.state_file = _expand_path(raw["state_file"], base_dir)
         self.events_log = _expand_path(raw["events_log"], base_dir)

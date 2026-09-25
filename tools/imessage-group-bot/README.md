@@ -4,12 +4,14 @@ Self-contained Python 3 **stdlib** bot for one iMessage group chat on Mike's Mac
 
 This folder does not touch the HMS web app. **Nothing in this PR sends a real iMessage** unless an operator later sets `dry_run: false` **and** passes `--live` on a Mac.
 
-Linear: [HEA-41](https://linear.app/healtho2/issue/HEA-41/imessage-group-bot-on-mac-studio-dev-one-line-replies). Binding spec: Mike's decision 2026-09-25 3:21 PM PT (free Mac Studio route).
+Linear: [HEA-41](https://linear.app/healtho2/issue/HEA-41/imessage-group-bot-on-mac-studio-dev-one-line-replies). Binding spec: Mike's decision 2026-09-25 3:21 PM PT (free Mac Studio route), plus 3:32 PM PT for trigger word and quiet hours.
 
-## Still open (Mike)
+## Decided defaults (Mike 2026-09-25)
 
-- Trigger word: default `@dev` (case-insensitive, start of message). Confirm before the real group.
-- Quiet hours: config keys exist; default is **disabled** (empty `start` / `end`) until Mike picks a window.
+- **Trigger word:** `@dev` (case-insensitive, start of message, then a boundary).
+- **Quiet hours:** 21:00–06:00 `America/Los_Angeles`, overnight wrap included. No send in that window. A trigger in quiet hours is logged as `suppressed: quiet_hours` and is **not** queued for later. Explicit empty `quiet_hours.start` / `end` in a local config disables the window.
+
+`dry_run` stays `true` by default.
 
 ## Dry-run vs live (hard default)
 
@@ -18,7 +20,7 @@ Linear: [HEA-41](https://linear.app/healtho2/issue/HEA-41/imessage-group-bot-on-
 1. `"dry_run": false` in the config file, and
 2. the process is started with `--live`.
 
-If either is missing, the bot logs a would-be reply (JSONL) and **never** invokes `osascript`. Dry-run still applies rate caps and the kill switch and records those decisions in the event log.
+If either is missing, the bot logs a would-be reply (JSONL) and **never** invokes `osascript`. Dry-run still applies rate caps, quiet hours, and the kill switch and records those decisions in the event log.
 
 ```bash
 # Always safe (default):
@@ -82,7 +84,7 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `enabled` | Kill switch. `false` blocks sends (stop/start ack still logs). |
 | `chat_db_path` | Usually `~/Library/Messages/chat.db` |
 | `group_guid` | Only this chat is watched |
-| `trigger_word` | Default `@dev` |
+| `trigger_word` | Confirmed `@dev` |
 | `bot_prefix` | Default `🤖 Dev:` |
 | `max_reply_chars` | Default `200` |
 | `allowlist_handles` | Todd/Rudy handles (Mike = `is_from_me`) |
@@ -91,7 +93,7 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `rate_caps.min_seconds_between_replies` | Default `20` |
 | `rate_caps.max_replies_per_hour` | Default `10` |
 | `rate_caps.max_replies_per_day` | Default `40` |
-| `quiet_hours.start` / `end` / `timezone` | Empty start/end = disabled |
+| `quiet_hours.start` / `end` / `timezone` | Default **21:00–06:00** `America/Los_Angeles` (overnight wrap). Empty start/end disables. |
 | `kill_flag_file` | Presence of this file blocks sends |
 | `state_file` | High-water ROWID, processed ids, rate timestamps, pause |
 | `events_log` | JSONL decisions (dry-run and live) |
@@ -106,12 +108,12 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 
 - Read-only sqlite: `file:<path>?mode=ro`. Decodes `attributedBody` when `text` is NULL (no `imsg` dependency).
 - Trigger: text starts with the trigger word **and** sender is Mike (`is_from_me`) or an allowlisted handle.
-- Skip: leading `🤖` (self-loop), `associated_message_type != 0` (tapbacks/reactions), edits (`date_edited`), empty/attachment-only, item_type ≠ 0, backlog from before first start (high-water ROWID).
+- Skip: leading `🤖` (self-loop), `associated_message_type != 0` (tapbacks/reactions), edits (`date_edited`), empty/attachment-only, item_type ≠ 0, backlog from before first start (high-water ROWID), quiet hours (`suppressed: quiet_hours`, not queued).
 - One reply per trigger message (idempotent on ROWID/guid).
 - Reply: one line, ≤200 chars, prefix `🤖 Dev:`, markdown/newlines stripped.
 - `stub` responder: `🤖 Dev: got it, routing to the dev desk: <question>`.
 - `openai_compatible`: POST `{base_url}/chat/completions`; on any error, fall back to stub and log it. Money / leases / partners / Greene / JV → `🤖 Dev: Mike will answer that`.
-- Every accepted trigger is appended to `queue_file` for a later desk agent.
+- Triggers that would be answered (not suppressed by quiet hours) are appended to `queue_file` for a later desk agent.
 - Live send: `send … to chat id "<guid>"`, then look for a new `is_from_me` row with that text within 15s; retry once; then alerts log + optional hook. The hook must not send iMessage.
 - Kill switch (any one blocks send): `enabled: false`, kill flag file, `@dev stop` from **Mike only**. `@dev start` from Mike clears the flag file and runtime pause (it cannot override `enabled: false`).
 
