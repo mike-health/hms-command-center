@@ -2,3 +2,5 @@ node_modules/
 *.log
 .env
 .DS_Store
+tools/imessage-group-bot/config.json
+tools/imessage-group-bot/data/
