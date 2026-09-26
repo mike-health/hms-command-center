@@ -5,7 +5,7 @@ import unittest
 from io import StringIO
 
 from helpers import FakeDB, GROUP_GUID, msg, write_config
-from imessage_group_bot.cli import cmd_notify_test
+from imessage_group_bot.cli import cmd_notify_test, cmd_pending
 from imessage_group_bot.engine import Engine
 from imessage_group_bot.notify import (
     DEFAULT_ENV_FILE,
@@ -384,7 +384,10 @@ class GitHubNotifyTests(unittest.TestCase):
         self.assertEqual(resolve_gh_path("/opt/homebrew/bin/gh"), "/opt/homebrew/bin/gh")
         self.assertEqual(resolve_gh_path("/usr/local/bin/gh"), "/usr/local/bin/gh")
 
-    def test_comment_body_has_human_line_and_json_fence(self):
+    def test_comment_body_minimal_is_only_bot_ping(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        cfg = write_config(tmp.name, notify_github=_github_block())
         payload = {
             "desk": "@ops",
             "question": "is the studio up?",
@@ -394,13 +397,38 @@ class GitHubNotifyTests(unittest.TestCase):
             "source_chat_guid": GROUP_GUID,
             "sender_handle": "+15555550101",
             "ts": "2026-09-26T23:00:00+00:00",
+            "ping_id": "deadbeef0123",
         }
-        body = format_github_comment(payload)
+        body = format_github_comment(cfg, payload)
+        self.assertEqual(body, "bot-ping deadbeef0123")
+        self.assertNotIn("@ops", body)
+        self.assertNotIn("studio", body)
+        self.assertNotIn("+1555", body)
+        self.assertNotIn("G1", body)
+        self.assertNotIn(GROUP_GUID, body)
+        self.assertEqual(format_github_comment(cfg, payload, test=True), "bot-ping TEST")
+
+    def test_comment_body_full_has_human_line_and_json_fence(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        cfg = write_config(tmp.name, notify_github=_github_block(content="full"))
+        payload = {
+            "desk": "@ops",
+            "question": "is the studio up?",
+            "trigger_text": "@ops is the studio up?",
+            "reply_to": "G1",
+            "chat_guid": GROUP_GUID,
+            "source_chat_guid": GROUP_GUID,
+            "sender_handle": "+15555550101",
+            "ts": "2026-09-26T23:00:00+00:00",
+            "ping_id": "deadbeef0123",
+        }
+        body = format_github_comment(cfg, payload)
         self.assertIn("HMS bot queued @ops from +15555550101", body)
         self.assertIn("is the studio up?", body)
         self.assertIn("```json", body)
         self.assertIn('"reply_to": "G1"', body)
-        test_body = format_github_comment(payload, test=True)
+        test_body = format_github_comment(cfg, payload, test=True)
         self.assertTrue(test_body.startswith("TEST"))
         self.assertIn("notify-test", test_body.lower())
 
@@ -410,7 +438,12 @@ class GitHubNotifyTests(unittest.TestCase):
         cfg = write_config(tmp.name, notify_github=_github_block())
         rec = GhRecorder([RuntimeError("boom"), 0])
         sleeps = []
-        post_github_comment(cfg, {"desk": "@ops", "question": "q"}, gh_run=rec, sleeper=sleeps.append)
+        post_github_comment(
+            cfg,
+            {"desk": "@ops", "question": "q", "ping_id": "abc123abc123"},
+            gh_run=rec,
+            sleeper=sleeps.append,
+        )
         self.assertEqual(len(rec.calls), 2)
         self.assertEqual(sleeps, [0.2])
         argv = rec.calls[0]["argv"]
@@ -422,6 +455,8 @@ class GitHubNotifyTests(unittest.TestCase):
         )
         self.assertEqual(argv[3], "-f")
         self.assertTrue(argv[4].startswith("body="))
+        self.assertEqual(argv[4], "body=bot-ping abc123abc123")
+        self.assertNotIn("q", argv[4][len("body=") :])
         self.assertEqual(rec.calls[0]["timeout"], 15)
 
     def test_github_only_acks_and_skips_stub(self):
@@ -452,10 +487,20 @@ class GitHubNotifyTests(unittest.TestCase):
         self.assertEqual(poster.calls, [])
         self.assertEqual(len(rec.calls), 1)
         body = rec.calls[0]["argv"][4]
-        self.assertIn("ship the build", body)
-        self.assertIn("G-DEV-2", body)
-        self.assertTrue(body.startswith("body=HMS bot queued"))
-        self.assertNotIn("do not treat as a real queue item", body)
+        self.assertTrue(body.startswith("body=bot-ping "))
+        ping = body[len("body=bot-ping ") :]
+        self.assertRegex(ping, r"^[0-9a-f]{12}$")
+        leaked = body[len("body=") :]
+        self.assertNotIn("ship", leaked)
+        self.assertNotIn("build", leaked)
+        self.assertNotIn("+1555", leaked)
+        self.assertNotIn("G-DEV-2", leaked)
+        self.assertNotIn("@dev", leaked)
+        self.assertNotIn("iMessage", leaked)
+        with open(cfg.queue_file, encoding="utf-8") as handle:
+            queued = json.loads(handle.readline())
+        self.assertEqual(queued["ping_id"], ping)
+        self.assertEqual(queued["question"], "ship the build")
         hit = [e for e in _events(cfg) if e.get("rowid") == 2][-1]
         self.assertEqual(hit["would_send"], "🤖 Dev: on it")
         self.assertIn("queued_for_github", hit["decisions"])
@@ -551,9 +596,65 @@ class GitHubNotifyTests(unittest.TestCase):
         self.assertIn("#19", buf.getvalue())
         self.assertEqual(len(rec.calls), 1)
         body = rec.calls[0]["argv"][4]
-        self.assertTrue(body.startswith("body=TEST"))
+        self.assertEqual(body, "body=bot-ping TEST")
         argv = github_comment_argv(cfg, sample_payload(cfg), test=True)
-        self.assertIn("TEST", argv[4])
+        self.assertEqual(argv[4], "body=bot-ping TEST")
+
+    def test_pending_jsonl_skips_answered_outbox(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        cfg = write_config(tmp.name, notify_github=_github_block())
+        ops = None
+        for desk in cfg.desks:
+            if desk.trigger_word.strip().lower() == "@ops":
+                ops = desk
+        state = load_state(cfg.state_file)
+        state["high_water_rowid"] = 0
+        save_state(cfg.state_file, state)
+        engine = Engine(
+            cfg,
+            chat_db=FakeDB(
+                messages=[
+                    msg(rowid=2, guid="G-DEV-P", text="@dev still open"),
+                    msg(rowid=3, guid="G-OPS-P", text="@ops already answered"),
+                ],
+                max_id=0,
+            ),
+            send_fn=lambda *_a: (_ for _ in ()).throw(AssertionError("no send")),
+            clock=lambda: 1_000_000.0,
+            sleeper=lambda _s: None,
+            gh_run=GhRecorder(),
+        )
+        engine.process_once()
+        directory = os.path.dirname(ops.outbox_file)
+        if directory and not os.path.isdir(directory):
+            os.makedirs(directory)
+        with open(ops.outbox_file, "a", encoding="utf-8") as handle:
+            handle.write(
+                json.dumps(
+                    {
+                        "reply_to": "G-OPS-P",
+                        "chat_guid": GROUP_GUID,
+                        "text": "done",
+                        "ts": "2026-09-26T23:00:00+00:00",
+                    }
+                )
+            )
+            handle.write("\n")
+        buf = StringIO()
+        code = cmd_pending(cfg, out=buf)
+        self.assertEqual(code, 0)
+        lines = [json.loads(line) for line in buf.getvalue().splitlines() if line.strip()]
+        reply_tos = {row["reply_to"] for row in lines}
+        self.assertIn("G-DEV-P", reply_tos)
+        self.assertNotIn("G-OPS-P", reply_tos)
+        hit = [row for row in lines if row["reply_to"] == "G-DEV-P"][0]
+        self.assertEqual(hit["desk"], "@dev")
+        self.assertEqual(hit["question"], "still open")
+        self.assertEqual(hit["chat_guid"], GROUP_GUID)
+        self.assertRegex(hit["ping_id"], r"^[0-9a-f]{12}$")
+        self.assertIn("sender_handle", hit)
+        self.assertIn("ts", hit)
 
 
 if __name__ == "__main__":

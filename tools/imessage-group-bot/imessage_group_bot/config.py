@@ -252,13 +252,19 @@ class Config(object):
         self._file_env = load_key_value_env(self.webhook_env_file)
 
     def _load_notify_github(self, raw):
-        from .notify import DEFAULT_GH_TIMEOUT, DEFAULT_GITHUB_REPO
+        from .notify import (
+            CONTENT_MINIMAL,
+            DEFAULT_GH_TIMEOUT,
+            DEFAULT_GITHUB_REPO,
+            VALID_GITHUB_CONTENT,
+        )
 
         self._github_block = None
         self.notify_github_repo = ""
         self.notify_github_pr = 0
         self.notify_github_gh_path = "gh"
         self.notify_github_timeout_seconds = DEFAULT_GH_TIMEOUT
+        self.notify_github_content = CONTENT_MINIMAL
         block = raw.get("notify_github")
         if not block:
             return
@@ -280,6 +286,12 @@ class Config(object):
         self.notify_github_timeout_seconds = float(
             block.get("timeout_seconds") or DEFAULT_GH_TIMEOUT
         )
+        content = str(block.get("content") or CONTENT_MINIMAL).strip().lower() or CONTENT_MINIMAL
+        if content not in VALID_GITHUB_CONTENT:
+            raise ConfigError(
+                "notify_github.content must be minimal or full, got %r" % block.get("content")
+            )
+        self.notify_github_content = content
 
     def notify_url(self, environ=None):
         if self._notify_block is None:

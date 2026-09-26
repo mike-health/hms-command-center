@@ -111,7 +111,8 @@ Do not prune `state.json` (high-water mark, rate-cap timestamps, outbox byte off
 | `list-groups` | Prints group chats: guid, display name, participant handles, last message date |
 | `once` | One poll of new messages (and new outbox lines), then exit |
 | `run` | Poll forever (`poll_interval_seconds`, default 10) |
-| `notify-test` | Sample notify: webhook POST and/or a clearly labeled TEST GitHub comment |
+| `notify-test` | Sample notify: webhook POST and/or `bot-ping TEST` on the inbox PR (minimal) |
+| `pending` | JSONL of queued `@dev`/`@ops` rows that do not yet have an outbox answer |
 
 ```bash
 cd tools/imessage-group-bot
@@ -119,6 +120,7 @@ python3 bot.py --config config.json list-groups
 python3 bot.py --config config.json once
 python3 bot.py --config config.json run
 python3 bot.py --config config.json notify-test
+python3 bot.py --config config.json pending
 ```
 
 ## Config keys
@@ -149,6 +151,7 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `notify_github.pr` | Inbox PR number (example: `19`). Required to enable this transport. |
 | `notify_github.gh_path` | Path to `gh`. launchd PATH may omit Homebrew. The bot tries `/opt/homebrew/bin/gh`, then `/usr/local/bin/gh`, then this value (default `gh`). Set an absolute path to pin it. |
 | `notify_github.timeout_seconds` | `gh` timeout (default `15`) |
+| `notify_github.content` | `minimal` (default, for public repos) or `full` (private repos only). Minimal comment body is only `bot-ping <ping_id>` — no question text, names, phones, or chat ids. |
 | `allowlist_handles` | Todd/Rudy handles (Mike = `is_from_me`) |
 | `poll_interval_seconds` | Default `10` |
 | `delivery_confirm_seconds` | Wait for `is_from_me` row after send (default `15`) |
@@ -169,7 +172,7 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 
 URL and key are read from those environment variables. If unset, the bot also reads `var/webhook.env` (relative to the config file) as `KEY=VALUE` lines. Keep that file mode `600` so launchd does not need the env injected. Never put the URL or key in `config.json`.
 
-GitHub notify uses the Mac's existing `gh` auth (`gh api repos/{repo}/issues/{pr}/comments -f body=...`). The inbox PR is **#19** (`HMS Mgt bot inbox (do not merge)`); do not merge it. That repo is **public**, so comments on #19 are public.
+GitHub notify uses the Mac's existing `gh` auth (`gh api repos/{repo}/issues/{pr}/comments -f body=...`). The inbox PR is **#19** (`HMS Mgt bot inbox (do not merge)`); do not merge it. That repo is **public**, so comments on #19 are public. Default `content` is `minimal`: the comment is only `bot-ping` plus a 12-hex `ping_id` stored on the queue line. Match the ping with `python3 bot.py --config config.json pending`. Use `content: "full"` only if the repo is private.
 
 ### `desks[]` entries
 
@@ -258,7 +261,7 @@ Every outbox decision is written to `events_log` with `"event": "outbox"`, `"out
 - Stub canned reply: one line, desk prefix, markdown/newlines stripped, clamped to `max_reply_chars`. Outbox replies may be multi-line.
 - `stub` responder (default for `@dev` **without** notify configured): `🤖 Dev: got it, routing to the dev desk: <question>`. (A message that is only `@dev` with no question is not a trigger.)
 - Health check: if the text after the trigger is only `test` (case-insensitive; surrounding whitespace and trailing `.` `!` `?` ignored), the bot replies instantly `<desk prefix> I'm here` and does **not** queue or notify. `@ops test the schedule` is a normal ops question.
-- `notify_webhook` / `notify_github`: on a real queued question (`@dev` or `@ops`), send the payload `{desk, question, trigger_text, reply_to, chat_guid, source_chat_guid, sender_handle, ts}`. Webhook: HTTP JSON. GitHub: one PR issue comment (short human line + fenced `json` block) via `gh`. Short timeout, one retry per transport. Failures go to `alerts.jsonl`; the poll loop keeps running. Not sent for health-check `test` or Mike stop/start.
+- `notify_webhook` / `notify_github`: on a real queued question (`@dev` or `@ops`). Webhook: HTTP JSON payload (stays off-GitHub). GitHub `minimal` (default): one PR comment whose entire body is `bot-ping <ping_id>`. GitHub `full` (private repos): human line + fenced JSON. Short timeout, one retry per transport. Failures go to `alerts.jsonl`; the poll loop keeps running. Not sent for health-check `test` or Mike stop/start. `ping_id` is stored on the queue line.
 - When either transport is configured, `@dev` does **not** send the stub routing text. If `ack_on_queue` is true (default), both desks send `<prefix> on it` immediately; the answering service writes the real reply to the desk outbox (`reply_to` = the queue guid).
 - `outbox` desks do not call the stub/OpenAI responder on the trigger. The later outbox `text` is sanitized (newlines kept) and prefixed.
 - `openai_compatible` is off unless `responder.type` is exactly `openai_compatible`. It is not called until kill-switch, `enabled`, quiet hours, and rate caps have already allowed a reply. On any error it falls back to stub. Money / leases / partners / Greene / JV → `🤖 Dev: Mike will answer that`.
@@ -278,7 +281,7 @@ Use a **Mike-only throwaway group first** (Mike talking to himself in a group he
 7. `touch` the kill flag file; `@dev ping` should log `kill_flag_file`. Outbox lines should hold, not drop.
 8. From Mike: `@dev stop` then `@ops start` (or the reverse). Confirm flag file create/remove and `paused` / `running` in the log. Confirm `notify-test` is **not** required for this step; stop/start must **not** POST the webhook.
 9. Restart the process with the same `state.json` and confirm the already-sent outbox line is **not** resent.
-10. With `notify_github` (PR **#19**) and/or `notify_webhook`, send `@ops ping` and confirm a GitHub comment and/or HTTP POST (or a `notify_failed` alert). `python3 bot.py --config config.json notify-test` posts a clearly labeled **TEST** GitHub comment and/or a webhook sample.
+10. With `notify_github` (PR **#19**, `content: minimal`) and/or `notify_webhook`, send `@ops ping` and confirm a GitHub comment that is only `bot-ping <12 hex>` (or a `notify_failed` alert). `pending` should list that queue row with the same `ping_id`. `notify-test` posts `bot-ping TEST`.
 11. Only after a dry-run day: `dry_run: false` **and** `--live` on the throwaway group. Confirm one `🤖 Dev:` stub or ack line and one `🤖 Ops:` outbox line in the thread, and that the bot does not reply to its own lines.
 12. Mike approves before pointing `group_guid` at the real group.
 

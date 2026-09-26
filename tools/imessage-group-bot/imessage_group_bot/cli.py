@@ -10,6 +10,7 @@ from .chat_db import ChatDB
 from .config import load_config
 from .engine import Engine, ensure_data_dirs
 from .notify import post_github_comment, post_webhook, sample_payload
+from .outbox import list_pending
 
 
 def build_parser():
@@ -37,7 +38,11 @@ def build_parser():
     sub.add_parser("run", help="Poll forever (launchd)")
     sub.add_parser(
         "notify-test",
-        help="POST a sample payload to notify_webhook and/or a TEST comment on notify_github",
+        help="POST a sample payload to notify_webhook and/or a TEST ping on notify_github",
+    )
+    sub.add_parser(
+        "pending",
+        help="Print JSONL of queued questions that do not yet have an outbox answer",
     )
     return parser
 
@@ -130,6 +135,13 @@ def cmd_notify_test(config, out=None, http_post=None, gh_run=None):
     return 1 if failed else 0
 
 
+def cmd_pending(config, out=None):
+    out = out or sys.stdout
+    for row in list_pending(config):
+        out.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+    return 0
+
+
 def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -142,6 +154,8 @@ def main(argv=None):
         return cmd_run(config, args.live)
     if args.command == "notify-test":
         return cmd_notify_test(config)
+    if args.command == "pending":
+        return cmd_pending(config)
     parser.error("unknown command")
     return 2
 

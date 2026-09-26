@@ -32,7 +32,7 @@ from .outbox import (
     load_queue_guids,
     parse_outbox_record,
 )
-from .notify import build_notify_payload, post_github_comment, post_webhook
+from .notify import build_notify_payload, new_ping_id, post_github_comment, post_webhook
 from .responder import generate_reply
 from .sender import send_and_confirm
 from .state import (
@@ -344,8 +344,8 @@ class Engine(object):
             )
             return False
 
-        self._enqueue(desk, message, rest, now)
-        self._notify_queued(desk, message, rest, now, decisions)
+        ping_id = self._enqueue(desk, message, rest, now)
+        self._notify_queued(desk, message, rest, now, decisions, ping_id=ping_id)
 
         if notify_on:
             decisions.append("queued_for_notify")
@@ -851,10 +851,12 @@ class Engine(object):
             payload["outbox_ts"] = record.get("ts")
         return payload
 
-    def _notify_queued(self, desk, message, rest, now, decisions):
+    def _notify_queued(self, desk, message, rest, now, decisions, ping_id=None):
         if not self.config.notify_active():
             return
-        payload = build_notify_payload(self.config, desk, message, rest, now_ts=now)
+        payload = build_notify_payload(
+            self.config, desk, message, rest, now_ts=now, ping_id=ping_id
+        )
         if self.config.notify_url():
             try:
                 status = post_webhook(
@@ -904,8 +906,8 @@ class Engine(object):
                     {
                         "event": "notify_github",
                         "outcome": "ok",
-                        "desk": desk.trigger_word,
-                        "reply_to": message.guid,
+                        "ping_id": ping_id,
+                        "content": self.config.notify_github_content,
                         "repo": self.config.notify_github_repo,
                         "pr": self.config.notify_github_pr,
                     },
@@ -920,8 +922,6 @@ class Engine(object):
                     extra={
                         "event": "notify_failed",
                         "transport": "github",
-                        "desk": desk.trigger_word,
-                        "reply_to": message.guid,
                     },
                     now_ts=now,
                     runner=self.hook_runner,
@@ -930,6 +930,7 @@ class Engine(object):
     def _enqueue(self, desk, message, rest, now):
         timestamp = format_apple_date(message.date_raw) or iso_now(now)
         source = self._source_chat(message)
+        ping_id = new_ping_id()
         log_event(
             desk.queue_file,
             {
@@ -947,9 +948,11 @@ class Engine(object):
                 "trigger_text": message.text,
                 "question": rest,
                 "timestamp": timestamp,
+                "ping_id": ping_id,
             },
             now_ts=now,
         )
+        return ping_id
 
     def _base_event(self, message, decisions, would_send, trigger_text, extra=None):
         source = self._source_chat(message)

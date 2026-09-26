@@ -61,7 +61,8 @@
     "repo": "mike-health/hms-command-center",
     "pr": 19,
     "gh_path": "gh",
-    "timeout_seconds": 15
+    "timeout_seconds": 15,
+    "content": "minimal"
   },
   "responder": {
     "type": "stub",

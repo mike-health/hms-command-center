@@ -92,6 +92,7 @@ class ListGroupsCliTests(unittest.TestCase):
         self.assertEqual(cfg.notify_github_pr, 19)
         self.assertEqual(cfg.notify_github_gh_path, "gh")
         self.assertEqual(cfg.notify_github_timeout_seconds, 15)
+        self.assertEqual(cfg.notify_github_content, "minimal")
         self.assertTrue(cfg.notify_github_active())
         cfg.dry_run = False
         self.assertTrue(cfg.live_send_allowed(True))
@@ -132,6 +133,7 @@ class ListGroupsCliTests(unittest.TestCase):
         self.assertFalse(cfg.notify_active())
         self.assertEqual(cfg.notify_url(), "")
         self.assertFalse(cfg.notify_github_active())
+        self.assertEqual(cfg.notify_github_content, "minimal")
 
     def test_osascript_argv_carries_raw_emoji(self):
         text = "🤖 Dev: hi there"

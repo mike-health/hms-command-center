@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import json
 import os
+import secrets
 import subprocess
 import urllib.error
 import urllib.request
@@ -24,6 +25,9 @@ DEFAULT_GH_CANDIDATES = (
     "gh",
 )
 DEFAULT_GITHUB_REPO = "mike-health/hms-command-center"
+CONTENT_MINIMAL = "minimal"
+CONTENT_FULL = "full"
+VALID_GITHUB_CONTENT = (CONTENT_MINIMAL, CONTENT_FULL)
 
 
 def load_key_value_env(path):
@@ -58,7 +62,12 @@ def lookup_env(name, file_map, environ=None):
     return str(file_map.get(name) or "")
 
 
-def build_notify_payload(config, desk, message, question, now_ts=None):
+def new_ping_id():
+    """12 hex characters, unique per queued question."""
+    return secrets.token_hex(6)
+
+
+def build_notify_payload(config, desk, message, question, now_ts=None, ping_id=None):
     source = getattr(message, "chat_guid", None) or config.group_guid
     from .trigger import sender_identity
 
@@ -73,6 +82,7 @@ def build_notify_payload(config, desk, message, question, now_ts=None):
             message.handle, message.is_from_me, config.from_me_handle
         ),
         "ts": iso_now(now_ts),
+        "ping_id": ping_id or "",
     }
 
 
@@ -146,7 +156,15 @@ def resolve_gh_path(configured=None):
     return wanted or "gh"
 
 
-def format_github_comment(payload, test=False):
+def format_github_comment(config, payload=None, test=False):
+    mode = getattr(config, "notify_github_content", CONTENT_MINIMAL) or CONTENT_MINIMAL
+    mode = str(mode).strip().lower()
+    if mode != CONTENT_FULL:
+        if test:
+            return "bot-ping TEST"
+        ping = str((payload or {}).get("ping_id") or "").strip()
+        return "bot-ping %s" % ping
+    payload = payload or {}
     desk = payload.get("desk") or ""
     question = (payload.get("question") or "").replace("\n", " ").strip()
     sender = payload.get("sender_handle") or ""
@@ -165,7 +183,7 @@ def github_comment_argv(config, payload, test=False):
     repo = config.notify_github_repo
     pr = int(config.notify_github_pr)
     path = resolve_gh_path(config.notify_github_gh_path)
-    body = format_github_comment(payload, test=test)
+    body = format_github_comment(config, payload, test=test)
     return [
         path,
         "api",

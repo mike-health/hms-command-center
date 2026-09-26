@@ -93,3 +93,63 @@ def iter_outbox_lines(path, offset):
             except UnicodeDecodeError:
                 text = raw.decode("utf-8", errors="replace")
             yield start, end, text
+
+
+def iter_queue_rows(path):
+    """Yield dicts from a desk queue JSONL (skip bad lines)."""
+    if not path or not os.path.exists(path):
+        return
+    with open(path, "r", encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(row, dict):
+                yield row
+
+
+def load_outbox_reply_tos(path):
+    """reply_to values present in complete outbox lines (answer already written)."""
+    found = set()
+    if not path or not os.path.exists(path):
+        return found
+    for _start, _end, text in iter_outbox_lines(path, 0):
+        record, reason = parse_outbox_record(text)
+        if record and not reason:
+            found.add(record["reply_to"])
+    return found
+
+
+def list_pending(config, state=None):
+    """Queued desk entries that do not yet have an outbox answer (or sent mark)."""
+    from .state import already_answered, load_state
+
+    if state is None:
+        state = load_state(config.state_file)
+    rows = []
+    for desk in config.desks:
+        answered_outbox = load_outbox_reply_tos(desk.outbox_file)
+        for row in iter_queue_rows(desk.queue_file):
+            guid = row.get("guid") or row.get("message_guid")
+            if not guid:
+                continue
+            guid = str(guid)
+            if already_answered(state, guid) or guid in answered_outbox:
+                continue
+            rows.append(
+                {
+                    "desk": row.get("desk") or desk.trigger_word,
+                    "question": row.get("question") or "",
+                    "reply_to": guid,
+                    "chat_guid": row.get("reply_chat_guid")
+                    or row.get("chat_guid")
+                    or config.group_guid,
+                    "ping_id": row.get("ping_id") or "",
+                    "sender_handle": row.get("sender_handle") or "",
+                    "ts": row.get("ts") or row.get("timestamp") or "",
+                }
+            )
+    return rows
