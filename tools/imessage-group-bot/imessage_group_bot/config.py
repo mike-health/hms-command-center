@@ -157,8 +157,13 @@ class Config(object):
             raise ValueError("watch_chat_guids must be a list")
         self.watch_chat_guids = [str(item).strip() for item in watch if str(item).strip()]
         self.from_me_handle = str(raw.get("from_me_handle") or "").strip()
+        self.reply_routes = _load_reply_routes(raw.get("reply_routes"))
         self.watched_chat_guids = _unique_guids(
-            [self.group_guid] + self.watch_chat_guids
+            [self.group_guid] + self.watch_chat_guids + list(self.reply_routes.keys())
+        )
+        # Chats the bot may send into: group_guid plus every reply_routes target.
+        self.reply_chat_guids = _unique_guids(
+            [self.group_guid] + list(self.reply_routes.values())
         )
         self.trigger_word = (
             str(raw.get("trigger_word") or DEFAULT_TRIGGER_WORD).strip() or DEFAULT_TRIGGER_WORD
@@ -360,12 +365,46 @@ class Config(object):
     def is_watched_chat(self, chat_guid):
         return bool(chat_guid) and chat_guid in self.watched_chat_guids
 
+    def reply_chat_for(self, chat_guid):
+        """Send chat for a source (or outbox) chat guid.
+
+        reply_routes wins; a guid that is itself a reply target maps to itself;
+        everything else (group_guid, watch_chat_guids aliases) → group_guid.
+        """
+        guid = (chat_guid or "").strip()
+        if guid in self.reply_routes:
+            return self.reply_routes[guid]
+        if guid and guid in self.reply_chat_guids:
+            return guid
+        return self.group_guid
+
+    def accepts_outbox_chat(self, chat_guid):
+        return bool(chat_guid) and (
+            chat_guid in self.watched_chat_guids or chat_guid in self.reply_chat_guids
+        )
+
     def live_send_allowed(self, live_flag):
         """Real send requires dry_run false AND --live. Default is always dry-run."""
         return (not self.dry_run) and bool(live_flag)
 
     def quiet_hours_enabled(self):
         return bool(self.quiet_hours_start and self.quiet_hours_end)
+
+
+def _load_reply_routes(routes):
+    """Optional {source_chat_guid: send_chat_guid}. Missing/null = no extra chats."""
+    if routes is None:
+        return {}
+    if not isinstance(routes, dict):
+        raise ConfigError("reply_routes must be a JSON object of source guid -> send guid")
+    out = {}
+    for source, target in routes.items():
+        src = str(source or "").strip()
+        dst = str(target or "").strip() if isinstance(target, str) else ""
+        if not src or not dst:
+            raise ConfigError("reply_routes entries need non-empty source and send chat guids")
+        out[src] = dst
+    return out
 
 
 def _unique_guids(values):

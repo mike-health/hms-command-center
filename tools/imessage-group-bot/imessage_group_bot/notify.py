@@ -76,7 +76,7 @@ def build_notify_payload(config, desk, message, question, now_ts=None, ping_id=N
         "question": question,
         "trigger_text": message.text,
         "reply_to": message.guid,
-        "chat_guid": config.group_guid,
+        "chat_guid": config.reply_chat_for(source),
         "source_chat_guid": source,
         "sender_handle": sender_identity(
             message.handle, message.is_from_me, config.from_me_handle

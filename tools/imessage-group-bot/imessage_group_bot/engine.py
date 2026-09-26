@@ -30,6 +30,7 @@ from .outbox import (
     REASON_WRONG_CHAT,
     iter_outbox_lines,
     load_queue_guids,
+    load_queue_reply_chats,
     parse_outbox_record,
 )
 from .notify import build_notify_payload, new_ping_id, post_github_comment, post_webhook
@@ -197,6 +198,10 @@ class Engine(object):
 
     def _source_chat(self, message):
         return getattr(message, "chat_guid", None) or self.config.group_guid
+
+    def _reply_chat(self, message):
+        """Replies go back to the conversation the trigger came from (reply_routes)."""
+        return self.config.reply_chat_for(self._source_chat(message))
 
     def _sender_key(self, message):
         return sender_identity(
@@ -587,6 +592,7 @@ class Engine(object):
             bypass_kill=True,
             bypass_rate=True,
             count_rate=count_rate,
+            chat_guid=self._reply_chat(message),
             event_factory=lambda decs, would: self._base_event(
                 message,
                 decs,
@@ -609,7 +615,10 @@ class Engine(object):
         bypass_rate=False,
         count_rate=True,
         event_factory=None,
+        chat_guid=None,
     ):
+        target_chat = chat_guid or self.config.group_guid
+
         def emit(would_send=None):
             if event_factory:
                 log_event(
@@ -668,7 +677,7 @@ class Engine(object):
 
         try:
             result = send_and_confirm(
-                self.config.group_guid,
+                target_chat,
                 reply,
                 self.chat_db,
                 self.config.delivery_confirm_seconds,
@@ -696,7 +705,7 @@ class Engine(object):
                 self.config.alert_hook_command,
                 extra={
                     "event": "send_failed",
-                    "chat_guid": self.config.group_guid,
+                    "chat_guid": target_chat,
                 },
                 now_ts=now,
                 runner=self.hook_runner,
@@ -716,6 +725,7 @@ class Engine(object):
             return 0
         offset = outbox_offset(state, path)
         queued = None
+        queued_chats = {}
         sent = 0
         for start, end, raw in iter_outbox_lines(path, offset):
             now = self.clock()
@@ -737,7 +747,7 @@ class Engine(object):
                 offset = end
                 continue
 
-            if not self.config.is_watched_chat(record["chat_guid"]):
+            if not self.config.accepts_outbox_chat(record["chat_guid"]):
                 self._log_outbox(
                     desk, record, OUTCOME_REJECTED, REASON_WRONG_CHAT, now
                 )
@@ -747,9 +757,21 @@ class Engine(object):
 
             if queued is None:
                 queued = load_queue_guids(desk.queue_file)
+                queued_chats = load_queue_reply_chats(desk.queue_file)
             if record["reply_to"] not in queued:
                 self._log_outbox(
                     desk, record, OUTCOME_REJECTED, REASON_UNKNOWN_REPLY_TO, now
+                )
+                set_outbox_offset(state, path, end)
+                offset = end
+                continue
+
+            target_chat = self.config.reply_chat_for(record["chat_guid"])
+            queued_chat = queued_chats.get(record["reply_to"]) or ""
+            if queued_chat and self.config.reply_chat_for(queued_chat) != target_chat:
+                # Answer must go back to the conversation the question came from.
+                self._log_outbox(
+                    desk, record, OUTCOME_REJECTED, REASON_WRONG_CHAT, now
                 )
                 set_outbox_offset(state, path, end)
                 offset = end
@@ -786,6 +808,7 @@ class Engine(object):
                 decisions,
                 now,
                 event_factory=None,
+                chat_guid=target_chat,
             )
             if outcome == OUTCOME_HELD:
                 self._log_outbox(
@@ -836,7 +859,11 @@ class Engine(object):
         payload = {
             "event": "outbox",
             "desk": desk.trigger_word if desk else None,
-            "chat_guid": self.config.group_guid,
+            "chat_guid": (
+                self.config.reply_chat_for(record.get("chat_guid"))
+                if record
+                else self.config.group_guid
+            ),
             "outcome": outcome,
             "reason": reason,
             "decisions": decisions,
@@ -937,7 +964,7 @@ class Engine(object):
                 "event": "desk_queue",
                 "chat_guid": source,
                 "source_chat_guid": source,
-                "reply_chat_guid": self.config.group_guid,
+                "reply_chat_guid": self.config.reply_chat_for(source),
                 "rowid": message.rowid,
                 "guid": message.guid,
                 "message_guid": message.guid,
@@ -960,7 +987,7 @@ class Engine(object):
             "event": "message",
             "chat_guid": source,
             "source_chat_guid": source,
-            "reply_chat_guid": self.config.group_guid,
+            "reply_chat_guid": self.config.reply_chat_for(source),
             "rowid": message.rowid,
             "guid": message.guid,
             "sender_handle": self._sender_key(message),

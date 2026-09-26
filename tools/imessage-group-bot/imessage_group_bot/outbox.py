@@ -43,6 +43,17 @@ def load_queue_guids(path):
     return guids
 
 
+def load_queue_reply_chats(path):
+    """message guid -> reply chat guid recorded when the question was queued."""
+    out = {}
+    for row in iter_queue_rows(path):
+        guid = row.get("guid") or row.get("message_guid")
+        if not guid:
+            continue
+        out[str(guid)] = str(row.get("reply_chat_guid") or row.get("chat_guid") or "")
+    return out
+
+
 def parse_outbox_record(line):
     """Return (record, reject_reason). record is a dict on success."""
     text = (line or "").strip()
