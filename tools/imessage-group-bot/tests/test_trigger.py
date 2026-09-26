@@ -47,6 +47,9 @@ class TriggerTests(unittest.TestCase):
         self.assertTrue(handle_allowed("+1 (555) 555-0101", False, ["+15555550101"]))
         self.assertTrue(handle_allowed("Todd@example.com", False, ["todd@example.com"]))
         self.assertFalse(handle_allowed("+15555550999", False, ["+15555550101"]))
+        self.assertTrue(
+            handle_allowed("+19169123214", False, [], owner_handle="+19169123214")
+        )
 
     def test_kill_commands(self):
         self.assertEqual(parse_kill_command("stop"), "stop")

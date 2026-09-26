@@ -112,7 +112,10 @@ class ListGroupsCliTests(unittest.TestCase):
         self.assertEqual(cfg.desks[1].trigger_word, "@ops")
         self.assertEqual(cfg.desks[1].reply_mode, "outbox")
         self.assertTrue(cfg.desks[1].queue_file.endswith("desk-queue-ops.jsonl"))
-        self.assertTrue(cfg.desks[1].outbox_file.endswith("outbox-ops.jsonl"))
+        self.assertEqual(cfg.desks[1].outbox_file.endswith("outbox-ops.jsonl"), True)
+        self.assertEqual(cfg.watch_chat_guids, [])
+        self.assertEqual(cfg.watched_chat_guids, ["g"])
+        self.assertEqual(cfg.from_me_handle, "")
 
     def test_osascript_argv_carries_raw_emoji(self):
         text = "🤖 Dev: hi there"

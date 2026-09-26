@@ -26,6 +26,7 @@ class ChatMessage(object):
         item_type,
         date_edited,
         attributed_used,
+        chat_guid=None,
     ):
         self.rowid = rowid
         self.guid = guid
@@ -38,9 +39,14 @@ class ChatMessage(object):
         self.item_type = item_type
         self.date_edited = date_edited
         self.attributed_used = attributed_used
+        self.chat_guid = chat_guid or ""
 
-    def sender_label(self):
+    def sender_label(self, from_me_handle=None):
         if self.is_from_me:
+            if from_me_handle:
+                from .trigger import normalize_handle
+
+                return normalize_handle(from_me_handle) or "me"
             return "me"
         return self.handle or ""
 
@@ -191,6 +197,7 @@ class ChatDB(object):
                         item_type=int(_row_get(row, "item_type") or 0),
                         date_edited=_row_get(row, "date_edited"),
                         attributed_used=attributed_used,
+                        chat_guid=chat_guid,
                     )
                 )
         return messages

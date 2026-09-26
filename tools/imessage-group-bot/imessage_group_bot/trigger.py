@@ -43,14 +43,31 @@ def normalize_handle(value):
     return digits or text.lower()
 
 
-def handle_allowed(handle, is_from_me, allowlist_handles):
-    if is_from_me:
+def handle_allowed(handle, is_from_me, allowlist_handles, owner_handle=None):
+    if is_owner_message(handle, is_from_me, owner_handle):
         return True
     wanted = normalize_handle(handle)
     if not wanted:
         return False
     allowed = {normalize_handle(item) for item in allowlist_handles}
     return wanted in allowed
+
+
+def is_owner_message(handle, is_from_me, owner_handle=None):
+    if is_from_me:
+        return True
+    owner = normalize_handle(owner_handle)
+    if not owner:
+        return False
+    return normalize_handle(handle) == owner
+
+
+def sender_identity(handle, is_from_me, owner_handle=None):
+    """Stable sender key for logs, queues, and cross-chat dedupe."""
+    if is_from_me:
+        owner = normalize_handle(owner_handle)
+        return owner or "me"
+    return normalize_handle(handle) or (handle or "")
 
 
 def is_self_loop_text(text, bot_prefix=None):

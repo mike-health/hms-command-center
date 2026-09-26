@@ -144,7 +144,7 @@ def build_sqlite(path, rows=None, chats=None, handles=None):
 def msg(**kwargs):
     defaults = dict(
         rowid=1,
-        guid="G1",
+        guid=None,
         text="@dev hello",
         handle="+15555550101",
         is_from_me=0,
@@ -156,6 +156,8 @@ def msg(**kwargs):
         attributed_used=False,
     )
     defaults.update(kwargs)
+    if not defaults.get("guid"):
+        defaults["guid"] = "G%s" % defaults["rowid"]
     return ChatMessage(**defaults)
 
 
@@ -166,12 +168,25 @@ class FakeDB(object):
         self.from_me = []
 
     def max_rowid(self, chat_guid=None):
-        if self.messages:
-            return max(self.max_id, max(m.rowid for m in self.messages))
+        rows = self.messages
+        if chat_guid:
+            tagged = [m for m in rows if getattr(m, "chat_guid", None) == chat_guid]
+            if tagged or any(getattr(m, "chat_guid", None) for m in rows):
+                rows = tagged
+        if rows:
+            return max(self.max_id, max(m.rowid for m in rows))
         return self.max_id
 
     def fetch_new_messages(self, chat_guid, after_rowid):
-        return [m for m in self.messages if m.rowid > after_rowid]
+        out = []
+        for message in self.messages:
+            if message.rowid <= after_rowid:
+                continue
+            src = getattr(message, "chat_guid", None) or ""
+            if src and src != chat_guid:
+                continue
+            out.append(message)
+        return out
 
     def find_from_me_with_text(self, chat_guid, text, after_rowid):
         for rowid, body in self.from_me:

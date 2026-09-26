@@ -3,6 +3,8 @@
   "enabled": true,
   "chat_db_path": "~/Library/Messages/chat.db",
   "group_guid": "iMessage;+;chatXXXXXXXXXXXXXXXX",
+  "watch_chat_guids": [],
+  "from_me_handle": "",
   "trigger_word": "@dev",
   "bot_prefix": "🤖 Dev:",
   "max_reply_chars": 200,

@@ -129,7 +129,9 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `enabled` | JSON `true`/`false` only. Any other value is treated as `false`. |
 | `bot_prefix` | Default `🤖 Dev:`. Must start with 🤖. Still used as the legacy/dev prefix when `desks` is omitted. |
 | `chat_db_path` | Usually `~/Library/Messages/chat.db` |
-| `group_guid` | Only this chat is watched |
+| `group_guid` | Send target. All bot replies go to this chat. Also watched for triggers. |
+| `watch_chat_guids` | Optional extra chat guids to **read** triggers from (same iMessage group under another Apple ID). Missing or `[]` = current single-chat behavior. Replies still go to `group_guid`. |
+| `from_me_handle` | Optional E.164/email for the Messages owner (Mike's phone). `is_from_me` in an alias chat is treated as this handle for allowlist, queue `sender_handle`, and cross-chat dedupe. Also allows stop/start from that handle even when `is_from_me=0`. |
 | `trigger_word` | Legacy/dev trigger. Confirmed `@dev`. Kept for older configs. |
 | `desks` | Optional list of desk objects (see below). When omitted, the legacy keys become a stub desk and a default `@ops` outbox desk is added. |
 | `max_reply_chars` | Default `200` |
@@ -231,7 +233,8 @@ Every outbox decision is written to `events_log` with `"event": "outbox"`, `"out
 ## Behavior
 
 - Read-only sqlite: `file:<path>?mode=ro`. Decodes `attributedBody` when `text` is NULL (no `imsg` dependency).
-- Trigger: a configured desk trigger appears as a **standalone token anywhere** in the text **and** sender is Mike (`is_from_me`) or an allowlisted handle. The queue `question` is the text after that token (trimmed). Self-loop (`🤖` prefix) still wins over a nested trigger.
+- Trigger: a configured desk trigger appears as a **standalone token anywhere** in the text **and** sender is Mike (`is_from_me`, `from_me_handle`, or an allowlisted handle). The queue `question` is the text after that token (trimmed). Self-loop (`🤖` prefix) still wins over a nested trigger in **every** watched chat.
+- Dual Apple ID: one iMessage group can appear as two `chat.db` rows. Set `group_guid` to the chat whose `last_addressed_handle` is the **bot** address (replies come from that identity). Put the other row in `watch_chat_guids`. Queue lines record `source_chat_guid` and `reply_chat_guid`. Outbox `chat_guid` may be any watched guid; sends always go to `group_guid`. Duplicate copies (same message guid, or same text+sender within 60s) produce one reply.
 - Skip: leading `🤖` (self-loop), `associated_message_type != 0` (tapbacks/reactions), edits (`date_edited`), empty/attachment-only, item_type ≠ 0, backlog from before first start (high-water ROWID). Stub quiet hours: `suppressed: quiet_hours`, not queued. A trigger token with no following non-whitespace text is `not_trigger`.
 - One reply per trigger message (idempotent on ROWID/guid, and on outbox `reply_to`). Earliest desk token in the message wins if several appear.
 - Reply: one line, ≤200 chars, desk prefix, markdown/newlines stripped.

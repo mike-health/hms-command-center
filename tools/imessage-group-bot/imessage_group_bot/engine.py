@@ -37,9 +37,11 @@ from .sender import send_and_confirm
 from .state import (
     already_answered,
     already_processed,
+    is_recent_duplicate,
     load_state,
     mark_answered,
     mark_processed,
+    note_recent_trigger,
     outbox_offset,
     save_state,
     set_outbox_offset,
@@ -47,9 +49,11 @@ from .state import (
 from .trigger import (
     handle_allowed,
     is_health_check,
+    is_owner_message,
     is_self_loop_text,
     match_desk,
     match_kill_command,
+    sender_identity,
 )
 
 
@@ -61,6 +65,7 @@ SKIP_NOT_TRIGGER = "not_trigger"
 SKIP_ALLOWLIST = "not_allowlisted"
 SKIP_BACKLOG = "backlog_before_start"
 SKIP_IDEMPOTENT = "already_processed"
+SKIP_CROSS_CHAT_DEDUP = "duplicate_across_chats"
 SKIP_QUIET_HOURS = "suppressed: quiet_hours"
 
 
@@ -94,12 +99,12 @@ class Engine(object):
 
     def process_once(self):
         state = load_state(self.config.state_file)
+        first_start = state.get("high_water_rowid") is None
+        seeded_now = self._sync_high_water(state)
         seeded = False
         processed = 0
         replies = 0
-        if state.get("high_water_rowid") is None:
-            # Ignore backlog from before this process first started.
-            state["high_water_rowid"] = self.chat_db.max_rowid(self.config.group_guid)
+        if first_start:
             seeded = True
             save_state(self.config.state_file, state)
             log_event(
@@ -107,21 +112,39 @@ class Engine(object):
                 {
                     "event": "high_water_seeded",
                     "chat_guid": self.config.group_guid,
+                    "watched_chat_guids": list(self.config.watched_chat_guids),
                     "high_water_rowid": state["high_water_rowid"],
+                    "high_water_by_chat": dict(state.get("high_water_by_chat") or {}),
                     "decisions": ["backlog_ignored_on_first_start"],
                 },
                 now_ts=self.clock(),
             )
         else:
-            messages = self.chat_db.fetch_new_messages(
-                self.config.group_guid, int(state["high_water_rowid"])
-            )
+            if seeded_now:
+                save_state(self.config.state_file, state)
+                log_event(
+                    self.config.events_log,
+                    {
+                        "event": "high_water_seeded",
+                        "chat_guid": self.config.group_guid,
+                        "seeded_chats": seeded_now,
+                        "high_water_by_chat": dict(state.get("high_water_by_chat") or {}),
+                        "decisions": ["backlog_ignored_on_new_watch_chat"],
+                    },
+                    now_ts=self.clock(),
+                )
+            messages = self._fetch_new_from_watched(state)
             processed = len(messages)
             for message in messages:
                 acted = self._handle_message(state, message)
                 if acted:
                     replies += 1
-                mark_processed(state, message.rowid, message.guid)
+                mark_processed(
+                    state,
+                    message.rowid,
+                    message.guid,
+                    chat_guid=self._source_chat(message),
+                )
                 save_state(self.config.state_file, state)
 
         outbox_sent = self._process_outboxes(state)
@@ -133,6 +156,52 @@ class Engine(object):
             "replies": replies,
             "high_water_rowid": state.get("high_water_rowid"),
         }
+
+    def _sync_high_water(self, state):
+        """Ensure per-chat high-water marks. New watch chats start at max (no backlog)."""
+        by_chat = dict(state.get("high_water_by_chat") or {})
+        seeded = []
+        first_start = state.get("high_water_rowid") is None
+        if first_start:
+            for guid in self.config.watched_chat_guids:
+                by_chat[guid] = self.chat_db.max_rowid(guid)
+                seeded.append(guid)
+            state["high_water_by_chat"] = by_chat
+            state["high_water_rowid"] = int(by_chat.get(self.config.group_guid) or 0)
+            return seeded
+        if self.config.group_guid not in by_chat:
+            by_chat[self.config.group_guid] = int(state.get("high_water_rowid") or 0)
+        for guid in self.config.watched_chat_guids:
+            if guid not in by_chat or by_chat[guid] is None:
+                by_chat[guid] = self.chat_db.max_rowid(guid)
+                seeded.append(guid)
+        state["high_water_by_chat"] = by_chat
+        return seeded
+
+    def _fetch_new_from_watched(self, state):
+        by_chat = state.get("high_water_by_chat") or {}
+        messages = []
+        for guid in self.config.watched_chat_guids:
+            after = int(by_chat.get(guid) or 0)
+            for message in self.chat_db.fetch_new_messages(guid, after):
+                if not getattr(message, "chat_guid", None):
+                    message.chat_guid = guid
+                messages.append(message)
+        messages.sort(key=lambda item: int(item.rowid))
+        return messages
+
+    def _source_chat(self, message):
+        return getattr(message, "chat_guid", None) or self.config.group_guid
+
+    def _sender_key(self, message):
+        return sender_identity(
+            message.handle, message.is_from_me, self.config.from_me_handle
+        )
+
+    def _is_owner(self, message):
+        return is_owner_message(
+            message.handle, message.is_from_me, self.config.from_me_handle
+        )
 
     def run_forever(self):
         interval = max(1.0, float(self.config.poll_interval_seconds))
@@ -177,7 +246,10 @@ class Engine(object):
             return False
 
         allowed = handle_allowed(
-            message.handle, message.is_from_me, self.config.allowlist_handles
+            message.handle,
+            message.is_from_me,
+            self.config.allowlist_handles,
+            owner_handle=self.config.from_me_handle,
         )
         if not allowed:
             log_event(
@@ -207,16 +279,32 @@ class Engine(object):
             )
             return False
 
+        sender_key = self._sender_key(message)
+        if is_recent_duplicate(state, message.text, sender_key, now):
+            log_event(
+                self.config.events_log,
+                self._base_event(
+                    message,
+                    decisions + [SKIP_CROSS_CHAT_DEDUP],
+                    would_send=None,
+                    trigger_text=message.text,
+                    extra={"desk": desk.trigger_word},
+                ),
+                now_ts=now,
+            )
+            return False
+
         decisions.append("allowlisted")
         decisions.append("trigger_matched")
         decisions.append("desk:%s" % desk.trigger_word)
+        note_recent_trigger(state, message.text, sender_key, now)
 
         kill_desk, command = match_kill_command(message.text, self.config.desks)
-        if command == "stop" and message.is_from_me:
+        if command == "stop" and self._is_owner(message):
             return self._command_stop(
                 state, message, rest, decisions, now, desk=kill_desk or desk
             )
-        if command == "start" and message.is_from_me:
+        if command == "start" and self._is_owner(message):
             return self._command_start(
                 state, message, rest, decisions, now, desk=kill_desk or desk
             )
@@ -588,7 +676,7 @@ class Engine(object):
                 offset = end
                 continue
 
-            if record["chat_guid"] != self.config.group_guid:
+            if not self.config.is_watched_chat(record["chat_guid"]):
                 self._log_outbox(
                     desk, record, OUTCOME_REJECTED, REASON_WRONG_CHAT, now
                 )
@@ -701,15 +789,18 @@ class Engine(object):
 
     def _enqueue(self, desk, message, rest, now):
         timestamp = format_apple_date(message.date_raw) or iso_now(now)
+        source = self._source_chat(message)
         log_event(
             desk.queue_file,
             {
                 "event": "desk_queue",
-                "chat_guid": self.config.group_guid,
+                "chat_guid": source,
+                "source_chat_guid": source,
+                "reply_chat_guid": self.config.group_guid,
                 "rowid": message.rowid,
                 "guid": message.guid,
                 "message_guid": message.guid,
-                "sender_handle": message.sender_label(),
+                "sender_handle": self._sender_key(message),
                 "is_from_me": message.is_from_me,
                 "trigger_word": desk.trigger_word,
                 "desk": desk.trigger_word,
@@ -721,12 +812,15 @@ class Engine(object):
         )
 
     def _base_event(self, message, decisions, would_send, trigger_text, extra=None):
+        source = self._source_chat(message)
         payload = {
             "event": "message",
-            "chat_guid": self.config.group_guid,
+            "chat_guid": source,
+            "source_chat_guid": source,
+            "reply_chat_guid": self.config.group_guid,
             "rowid": message.rowid,
             "guid": message.guid,
-            "sender_handle": message.sender_label(),
+            "sender_handle": self._sender_key(message),
             "is_from_me": message.is_from_me,
             "trigger_text": trigger_text,
             "would_send": would_send,

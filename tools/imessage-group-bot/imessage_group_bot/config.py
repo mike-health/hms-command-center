@@ -150,6 +150,16 @@ class Config(object):
         self.enabled = _strict_bool(raw, "enabled", True, False)
         self.chat_db_path = _expand_path(raw["chat_db_path"], base_dir)
         self.group_guid = str(raw["group_guid"]).strip()
+        watch = raw.get("watch_chat_guids")
+        if watch is None:
+            watch = []
+        if not isinstance(watch, list):
+            raise ValueError("watch_chat_guids must be a list")
+        self.watch_chat_guids = [str(item).strip() for item in watch if str(item).strip()]
+        self.from_me_handle = str(raw.get("from_me_handle") or "").strip()
+        self.watched_chat_guids = _unique_guids(
+            [self.group_guid] + self.watch_chat_guids
+        )
         self.trigger_word = (
             str(raw.get("trigger_word") or DEFAULT_TRIGGER_WORD).strip() or DEFAULT_TRIGGER_WORD
         )
@@ -243,12 +253,26 @@ class Config(object):
                 return desk
         return None
 
+    def is_watched_chat(self, chat_guid):
+        return bool(chat_guid) and chat_guid in self.watched_chat_guids
+
     def live_send_allowed(self, live_flag):
         """Real send requires dry_run false AND --live. Default is always dry-run."""
         return (not self.dry_run) and bool(live_flag)
 
     def quiet_hours_enabled(self):
         return bool(self.quiet_hours_start and self.quiet_hours_end)
+
+
+def _unique_guids(values):
+    seen = set()
+    out = []
+    for value in values:
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        out.append(value)
+    return out
 
 
 def _desk_has_trigger(desks, trigger_word):

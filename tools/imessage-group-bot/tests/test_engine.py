@@ -842,5 +842,290 @@ class DeskOutboxTests(unittest.TestCase):
         self.assertIn("running", hit["would_send"])
 
 
+ALIAS_GUID = "any;+;aliasTESTGUID0002"
+MIKE_PHONE = "+19169123214"
+
+
+class WatchAliasTests(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.config = write_config(
+            self.tmpdir.name,
+            watch_chat_guids=[ALIAS_GUID],
+            from_me_handle=MIKE_PHONE,
+        )
+        self.sender = ExplodingSend()
+        self.ops = _ops_desk(self.config)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _engine(self, messages, max_id=0, live=False, clock=None):
+        db = FakeDB(messages=messages, max_id=max_id)
+        return Engine(
+            self.config,
+            live_flag=live,
+            chat_db=db,
+            send_fn=self.sender,
+            clock=clock or (lambda: 1_000_000.0),
+            sleeper=lambda _s: None,
+        ), db
+
+    def _prime(self, value=0):
+        state = load_state(self.config.state_file)
+        state["high_water_rowid"] = value
+        state["high_water_by_chat"] = {
+            guid: value for guid in self.config.watched_chat_guids
+        }
+        save_state(self.config.state_file, state)
+
+    def test_alias_from_me_trigger_replies_to_group_guid(self):
+        self._prime(0)
+        text = "@ops list linear to do for next week"
+        messages = [
+            msg(
+                rowid=10,
+                guid="G-ALIAS-10",
+                text=text,
+                handle="",
+                is_from_me=1,
+                chat_guid=ALIAS_GUID,
+            )
+        ]
+        engine, _ = self._engine(messages)
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 0)
+        with open(self.ops.queue_file, encoding="utf-8") as handle:
+            queued = json.loads(handle.readline())
+        self.assertEqual(queued["question"], "list linear to do for next week")
+        self.assertEqual(queued["source_chat_guid"], ALIAS_GUID)
+        self.assertEqual(queued["chat_guid"], ALIAS_GUID)
+        self.assertEqual(queued["reply_chat_guid"], GROUP_GUID)
+        self.assertEqual(queued["sender_handle"], MIKE_PHONE)
+        hit = [e for e in _events(self.config) if e.get("rowid") == 10][-1]
+        self.assertEqual(hit["reply_chat_guid"], GROUP_GUID)
+        self.assertEqual(hit["source_chat_guid"], ALIAS_GUID)
+        self.assertEqual(self.sender.calls, [])
+
+    def test_alias_health_check_sends_to_group_guid_live(self):
+        self.config.dry_run = False
+        self._prime(0)
+        sent = []
+        db = FakeDB(
+            messages=[
+                msg(
+                    rowid=11,
+                    guid="G-ALIAS-11",
+                    text="Hi rudy @ops test",
+                    handle="",
+                    is_from_me=1,
+                    chat_guid=ALIAS_GUID,
+                )
+            ],
+            max_id=10,
+        )
+
+        def send_ok(guid, text):
+            sent.append((guid, text))
+            db.from_me.append((12, text))
+
+        engine = Engine(
+            self.config,
+            live_flag=True,
+            chat_db=db,
+            send_fn=send_ok,
+            clock=lambda: 8_000.0,
+            sleeper=lambda _s: None,
+        )
+        engine.process_once()
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(sent[0][0], GROUP_GUID)
+        self.assertEqual(sent[0][1], "🤖 Ops: I'm here")
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+
+    def test_outbox_accepts_alias_chat_guid_sends_to_group(self):
+        self.config.dry_run = False
+        self._prime(0)
+        sent = []
+        db = FakeDB(
+            messages=[
+                msg(
+                    rowid=13,
+                    guid="G-ALIAS-13",
+                    text="@ops status please",
+                    handle="",
+                    is_from_me=1,
+                    chat_guid=ALIAS_GUID,
+                )
+            ],
+            max_id=12,
+        )
+
+        def send_ok(guid, text):
+            sent.append((guid, text))
+            db.from_me.append((14, text))
+
+        _append_jsonl(
+            self.ops.outbox_file,
+            {
+                "reply_to": "G-ALIAS-13",
+                "chat_guid": ALIAS_GUID,
+                "text": "here is the list",
+                "ts": "2026-09-26T20:00:00+00:00",
+            },
+        )
+        engine = Engine(
+            self.config,
+            live_flag=True,
+            chat_db=db,
+            send_fn=send_ok,
+            clock=lambda: 9_000.0,
+            sleeper=lambda _s: None,
+        )
+        engine.process_once()
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(sent[0][0], GROUP_GUID)
+        self.assertTrue(sent[0][1].startswith("🤖 Ops:"))
+        self.assertIn("here is the list", sent[0][1])
+
+    def test_same_guid_across_chats_one_reply(self):
+        self._prime(0)
+        body = "@dev ping from both copies"
+        messages = [
+            msg(
+                rowid=20,
+                guid="SAME-GUID",
+                text=body,
+                handle=MIKE_PHONE,
+                is_from_me=0,
+                chat_guid=GROUP_GUID,
+            ),
+            msg(
+                rowid=21,
+                guid="SAME-GUID",
+                text=body,
+                handle="",
+                is_from_me=1,
+                chat_guid=ALIAS_GUID,
+            ),
+        ]
+        engine, _ = self._engine(messages)
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 1)
+        hits = [e for e in _events(self.config) if e.get("guid") == "SAME-GUID"]
+        decisions = [d for e in hits for d in e.get("decisions", [])]
+        self.assertIn("already_processed", decisions)
+        self.assertEqual(self.sender.calls, [])
+
+    def test_same_text_sender_within_60s_one_reply(self):
+        self._prime(0)
+        body = "@dev ping duplicated text"
+        messages = [
+            msg(
+                rowid=30,
+                guid="G-A",
+                text=body,
+                handle="",
+                is_from_me=1,
+                chat_guid=ALIAS_GUID,
+            ),
+            msg(
+                rowid=31,
+                guid="G-B",
+                text=body,
+                handle=MIKE_PHONE,
+                is_from_me=0,
+                chat_guid=GROUP_GUID,
+            ),
+        ]
+        engine, _ = self._engine(messages)
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 1)
+        hits = [e for e in _events(self.config) if e.get("rowid") in (30, 31)]
+        self.assertTrue(any("duplicate_across_chats" in e["decisions"] for e in hits))
+
+    def test_same_text_after_60s_is_not_deduped(self):
+        self._prime(0)
+        clock = {"t": 1_000.0}
+
+        def now():
+            return clock["t"]
+
+        body = "@dev ping again later"
+        engine, db = self._engine(
+            [
+                msg(
+                    rowid=40,
+                    guid="G-C",
+                    text=body,
+                    handle="",
+                    is_from_me=1,
+                    chat_guid=ALIAS_GUID,
+                )
+            ],
+            clock=now,
+        )
+        engine.process_once()
+        clock["t"] = 1_000.0 + 61
+        db.messages = [
+            msg(
+                rowid=41,
+                guid="G-D",
+                text=body,
+                handle=MIKE_PHONE,
+                is_from_me=0,
+                chat_guid=GROUP_GUID,
+            )
+        ]
+        engine.process_once()
+        sends = [
+            e
+            for e in _events(self.config)
+            if e.get("rowid") in (40, 41) and e.get("would_send")
+        ]
+        self.assertEqual(len(sends), 2)
+
+    def test_stop_from_alias_is_from_me(self):
+        self._prime(0)
+        engine, _ = self._engine(
+            [
+                msg(
+                    rowid=50,
+                    text="@ops stop",
+                    handle="",
+                    is_from_me=1,
+                    chat_guid=ALIAS_GUID,
+                )
+            ]
+        )
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 50][-1]
+        self.assertIn("kill_command_stop", hit["decisions"])
+        self.assertTrue(os.path.exists(self.config.kill_flag_file))
+
+    def test_self_loop_ignored_in_alias_chat(self):
+        self._prime(0)
+        engine, _ = self._engine(
+            [
+                msg(
+                    rowid=51,
+                    text="🤖 Ops: I'm here",
+                    handle=MIKE_PHONE,
+                    is_from_me=0,
+                    chat_guid=ALIAS_GUID,
+                )
+            ]
+        )
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 51][-1]
+        self.assertIn("self_loop_emoji_prefix", hit["decisions"])
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+
+    def test_missing_watch_chat_guids_is_single_chat(self):
+        cfg = write_config(self.tmpdir.name)
+        self.assertEqual(cfg.watch_chat_guids, [])
+        self.assertEqual(cfg.watched_chat_guids, [GROUP_GUID])
+
+
 if __name__ == "__main__":
     unittest.main()
