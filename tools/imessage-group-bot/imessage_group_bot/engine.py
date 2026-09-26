@@ -44,7 +44,7 @@ from .state import (
     save_state,
     set_outbox_offset,
 )
-from .trigger import handle_allowed, is_self_loop_text, match_desk, parse_kill_command
+from .trigger import handle_allowed, is_self_loop_text, match_desk, match_kill_command
 
 
 SKIP_REACTION = "reaction_or_associated"
@@ -205,11 +205,15 @@ class Engine(object):
         decisions.append("trigger_matched")
         decisions.append("desk:%s" % desk.trigger_word)
 
-        command = parse_kill_command(rest)
+        kill_desk, command = match_kill_command(message.text, self.config.desks)
         if command == "stop" and message.is_from_me:
-            return self._command_stop(state, message, rest, decisions, now, desk=desk)
+            return self._command_stop(
+                state, message, rest, decisions, now, desk=kill_desk or desk
+            )
         if command == "start" and message.is_from_me:
-            return self._command_start(state, message, rest, decisions, now, desk=desk)
+            return self._command_start(
+                state, message, rest, decisions, now, desk=kill_desk or desk
+            )
 
         if desk.reply_mode == REPLY_MODE_STUB and self._in_quiet_hours(now):
             decisions.append(SKIP_QUIET_HOURS)

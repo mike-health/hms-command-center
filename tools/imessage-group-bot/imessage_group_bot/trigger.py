@@ -66,6 +66,65 @@ def is_self_loop_text(text, bot_prefix=None):
     return stripped.startswith(marker)
 
 
+# Separators allowed immediately after a trigger token before the question.
+_TRIGGER_SEPS = " \t\r\n:,;-"
+
+
+def _left_boundary_ok(text, index):
+    """Reject matches inside emails/handles (jim@dev.com, foo@ops)."""
+    if index <= 0:
+        return True
+    prev = text[index - 1]
+    return not (prev.isalnum() or prev in "._")
+
+
+def _right_boundary_ok(text, end):
+    """Standalone token: next char must be whitespace or a separator, not a word char."""
+    if end >= len(text):
+        return False
+    nxt = text[end]
+    return nxt.isspace() or nxt in ":,;-"
+
+
+def leading_trigger_rest(text, trigger_word):
+    """Prefix-only rest after a leading trigger (used for stop/start). Empty rest allowed."""
+    if not text or not trigger_word:
+        return None
+    stripped = text.strip()
+    trigger = trigger_word.strip()
+    if not trigger or not stripped.lower().startswith(trigger.lower()):
+        return None
+    if not _left_boundary_ok(stripped, 0):
+        return None
+    rest = stripped[len(trigger) :]
+    if rest and not _right_boundary_ok(stripped, len(trigger)):
+        return None
+    return rest.lstrip(_TRIGGER_SEPS)
+
+
+def find_trigger(text, trigger_word):
+    """Return (start_index, rest) for the earliest standalone trigger with a non-empty question."""
+    if not text or not trigger_word:
+        return None
+    stripped = text.strip()
+    trigger = trigger_word.strip()
+    if not trigger:
+        return None
+    hay = stripped.lower()
+    needle = trigger.lower()
+    start = 0
+    while True:
+        idx = hay.find(needle, start)
+        if idx < 0:
+            return None
+        end = idx + len(trigger)
+        if _left_boundary_ok(stripped, idx) and _right_boundary_ok(stripped, end):
+            rest = stripped[end:].lstrip(_TRIGGER_SEPS)
+            if rest.strip():
+                return idx, rest
+        start = idx + 1
+
+
 def trigger_match(text, trigger_word, bot_prefix=None):
     """Return remaining text after the trigger, or None if not a trigger."""
     if not text or not trigger_word:
@@ -73,18 +132,36 @@ def trigger_match(text, trigger_word, bot_prefix=None):
     stripped = text.strip()
     if is_self_loop_text(stripped, bot_prefix=bot_prefix):
         return None
-    trigger = trigger_word.strip()
-    if not stripped.lower().startswith(trigger.lower()):
+    found = find_trigger(stripped, trigger_word)
+    if found is None:
         return None
-    rest = stripped[len(trigger) :]
-    if rest and rest[0] not in " \t:,;-":
-        # Require a boundary so '@devastated' is not a hit for '@dev'.
-        return None
-    return rest.lstrip(" \t:,;-")
+    return found[1]
 
 
 def match_desk(text, desks):
-    """Return (desk, rest) for the longest matching trigger, or (None, None)."""
+    """Return (desk, rest) for the earliest matching trigger, or (None, None)."""
+    if not text or not desks:
+        return None, None
+    stripped = text.strip()
+    if is_self_loop_text(stripped):
+        return None, None
+    best = None
+    for desk in desks:
+        found = find_trigger(stripped, desk.trigger_word)
+        if found is None:
+            continue
+        start, rest = found
+        # Earliest index wins; at the same index, the longer trigger word wins.
+        key = (start, -len(desk.trigger_word or ""))
+        if best is None or key < best[0]:
+            best = (key, desk, rest)
+    if best is None:
+        return None, None
+    return best[1], best[2]
+
+
+def match_kill_command(text, desks):
+    """Return (desk, 'stop'|'start') only when the whole message is that command."""
     if not text or not desks:
         return None, None
     stripped = text.strip()
@@ -92,9 +169,12 @@ def match_desk(text, desks):
         return None, None
     ranked = sorted(desks, key=lambda desk: len(desk.trigger_word or ""), reverse=True)
     for desk in ranked:
-        rest = trigger_match(stripped, desk.trigger_word, bot_prefix=desk.bot_prefix)
-        if rest is not None:
-            return desk, rest
+        rest = leading_trigger_rest(stripped, desk.trigger_word)
+        if rest is None:
+            continue
+        command = parse_kill_command(rest)
+        if command:
+            return desk, command
     return None, None
 
 

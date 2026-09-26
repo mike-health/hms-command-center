@@ -724,6 +724,77 @@ class DeskOutboxTests(unittest.TestCase):
         self.assertTrue(hit["would_send"].startswith("🤖 Ops:"))
         self.assertIn("paused", hit["would_send"])
 
+    def test_mid_sentence_ops_is_queued(self):
+        self._prime_high_water(0)
+        text = "Hi rudy disregard this, it's just a test @ops test"
+        engine, _ = self._engine([msg(rowid=94, guid="G-OPS-94", text=text)])
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 0)
+        hit = [e for e in _events(self.config) if e.get("rowid") == 94][-1]
+        self.assertIn("trigger_matched", hit["decisions"])
+        self.assertIn("queued_outbox", hit["decisions"])
+        self.assertEqual(hit["trigger_text"], text)
+        with open(self.ops.queue_file, encoding="utf-8") as handle:
+            queued = json.loads(handle.readline())
+        self.assertEqual(queued["question"], "test")
+        self.assertEqual(queued["trigger_text"], text)
+        self.assertEqual(queued["desk"], "@ops")
+
+    def test_trailing_ops_without_question_is_not_trigger(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine([msg(rowid=95, text="please ignore @ops")])
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 95][-1]
+        self.assertIn("not_trigger", hit["decisions"])
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+
+    def test_earliest_trigger_wins_one_reply(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=96, guid="G-DEV-96", text="ask @dev first then @ops second please")]
+        )
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 1)
+        hit = [e for e in _events(self.config) if e.get("rowid") == 96][-1]
+        self.assertIn("desk:@dev", hit["decisions"])
+        self.assertTrue(hit["would_send"].startswith("🤖 Dev:"))
+        with open(self.config.queue_file, encoding="utf-8") as handle:
+            queued = json.loads(handle.readline())
+        self.assertEqual(queued["question"], "first then @ops second please")
+        self.assertEqual(queued["desk"], "@dev")
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+
+    def test_mid_sentence_ops_stop_is_not_kill(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=97, guid="G-OPS-97", text="Hi @ops stop", is_from_me=1, handle="")]
+        )
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 97][-1]
+        self.assertNotIn("kill_command_stop", hit["decisions"])
+        self.assertIn("queued_outbox", hit["decisions"])
+        self.assertFalse(os.path.exists(self.config.kill_flag_file))
+        with open(self.ops.queue_file, encoding="utf-8") as handle:
+            queued = json.loads(handle.readline())
+        self.assertEqual(queued["question"], "stop")
+
+    def test_dev_start_whole_message_still_works(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=98, text="@dev stop", is_from_me=1, handle="")]
+        )
+        engine.process_once()
+        self.assertTrue(os.path.exists(self.config.kill_flag_file))
+        engine, _ = self._engine(
+            [msg(rowid=99, text="@dev start", is_from_me=1, handle="")],
+            max_id=98,
+        )
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 99][-1]
+        self.assertIn("kill_command_start", hit["decisions"])
+        self.assertFalse(os.path.exists(self.config.kill_flag_file))
+        self.assertIn("running", hit["would_send"])
+
 
 if __name__ == "__main__":
     unittest.main()

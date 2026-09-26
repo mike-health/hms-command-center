@@ -13,7 +13,7 @@ Linear: [HEA-41](https://linear.app/healtho2/issue/HEA-41/imessage-group-bot-on-
 
 ## Decided defaults (Mike 2026-09-25 / 2026-09-26)
 
-- **Triggers:** `@dev` and `@ops` (case-insensitive, start of message, then a boundary). Same allowlist for both (Mike via `is_from_me`, plus `allowlist_handles`).
+- **Triggers:** `@dev` and `@ops` (case-insensitive **standalone tokens anywhere** in the message, with a non-empty question after the token). Same allowlist for both (Mike via `is_from_me`, plus `allowlist_handles`). A bare trailing `@ops` / `@dev` with no following text does not fire. Emails and words (`jim@dev.com`, `foo@ops`, `@devops`, `@operations`) do not match. If both appear, the **earliest** token wins (one desk per message).
 - **Prefixes:** `🤖 Dev:` and `🤖 Ops:`.
 - **Reply modes:** `@dev` = `stub` (immediate canned reply). `@ops` = `outbox` (queue only; send from outbox).
 - **Quiet hours:** 21:00–06:00 `America/Los_Angeles`, overnight wrap included. Stub desks do **not** queue or reply in that window (`suppressed: quiet_hours`). Outbox **sends** are held until the window ends (not dropped). Explicit empty `quiet_hours.start` / `end` in a local config disables the window.
@@ -231,22 +231,22 @@ Every outbox decision is written to `events_log` with `"event": "outbox"`, `"out
 ## Behavior
 
 - Read-only sqlite: `file:<path>?mode=ro`. Decodes `attributedBody` when `text` is NULL (no `imsg` dependency).
-- Trigger: text starts with a configured desk trigger **and** sender is Mike (`is_from_me`) or an allowlisted handle.
-- Skip: leading `🤖` (self-loop), `associated_message_type != 0` (tapbacks/reactions), edits (`date_edited`), empty/attachment-only, item_type ≠ 0, backlog from before first start (high-water ROWID). Stub quiet hours: `suppressed: quiet_hours`, not queued.
-- One reply per trigger message (idempotent on ROWID/guid, and on outbox `reply_to`).
+- Trigger: a configured desk trigger appears as a **standalone token anywhere** in the text **and** sender is Mike (`is_from_me`) or an allowlisted handle. The queue `question` is the text after that token (trimmed). Self-loop (`🤖` prefix) still wins over a nested trigger.
+- Skip: leading `🤖` (self-loop), `associated_message_type != 0` (tapbacks/reactions), edits (`date_edited`), empty/attachment-only, item_type ≠ 0, backlog from before first start (high-water ROWID). Stub quiet hours: `suppressed: quiet_hours`, not queued. A trigger token with no following non-whitespace text is `not_trigger`.
+- One reply per trigger message (idempotent on ROWID/guid, and on outbox `reply_to`). Earliest desk token in the message wins if several appear.
 - Reply: one line, ≤200 chars, desk prefix, markdown/newlines stripped.
-- `stub` responder (default for `@dev`): `🤖 Dev: got it, routing to the dev desk: <question>`. A bare `@dev` with no question gets `🤖 Dev: got it, standing by at the dev desk`.
+- `stub` responder (default for `@dev`): `🤖 Dev: got it, routing to the dev desk: <question>`. (A message that is only `@dev` with no question is not a trigger.)
 - `outbox` desks do not call the stub/OpenAI responder on the trigger. The later outbox `text` is sanitized and prefixed.
 - `openai_compatible` is off unless `responder.type` is exactly `openai_compatible`. It is not called until kill-switch, `enabled`, quiet hours, and rate caps have already allowed a reply. On any error it falls back to stub. Money / leases / partners / Greene / JV → `🤖 Dev: Mike will answer that`.
 - Live send: `osascript` with text and chat GUID as argv (so 🤖 is never JSON `\\u`-escaped into AppleScript), then look for a new `is_from_me` row with that text within 15s; retry once; each osascript attempt counts toward rate caps whether or not delivery confirms; then alerts log + optional hook. The hook must not send iMessage.
-- Kill switch (any one blocks send): `enabled: false`, kill flag file, `@dev stop` or `@ops stop` from **Mike only**. `@dev start` / `@ops start` from Mike clears the flag file and runtime pause (it cannot override `enabled: false`). Mike's stop/start still apply the flag during quiet hours; the acknowledgement reply is suppressed.
+- Kill switch (any one blocks send): `enabled: false`, kill flag file, `@dev stop` or `@ops stop` from **Mike only** when the **whole message** is that command (`Hi @ops stop` is a normal question, not a kill). `@dev start` / `@ops start` from Mike clears the flag file and runtime pause (it cannot override `enabled: false`). Mike's stop/start still apply the flag during quiet hours; the acknowledgement reply is suppressed.
 
 ## Throwaway-group test plan
 
 Use a **Mike-only throwaway group first** (Mike talking to himself in a group he creates for this test). Do not point `group_guid` at the real Todd/Rudy thread until that passes. Then a 3-person throwaway if needed.
 
 1. Create the throwaway group. `list-groups`, set `group_guid`, keep `dry_run: true`, run `once`/`run`.
-2. From Mike send `@dev ping`. Confirm `events.jsonl` has `would_send` starting `🤖 Dev:` and `osascript_not_invoked`. Confirm no Messages send. Confirm a line in the dev queue with `question` = `ping`.
+2. From Mike send `@dev ping`. Confirm `events.jsonl` has `would_send` starting `🤖 Dev:` and `osascript_not_invoked`. Confirm no Messages send. Confirm a line in the dev queue with `question` = `ping`. Also try a mid-sentence line (`Hi rudy … @ops test`) and confirm it queues to ops with `question` = `test`.
 3. From Mike send `@ops ping`. Confirm **no** immediate `would_send`. Confirm a line in the ops queue (`guid`, `question` with trigger stripped). Append an outbox line with that `reply_to` and the group's `chat_guid`. Run `once` again. Confirm an `outbox` event with `outcome=sent`, `would_send` starting `🤖 Ops:`, and `osascript_not_invoked`.
 4. Wrong `chat_guid`, unknown `reply_to`, and a duplicate of a sent `reply_to` must log `outcome=rejected` with reasons `wrong_chat_guid` / `unknown_reply_to` / `duplicate`.
 5. Hit `@dev` then immediately an ops outbox send (or two stub `@dev`s) within 20s; the second send should log `rate_cap:min_interval` (caps are shared across desks).
