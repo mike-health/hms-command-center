@@ -236,6 +236,7 @@ Every outbox decision is written to `events_log` with `"event": "outbox"`, `"out
 - One reply per trigger message (idempotent on ROWID/guid, and on outbox `reply_to`). Earliest desk token in the message wins if several appear.
 - Reply: one line, ≤200 chars, desk prefix, markdown/newlines stripped.
 - `stub` responder (default for `@dev`): `🤖 Dev: got it, routing to the dev desk: <question>`. (A message that is only `@dev` with no question is not a trigger.)
+- Health check: if the text after the trigger is only `test` (case-insensitive; surrounding whitespace and trailing `.` `!` `?` ignored), the bot replies instantly `<desk prefix> I'm here` and does **not** queue. `@ops test the schedule` is a normal ops question.
 - `outbox` desks do not call the stub/OpenAI responder on the trigger. The later outbox `text` is sanitized and prefixed.
 - `openai_compatible` is off unless `responder.type` is exactly `openai_compatible`. It is not called until kill-switch, `enabled`, quiet hours, and rate caps have already allowed a reply. On any error it falls back to stub. Money / leases / partners / Greene / JV → `🤖 Dev: Mike will answer that`.
 - Live send: `osascript` with text and chat GUID as argv (so 🤖 is never JSON `\\u`-escaped into AppleScript), then look for a new `is_from_me` row with that text within 15s; retry once; each osascript attempt counts toward rate caps whether or not delivery confirms; then alerts log + optional hook. The hook must not send iMessage.
@@ -246,7 +247,7 @@ Every outbox decision is written to `events_log` with `"event": "outbox"`, `"out
 Use a **Mike-only throwaway group first** (Mike talking to himself in a group he creates for this test). Do not point `group_guid` at the real Todd/Rudy thread until that passes. Then a 3-person throwaway if needed.
 
 1. Create the throwaway group. `list-groups`, set `group_guid`, keep `dry_run: true`, run `once`/`run`.
-2. From Mike send `@dev ping`. Confirm `events.jsonl` has `would_send` starting `🤖 Dev:` and `osascript_not_invoked`. Confirm no Messages send. Confirm a line in the dev queue with `question` = `ping`. Also try a mid-sentence line (`Hi rudy … @ops test`) and confirm it queues to ops with `question` = `test`.
+2. From Mike send `@dev ping`. Confirm `events.jsonl` has `would_send` starting `🤖 Dev:` and `osascript_not_invoked`. Confirm no Messages send. Confirm a line in the dev queue with `question` = `ping`. Also try a mid-sentence health check (`Hi rudy … @ops test`) and confirm an instant `🤖 Ops: I'm here` with **no** ops queue line.
 3. From Mike send `@ops ping`. Confirm **no** immediate `would_send`. Confirm a line in the ops queue (`guid`, `question` with trigger stripped). Append an outbox line with that `reply_to` and the group's `chat_guid`. Run `once` again. Confirm an `outbox` event with `outcome=sent`, `would_send` starting `🤖 Ops:`, and `osascript_not_invoked`.
 4. Wrong `chat_guid`, unknown `reply_to`, and a duplicate of a sent `reply_to` must log `outcome=rejected` with reasons `wrong_chat_guid` / `unknown_reply_to` / `duplicate`.
 5. Hit `@dev` then immediately an ops outbox send (or two stub `@dev`s) within 20s; the second send should log `rate_cap:min_interval` (caps are shared across desks).

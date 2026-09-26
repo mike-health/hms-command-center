@@ -44,7 +44,13 @@ from .state import (
     save_state,
     set_outbox_offset,
 )
-from .trigger import handle_allowed, is_self_loop_text, match_desk, match_kill_command
+from .trigger import (
+    handle_allowed,
+    is_health_check,
+    is_self_loop_text,
+    match_desk,
+    match_kill_command,
+)
 
 
 SKIP_REACTION = "reaction_or_associated"
@@ -213,6 +219,20 @@ class Engine(object):
         if command == "start" and message.is_from_me:
             return self._command_start(
                 state, message, rest, decisions, now, desk=kill_desk or desk
+            )
+
+        if is_health_check(rest):
+            decisions.append("health_check")
+            prefix = desk.bot_prefix if desk else self.config.bot_prefix
+            reply = clamp_reply("I'm here", prefix, self.config.max_reply_chars)
+            return self._maybe_send(
+                state,
+                message,
+                rest,
+                decisions,
+                now,
+                canned_reply=reply,
+                desk=desk,
             )
 
         if desk.reply_mode == REPLY_MODE_STUB and self._in_quiet_hours(now):

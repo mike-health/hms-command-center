@@ -724,21 +724,67 @@ class DeskOutboxTests(unittest.TestCase):
         self.assertTrue(hit["would_send"].startswith("🤖 Ops:"))
         self.assertIn("paused", hit["would_send"])
 
-    def test_mid_sentence_ops_is_queued(self):
+    def test_mid_sentence_ops_health_check_is_instant(self):
         self._prime_high_water(0)
         text = "Hi rudy disregard this, it's just a test @ops test"
         engine, _ = self._engine([msg(rowid=94, guid="G-OPS-94", text=text)])
         result = engine.process_once()
-        self.assertEqual(result["replies"], 0)
+        self.assertEqual(result["replies"], 1)
+        self.assertEqual(self.sender.calls, [])
         hit = [e for e in _events(self.config) if e.get("rowid") == 94][-1]
         self.assertIn("trigger_matched", hit["decisions"])
-        self.assertIn("queued_outbox", hit["decisions"])
+        self.assertIn("health_check", hit["decisions"])
+        self.assertNotIn("queued_outbox", hit["decisions"])
+        self.assertEqual(hit["would_send"], "🤖 Ops: I'm here")
+        self.assertIn("osascript_not_invoked", hit["decisions"])
         self.assertEqual(hit["trigger_text"], text)
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+
+    def test_ops_test_the_schedule_still_queued(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=100, guid="G-OPS-100", text="@ops test the schedule")]
+        )
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 0)
+        hit = [e for e in _events(self.config) if e.get("rowid") == 100][-1]
+        self.assertIn("queued_outbox", hit["decisions"])
+        self.assertNotIn("health_check", hit["decisions"])
+        self.assertIsNone(hit["would_send"])
         with open(self.ops.queue_file, encoding="utf-8") as handle:
             queued = json.loads(handle.readline())
-        self.assertEqual(queued["question"], "test")
-        self.assertEqual(queued["trigger_text"], text)
-        self.assertEqual(queued["desk"], "@ops")
+        self.assertEqual(queued["question"], "test the schedule")
+
+    def test_plain_test_is_not_a_trigger(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine([msg(rowid=101, text="test")])
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 101][-1]
+        self.assertIn("not_trigger", hit["decisions"])
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+        self.assertFalse(os.path.exists(self.config.queue_file))
+
+    def test_dev_test_health_check_and_punctuation(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine([msg(rowid=102, guid="G-DEV-102", text="@DEV test!")])
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 1)
+        hit = [e for e in _events(self.config) if e.get("rowid") == 102][-1]
+        self.assertIn("health_check", hit["decisions"])
+        self.assertEqual(hit["would_send"], "🤖 Dev: I'm here")
+        self.assertFalse(os.path.exists(self.config.queue_file))
+        self.assertEqual(self.sender.calls, [])
+
+    def test_health_check_respects_allowlist(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=103, text="@ops test", handle="+15555550999")]
+        )
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 0)
+        hit = [e for e in _events(self.config) if e.get("rowid") == 103][-1]
+        self.assertIn("not_allowlisted", hit["decisions"])
+        self.assertFalse(os.path.exists(self.ops.queue_file))
 
     def test_trailing_ops_without_question_is_not_trigger(self):
         self._prime_high_water(0)

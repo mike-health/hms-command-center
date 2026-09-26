@@ -189,6 +189,19 @@ def parse_kill_command(rest):
     return None
 
 
+_HEALTH_CHECK_WORD = "test"
+_HEALTH_TRAILING_PUNCT = ".!?"
+
+
+def is_health_check(rest):
+    """True when the text after the trigger is only the word 'test'."""
+    if rest is None:
+        return False
+    token = str(rest).strip()
+    token = token.rstrip(_HEALTH_TRAILING_PUNCT).strip()
+    return token.lower() == _HEALTH_CHECK_WORD
+
+
 def looks_sensitive(text):
     if not text:
         return False

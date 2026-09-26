@@ -3,6 +3,7 @@ import unittest
 from imessage_group_bot.guardrails import clamp_reply
 from imessage_group_bot.trigger import (
     handle_allowed,
+    is_health_check,
     is_self_loop_text,
     looks_sensitive,
     match_desk,
@@ -99,6 +100,17 @@ class TriggerTests(unittest.TestCase):
         self.assertEqual(match_kill_command("@dev stop please", desks), (None, None))
         self.assertIsNone(trigger_match("🤖 Dev: @dev stop", "@dev", bot_prefix="🤖 Dev:"))
         self.assertEqual(match_kill_command("🤖 Ops: @ops stop", desks), (None, None))
+
+    def test_health_check_word(self):
+        self.assertTrue(is_health_check("test"))
+        self.assertTrue(is_health_check("  TEST  "))
+        self.assertTrue(is_health_check("test."))
+        self.assertTrue(is_health_check("test!?"))
+        self.assertFalse(is_health_check("test the schedule"))
+        self.assertFalse(is_health_check("testing"))
+        self.assertFalse(is_health_check("stop"))
+        self.assertFalse(is_health_check(""))
+        self.assertFalse(is_health_check(None))
 
     def test_sensitive_topics(self):
         self.assertTrue(looks_sensitive("what about the JV"))
