@@ -44,6 +44,7 @@ class EngineTests(unittest.TestCase):
             clock=kwargs.get("clock", lambda: 1_000_000.0),
             sleeper=lambda _s: None,
             http_post=kwargs.get("http_post"),
+            webhook_post=kwargs.get("webhook_post"),
         ), db
 
     def _prime_high_water(self, value=0):
@@ -431,6 +432,701 @@ class EngineTests(unittest.TestCase):
         )
         engine.process_once()
         self.assertEqual(calls, [])
+
+
+def _ops_desk(config):
+    for desk in config.desks:
+        if desk.trigger_word.strip().lower() == "@ops":
+            return desk
+    raise AssertionError("missing @ops desk")
+
+
+def _append_jsonl(path, record):
+    directory = os.path.dirname(path)
+    if directory and not os.path.isdir(directory):
+        os.makedirs(directory)
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record))
+        handle.write("\n")
+
+
+class DeskOutboxTests(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.config = write_config(self.tmpdir.name)
+        self.sender = ExplodingSend()
+        self.ops = _ops_desk(self.config)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _engine(self, messages, max_id=0, live=False, **kwargs):
+        db = FakeDB(messages=messages, max_id=max_id)
+        return Engine(
+            self.config,
+            live_flag=live,
+            chat_db=db,
+            send_fn=self.sender,
+            clock=kwargs.get("clock", lambda: 1_000_000.0),
+            sleeper=lambda _s: None,
+            http_post=kwargs.get("http_post"),
+            webhook_post=kwargs.get("webhook_post"),
+        ), db
+
+    def _prime_high_water(self, value=0):
+        state = load_state(self.config.state_file)
+        state["high_water_rowid"] = value
+        save_state(self.config.state_file, state)
+
+    def _queue_and_outbox(self, guid="G-OPS", text="studio status", chat_guid=None):
+        chat_guid = chat_guid or GROUP_GUID
+        _append_jsonl(
+            self.ops.outbox_file,
+            {
+                "reply_to": guid,
+                "chat_guid": chat_guid,
+                "text": text,
+                "ts": "2026-09-26T20:00:00+00:00",
+            },
+        )
+
+    def test_ops_trigger_queued_without_immediate_reply(self):
+        self._prime_high_water(0)
+        messages = [msg(rowid=70, guid="G-OPS-70", text="@ops is the studio up?")]
+        engine, _ = self._engine(messages)
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 0)
+        self.assertEqual(self.sender.calls, [])
+        hit = [e for e in _events(self.config) if e.get("rowid") == 70][-1]
+        self.assertIn("queued_outbox", hit["decisions"])
+        self.assertIn("no_immediate_reply", hit["decisions"])
+        self.assertIsNone(hit["would_send"])
+        self.assertFalse(os.path.exists(self.config.queue_file))
+        with open(self.ops.queue_file, encoding="utf-8") as handle:
+            queued = json.loads(handle.readline())
+        self.assertEqual(queued["guid"], "G-OPS-70")
+        self.assertEqual(queued["message_guid"], "G-OPS-70")
+        self.assertEqual(queued["rowid"], 70)
+        self.assertEqual(queued["chat_guid"], GROUP_GUID)
+        self.assertEqual(queued["sender_handle"], "+15555550101")
+        self.assertEqual(queued["trigger_word"], "@ops")
+        self.assertEqual(queued["desk"], "@ops")
+        self.assertEqual(queued["question"], "is the studio up?")
+        self.assertIn("timestamp", queued)
+
+    def test_outbox_send_uses_ops_prefix(self):
+        self._prime_high_water(0)
+        messages = [msg(rowid=71, guid="G-OPS-71", text="@ops ping")]
+        self._queue_and_outbox("G-OPS-71", "all green")
+        engine, _ = self._engine(messages)
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 1)
+        self.assertEqual(self.sender.calls, [])
+        outbox_events = [e for e in _events(self.config) if e.get("event") == "outbox"]
+        self.assertTrue(outbox_events)
+        hit = outbox_events[-1]
+        self.assertEqual(hit["outcome"], "sent")
+        self.assertTrue(hit["would_send"].startswith("🤖 Ops:"))
+        self.assertIn("all green", hit["would_send"])
+        self.assertIn("osascript_not_invoked", hit["decisions"])
+        self.assertEqual(hit["reply_to"], "G-OPS-71")
+
+    def test_outbox_rejects_wrong_chat_unknown_and_duplicate(self):
+        self._prime_high_water(0)
+        messages = [msg(rowid=72, guid="G-OPS-72", text="@ops one")]
+        engine, _ = self._engine(messages)
+        engine.process_once()
+
+        _append_jsonl(
+            self.ops.outbox_file,
+            {
+                "reply_to": "G-OPS-72",
+                "chat_guid": "iMessage;+;chatOTHER",
+                "text": "nope",
+                "ts": "2026-09-26T20:00:00+00:00",
+            },
+        )
+        _append_jsonl(
+            self.ops.outbox_file,
+            {
+                "reply_to": "not-in-queue",
+                "chat_guid": GROUP_GUID,
+                "text": "nope",
+                "ts": "2026-09-26T20:00:01+00:00",
+            },
+        )
+        _append_jsonl(
+            self.ops.outbox_file,
+            {
+                "reply_to": "G-OPS-72",
+                "chat_guid": GROUP_GUID,
+                "text": "first answer",
+                "ts": "2026-09-26T20:00:02+00:00",
+            },
+        )
+        _append_jsonl(
+            self.ops.outbox_file,
+            {
+                "reply_to": "G-OPS-72",
+                "chat_guid": GROUP_GUID,
+                "text": "second answer",
+                "ts": "2026-09-26T20:00:03+00:00",
+            },
+        )
+        engine.process_once()
+        reasons = [
+            e.get("reason")
+            for e in _events(self.config)
+            if e.get("event") == "outbox"
+        ]
+        self.assertIn("wrong_chat_guid", reasons)
+        self.assertIn("unknown_reply_to", reasons)
+        self.assertIn("duplicate", reasons)
+        sent = [
+            e
+            for e in _events(self.config)
+            if e.get("event") == "outbox" and e.get("outcome") == "sent"
+        ]
+        self.assertEqual(len(sent), 1)
+        self.assertIn("first answer", sent[0]["would_send"])
+        self.assertEqual(self.sender.calls, [])
+
+    def test_shared_rate_caps_across_desks(self):
+        self.config.min_seconds_between_replies = 20
+        self._prime_high_water(0)
+        messages = [
+            msg(rowid=80, guid="G-DEV-80", text="@dev one"),
+            msg(rowid=81, guid="G-OPS-81", text="@ops two"),
+        ]
+        self._queue_and_outbox("G-OPS-81", "ops answer")
+        engine, _ = self._engine(messages)
+        engine.process_once()
+        held = [
+            e
+            for e in _events(self.config)
+            if e.get("event") == "outbox" and e.get("outcome") == "held"
+        ]
+        self.assertTrue(held)
+        self.assertEqual(held[-1]["reason"], "rate_cap")
+        self.assertIn("rate_cap:min_interval", held[-1]["decisions"])
+        self.assertEqual(self.sender.calls, [])
+
+    def test_quiet_hours_holds_outbox(self):
+        try:
+            from zoneinfo import ZoneInfo
+
+            tz = ZoneInfo("America/Los_Angeles")
+        except Exception:
+            self.skipTest("America/Los_Angeles timezone data is required")
+        self.config.quiet_hours_start = "21:00"
+        self.config.quiet_hours_end = "06:00"
+        self.config.quiet_hours_timezone = "America/Los_Angeles"
+        self._prime_high_water(0)
+        night = datetime(2026, 9, 25, 23, 0, tzinfo=tz).timestamp()
+        day = datetime(2026, 9, 26, 6, 0, tzinfo=tz).timestamp()
+        clock = {"t": night}
+
+        def now():
+            return clock["t"]
+
+        messages = [msg(rowid=90, guid="G-OPS-90", text="@ops overnight")]
+        self._queue_and_outbox("G-OPS-90", "held then sent")
+        engine, _ = self._engine(messages, clock=now)
+        engine.process_once()
+        held = [
+            e
+            for e in _events(self.config)
+            if e.get("event") == "outbox"
+        ]
+        self.assertTrue(held)
+        self.assertEqual(held[-1]["outcome"], "held")
+        self.assertEqual(held[-1]["reason"], "quiet_hours")
+        self.assertEqual(self.sender.calls, [])
+        offset_before = load_state(self.config.state_file)["outbox_offsets"][self.ops.outbox_file]
+        self.assertEqual(offset_before, 0)
+
+        clock["t"] = day
+        engine.process_once()
+        sent = [
+            e
+            for e in _events(self.config)
+            if e.get("event") == "outbox" and e.get("outcome") == "sent"
+        ]
+        self.assertEqual(len(sent), 1)
+        self.assertTrue(sent[0]["would_send"].startswith("🤖 Ops:"))
+        self.assertGreater(
+            load_state(self.config.state_file)["outbox_offsets"][self.ops.outbox_file], 0
+        )
+
+    def test_outbox_dry_run_never_invokes_osascript(self):
+        self._prime_high_water(0)
+        messages = [msg(rowid=91, guid="G-OPS-91", text="@ops dry")]
+        self._queue_and_outbox("G-OPS-91", "please send")
+        engine, _ = self._engine(messages)
+        engine.process_once()
+        self.assertEqual(self.sender.calls, [])
+        sent = [
+            e
+            for e in _events(self.config)
+            if e.get("event") == "outbox" and e.get("outcome") == "sent"
+        ]
+        self.assertEqual(len(sent), 1)
+        self.assertIn("osascript_not_invoked", sent[0]["decisions"])
+
+    def test_restart_does_not_resend_outbox(self):
+        self.config.dry_run = False
+        self._prime_high_water(0)
+        sent = []
+
+        db = FakeDB(
+            messages=[msg(rowid=92, guid="G-OPS-92", text="@ops live")],
+            max_id=91,
+        )
+
+        def send_and_record(guid, text):
+            sent.append((guid, text))
+            db.from_me.append((93, text))
+
+        self._queue_and_outbox("G-OPS-92", "only once")
+        engine = Engine(
+            self.config,
+            live_flag=True,
+            chat_db=db,
+            send_fn=send_and_record,
+            clock=lambda: 7_000.0,
+            sleeper=lambda _s: None,
+        )
+        engine.process_once()
+        self.assertEqual(len(sent), 1)
+        self.assertTrue(sent[0][1].startswith("🤖 Ops:"))
+
+        db.messages = []
+        engine2 = Engine(
+            self.config,
+            live_flag=True,
+            chat_db=db,
+            send_fn=send_and_record,
+            clock=lambda: 7_100.0,
+            sleeper=lambda _s: None,
+        )
+        engine2.process_once()
+        self.assertEqual(len(sent), 1)
+        answered = load_state(self.config.state_file).get("answered_reply_tos") or []
+        self.assertIn("G-OPS-92", answered)
+
+    def test_ops_stop_from_mike_is_global(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=93, text="@ops stop", is_from_me=1, handle="")]
+        )
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 93][-1]
+        self.assertIn("kill_command_stop", hit["decisions"])
+        self.assertTrue(os.path.exists(self.config.kill_flag_file))
+        self.assertTrue(hit["would_send"].startswith("🤖 Ops:"))
+        self.assertIn("paused", hit["would_send"])
+
+    def test_mid_sentence_ops_health_check_is_instant(self):
+        self._prime_high_water(0)
+        text = "Hi rudy disregard this, it's just a test @ops test"
+        engine, _ = self._engine([msg(rowid=94, guid="G-OPS-94", text=text)])
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 1)
+        self.assertEqual(self.sender.calls, [])
+        hit = [e for e in _events(self.config) if e.get("rowid") == 94][-1]
+        self.assertIn("trigger_matched", hit["decisions"])
+        self.assertIn("health_check", hit["decisions"])
+        self.assertNotIn("queued_outbox", hit["decisions"])
+        self.assertEqual(hit["would_send"], "🤖 Ops: I'm here")
+        self.assertIn("osascript_not_invoked", hit["decisions"])
+        self.assertEqual(hit["trigger_text"], text)
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+
+    def test_ops_test_the_schedule_still_queued(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=100, guid="G-OPS-100", text="@ops test the schedule")]
+        )
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 0)
+        hit = [e for e in _events(self.config) if e.get("rowid") == 100][-1]
+        self.assertIn("queued_outbox", hit["decisions"])
+        self.assertNotIn("health_check", hit["decisions"])
+        self.assertIsNone(hit["would_send"])
+        with open(self.ops.queue_file, encoding="utf-8") as handle:
+            queued = json.loads(handle.readline())
+        self.assertEqual(queued["question"], "test the schedule")
+
+    def test_plain_test_is_not_a_trigger(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine([msg(rowid=101, text="test")])
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 101][-1]
+        self.assertIn("not_trigger", hit["decisions"])
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+        self.assertFalse(os.path.exists(self.config.queue_file))
+
+    def test_dev_test_health_check_and_punctuation(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine([msg(rowid=102, guid="G-DEV-102", text="@DEV test!")])
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 1)
+        hit = [e for e in _events(self.config) if e.get("rowid") == 102][-1]
+        self.assertIn("health_check", hit["decisions"])
+        self.assertEqual(hit["would_send"], "🤖 Dev: I'm here")
+        self.assertFalse(os.path.exists(self.config.queue_file))
+        self.assertEqual(self.sender.calls, [])
+
+    def test_health_check_respects_allowlist(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=103, text="@ops test", handle="+15555550999")]
+        )
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 0)
+        hit = [e for e in _events(self.config) if e.get("rowid") == 103][-1]
+        self.assertIn("not_allowlisted", hit["decisions"])
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+
+    def test_trailing_ops_without_question_is_not_trigger(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine([msg(rowid=95, text="please ignore @ops")])
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 95][-1]
+        self.assertIn("not_trigger", hit["decisions"])
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+
+    def test_earliest_trigger_wins_one_reply(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=96, guid="G-DEV-96", text="ask @dev first then @ops second please")]
+        )
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 1)
+        hit = [e for e in _events(self.config) if e.get("rowid") == 96][-1]
+        self.assertIn("desk:@dev", hit["decisions"])
+        self.assertTrue(hit["would_send"].startswith("🤖 Dev:"))
+        with open(self.config.queue_file, encoding="utf-8") as handle:
+            queued = json.loads(handle.readline())
+        self.assertEqual(queued["question"], "first then @ops second please")
+        self.assertEqual(queued["desk"], "@dev")
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+
+    def test_mid_sentence_ops_stop_is_not_kill(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=97, guid="G-OPS-97", text="Hi @ops stop", is_from_me=1, handle="")]
+        )
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 97][-1]
+        self.assertNotIn("kill_command_stop", hit["decisions"])
+        self.assertIn("queued_outbox", hit["decisions"])
+        self.assertFalse(os.path.exists(self.config.kill_flag_file))
+        with open(self.ops.queue_file, encoding="utf-8") as handle:
+            queued = json.loads(handle.readline())
+        self.assertEqual(queued["question"], "stop")
+
+    def test_dev_start_whole_message_still_works(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=98, text="@dev stop", is_from_me=1, handle="")]
+        )
+        engine.process_once()
+        self.assertTrue(os.path.exists(self.config.kill_flag_file))
+        engine, _ = self._engine(
+            [msg(rowid=99, text="@dev start", is_from_me=1, handle="")],
+            max_id=98,
+        )
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 99][-1]
+        self.assertIn("kill_command_start", hit["decisions"])
+        self.assertFalse(os.path.exists(self.config.kill_flag_file))
+        self.assertIn("running", hit["would_send"])
+
+
+ALIAS_GUID = "any;+;aliasTESTGUID0002"
+MIKE_PHONE = "+19169123214"
+
+
+class WatchAliasTests(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.config = write_config(
+            self.tmpdir.name,
+            watch_chat_guids=[ALIAS_GUID],
+            from_me_handle=MIKE_PHONE,
+        )
+        self.sender = ExplodingSend()
+        self.ops = _ops_desk(self.config)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _engine(self, messages, max_id=0, live=False, clock=None):
+        db = FakeDB(messages=messages, max_id=max_id)
+        return Engine(
+            self.config,
+            live_flag=live,
+            chat_db=db,
+            send_fn=self.sender,
+            clock=clock or (lambda: 1_000_000.0),
+            sleeper=lambda _s: None,
+        ), db
+
+    def _prime(self, value=0):
+        state = load_state(self.config.state_file)
+        state["high_water_rowid"] = value
+        state["high_water_by_chat"] = {
+            guid: value for guid in self.config.watched_chat_guids
+        }
+        save_state(self.config.state_file, state)
+
+    def test_alias_from_me_trigger_replies_to_group_guid(self):
+        self._prime(0)
+        text = "@ops list linear to do for next week"
+        messages = [
+            msg(
+                rowid=10,
+                guid="G-ALIAS-10",
+                text=text,
+                handle="",
+                is_from_me=1,
+                chat_guid=ALIAS_GUID,
+            )
+        ]
+        engine, _ = self._engine(messages)
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 0)
+        with open(self.ops.queue_file, encoding="utf-8") as handle:
+            queued = json.loads(handle.readline())
+        self.assertEqual(queued["question"], "list linear to do for next week")
+        self.assertEqual(queued["source_chat_guid"], ALIAS_GUID)
+        self.assertEqual(queued["chat_guid"], ALIAS_GUID)
+        self.assertEqual(queued["reply_chat_guid"], GROUP_GUID)
+        self.assertEqual(queued["sender_handle"], MIKE_PHONE)
+        hit = [e for e in _events(self.config) if e.get("rowid") == 10][-1]
+        self.assertEqual(hit["reply_chat_guid"], GROUP_GUID)
+        self.assertEqual(hit["source_chat_guid"], ALIAS_GUID)
+        self.assertEqual(self.sender.calls, [])
+
+    def test_alias_health_check_sends_to_group_guid_live(self):
+        self.config.dry_run = False
+        self._prime(0)
+        sent = []
+        db = FakeDB(
+            messages=[
+                msg(
+                    rowid=11,
+                    guid="G-ALIAS-11",
+                    text="Hi rudy @ops test",
+                    handle="",
+                    is_from_me=1,
+                    chat_guid=ALIAS_GUID,
+                )
+            ],
+            max_id=10,
+        )
+
+        def send_ok(guid, text):
+            sent.append((guid, text))
+            db.from_me.append((12, text))
+
+        engine = Engine(
+            self.config,
+            live_flag=True,
+            chat_db=db,
+            send_fn=send_ok,
+            clock=lambda: 8_000.0,
+            sleeper=lambda _s: None,
+        )
+        engine.process_once()
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(sent[0][0], GROUP_GUID)
+        self.assertEqual(sent[0][1], "🤖 Ops: I'm here")
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+
+    def test_outbox_accepts_alias_chat_guid_sends_to_group(self):
+        self.config.dry_run = False
+        self._prime(0)
+        sent = []
+        db = FakeDB(
+            messages=[
+                msg(
+                    rowid=13,
+                    guid="G-ALIAS-13",
+                    text="@ops status please",
+                    handle="",
+                    is_from_me=1,
+                    chat_guid=ALIAS_GUID,
+                )
+            ],
+            max_id=12,
+        )
+
+        def send_ok(guid, text):
+            sent.append((guid, text))
+            db.from_me.append((14, text))
+
+        _append_jsonl(
+            self.ops.outbox_file,
+            {
+                "reply_to": "G-ALIAS-13",
+                "chat_guid": ALIAS_GUID,
+                "text": "here is the list",
+                "ts": "2026-09-26T20:00:00+00:00",
+            },
+        )
+        engine = Engine(
+            self.config,
+            live_flag=True,
+            chat_db=db,
+            send_fn=send_ok,
+            clock=lambda: 9_000.0,
+            sleeper=lambda _s: None,
+        )
+        engine.process_once()
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(sent[0][0], GROUP_GUID)
+        self.assertTrue(sent[0][1].startswith("🤖 Ops:"))
+        self.assertIn("here is the list", sent[0][1])
+
+    def test_same_guid_across_chats_one_reply(self):
+        self._prime(0)
+        body = "@dev ping from both copies"
+        messages = [
+            msg(
+                rowid=20,
+                guid="SAME-GUID",
+                text=body,
+                handle=MIKE_PHONE,
+                is_from_me=0,
+                chat_guid=GROUP_GUID,
+            ),
+            msg(
+                rowid=21,
+                guid="SAME-GUID",
+                text=body,
+                handle="",
+                is_from_me=1,
+                chat_guid=ALIAS_GUID,
+            ),
+        ]
+        engine, _ = self._engine(messages)
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 1)
+        hits = [e for e in _events(self.config) if e.get("guid") == "SAME-GUID"]
+        decisions = [d for e in hits for d in e.get("decisions", [])]
+        self.assertIn("already_processed", decisions)
+        self.assertEqual(self.sender.calls, [])
+
+    def test_same_text_sender_within_60s_one_reply(self):
+        self._prime(0)
+        body = "@dev ping duplicated text"
+        messages = [
+            msg(
+                rowid=30,
+                guid="G-A",
+                text=body,
+                handle="",
+                is_from_me=1,
+                chat_guid=ALIAS_GUID,
+            ),
+            msg(
+                rowid=31,
+                guid="G-B",
+                text=body,
+                handle=MIKE_PHONE,
+                is_from_me=0,
+                chat_guid=GROUP_GUID,
+            ),
+        ]
+        engine, _ = self._engine(messages)
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 1)
+        hits = [e for e in _events(self.config) if e.get("rowid") in (30, 31)]
+        self.assertTrue(any("duplicate_across_chats" in e["decisions"] for e in hits))
+
+    def test_same_text_after_60s_is_not_deduped(self):
+        self._prime(0)
+        clock = {"t": 1_000.0}
+
+        def now():
+            return clock["t"]
+
+        body = "@dev ping again later"
+        engine, db = self._engine(
+            [
+                msg(
+                    rowid=40,
+                    guid="G-C",
+                    text=body,
+                    handle="",
+                    is_from_me=1,
+                    chat_guid=ALIAS_GUID,
+                )
+            ],
+            clock=now,
+        )
+        engine.process_once()
+        clock["t"] = 1_000.0 + 61
+        db.messages = [
+            msg(
+                rowid=41,
+                guid="G-D",
+                text=body,
+                handle=MIKE_PHONE,
+                is_from_me=0,
+                chat_guid=GROUP_GUID,
+            )
+        ]
+        engine.process_once()
+        sends = [
+            e
+            for e in _events(self.config)
+            if e.get("rowid") in (40, 41) and e.get("would_send")
+        ]
+        self.assertEqual(len(sends), 2)
+
+    def test_stop_from_alias_is_from_me(self):
+        self._prime(0)
+        engine, _ = self._engine(
+            [
+                msg(
+                    rowid=50,
+                    text="@ops stop",
+                    handle="",
+                    is_from_me=1,
+                    chat_guid=ALIAS_GUID,
+                )
+            ]
+        )
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 50][-1]
+        self.assertIn("kill_command_stop", hit["decisions"])
+        self.assertTrue(os.path.exists(self.config.kill_flag_file))
+
+    def test_self_loop_ignored_in_alias_chat(self):
+        self._prime(0)
+        engine, _ = self._engine(
+            [
+                msg(
+                    rowid=51,
+                    text="🤖 Ops: I'm here",
+                    handle=MIKE_PHONE,
+                    is_from_me=0,
+                    chat_guid=ALIAS_GUID,
+                )
+            ]
+        )
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 51][-1]
+        self.assertIn("self_loop_emoji_prefix", hit["decisions"])
+        self.assertFalse(os.path.exists(self.ops.queue_file))
+
+    def test_missing_watch_chat_guids_is_single_chat(self):
+        cfg = write_config(self.tmpdir.name)
+        self.assertEqual(cfg.watch_chat_guids, [])
+        self.assertEqual(cfg.watched_chat_guids, [GROUP_GUID])
 
 
 if __name__ == "__main__":

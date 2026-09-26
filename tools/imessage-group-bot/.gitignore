@@ -1,5 +1,6 @@
 # Local operator files for the iMessage group bot (never commit secrets)
 config.json
 data/
+var/
 __pycache__/
 *.pyc

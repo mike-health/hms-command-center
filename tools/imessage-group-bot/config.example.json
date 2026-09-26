@@ -3,9 +3,12 @@
   "enabled": true,
   "chat_db_path": "~/Library/Messages/chat.db",
   "group_guid": "iMessage;+;chatXXXXXXXXXXXXXXXX",
+  "watch_chat_guids": [],
+  "from_me_handle": "",
   "trigger_word": "@dev",
   "bot_prefix": "🤖 Dev:",
-  "max_reply_chars": 200,
+  "max_reply_chars": 500,
+  "ack_on_queue": true,
   "allowlist_handles": [
     "+15555550101",
     "todd@example.com",
@@ -29,7 +32,38 @@
   "events_log": "./data/events.jsonl",
   "alerts_log": "./data/alerts.jsonl",
   "queue_file": "./data/desk-queue.jsonl",
+  "outbox_file": "./data/outbox-dev.jsonl",
+  "desks": [
+    {
+      "trigger_word": "@dev",
+      "bot_prefix": "🤖 Dev:",
+      "queue_file": "./data/desk-queue.jsonl",
+      "outbox_file": "./data/outbox-dev.jsonl",
+      "reply_mode": "stub"
+    },
+    {
+      "trigger_word": "@ops",
+      "bot_prefix": "🤖 Ops:",
+      "queue_file": "./data/desk-queue-ops.jsonl",
+      "outbox_file": "./data/outbox-ops.jsonl",
+      "reply_mode": "outbox"
+    }
+  ],
   "alert_hook_command": "",
+  "notify_webhook": {
+    "url_env": "HMS_BOT_WEBHOOK_URL",
+    "key_env": "HMS_BOT_WEBHOOK_KEY",
+    "key_header": "Authorization",
+    "key_prefix": "Bearer ",
+    "timeout_seconds": 10
+  },
+  "notify_github": {
+    "repo": "mike-health/hms-command-center",
+    "pr": 19,
+    "gh_path": "gh",
+    "timeout_seconds": 15,
+    "content": "minimal"
+  },
   "responder": {
     "type": "stub",
     "api_key_env": "IMESSAGE_BOT_API_KEY",

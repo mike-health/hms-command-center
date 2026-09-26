@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover - Python < 3.9
     ZoneInfo = None
 
 
-MARKDOWN_RE = re.compile(r"[*_`#\[\]()>~]+")
+MARKDOWN_RE = re.compile(r"[*_`]+")
 HOUR_SECONDS = 3600
 DAY_SECONDS = 86400
 
@@ -105,17 +105,31 @@ def rate_cap_decision(send_times, now_ts, min_seconds, max_hour, max_day):
     return None, times
 
 
-def clamp_reply(text, prefix, max_chars):
+def clamp_reply(text, prefix, max_chars, preserve_newlines=False):
     if text is None:
         text = ""
-    one_line = " ".join(str(text).split())
-    one_line = MARKDOWN_RE.sub("", one_line).strip()
+    raw = str(text)
     prefix = (prefix or "").strip()
-    if prefix and not one_line.startswith(prefix):
-        body = one_line
-        one_line = (prefix + " " + body).strip() if body else prefix
-    if max_chars and len(one_line) > max_chars:
+    if preserve_newlines:
+        raw = raw.replace("\r\n", "\n").replace("\r", "\n")
+        lines = []
+        for line in raw.split("\n"):
+            collapsed = " ".join(line.split())
+            collapsed = MARKDOWN_RE.sub("", collapsed).rstrip()
+            lines.append(collapsed)
+        body = "\n".join(lines).strip("\n")
+    else:
+        body = MARKDOWN_RE.sub("", " ".join(raw.split())).strip()
+    if prefix and not body.startswith(prefix):
+        if body:
+            if preserve_newlines and "\n" in body:
+                body = prefix + " " + body
+            else:
+                body = (prefix + " " + body).strip()
+        else:
+            body = prefix
+    if max_chars and len(body) > max_chars:
         if prefix and max_chars <= len(prefix):
             return prefix[:max_chars]
-        one_line = one_line[: max_chars - 1].rstrip() + "…"
-    return one_line
+        body = body[: max_chars - 1].rstrip() + "…"
+    return body

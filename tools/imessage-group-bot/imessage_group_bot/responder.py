@@ -33,9 +33,9 @@ def sensitive_reply(prefix, max_chars):
     return clamp_reply(SENSITIVE_REPLY_BODY, prefix, max_chars)
 
 
-def generate_reply(config, question, http_post=None):
+def generate_reply(config, question, http_post=None, prefix=None):
     """Return (text, meta) where meta notes which responder produced it."""
-    prefix = config.bot_prefix
+    prefix = prefix if prefix is not None else config.bot_prefix
     max_chars = config.max_reply_chars
     if looks_sensitive(question):
         return sensitive_reply(prefix, max_chars), {"responder": "sensitive_guard"}
