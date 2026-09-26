@@ -209,6 +209,7 @@ class Config(object):
         self.responder_timeout_seconds = float(responder.get("timeout_seconds") or 20)
         self.ack_on_queue = _strict_bool(raw, "ack_on_queue", True, True)
         self._load_notify_webhook(raw, base_dir)
+        self._load_notify_github(raw)
         self.desks = self._load_desks(raw, base_dir)
 
     def _load_notify_webhook(self, raw, base_dir):
@@ -250,6 +251,36 @@ class Config(object):
         self.webhook_env_file = _expand_path(env_file, base_dir)
         self._file_env = load_key_value_env(self.webhook_env_file)
 
+    def _load_notify_github(self, raw):
+        from .notify import DEFAULT_GH_TIMEOUT, DEFAULT_GITHUB_REPO
+
+        self._github_block = None
+        self.notify_github_repo = ""
+        self.notify_github_pr = 0
+        self.notify_github_gh_path = "gh"
+        self.notify_github_timeout_seconds = DEFAULT_GH_TIMEOUT
+        block = raw.get("notify_github")
+        if not block:
+            return
+        if not isinstance(block, dict):
+            raise ConfigError("notify_github must be a JSON object")
+        self._github_block = block
+        self.notify_github_repo = str(
+            block.get("repo") or DEFAULT_GITHUB_REPO
+        ).strip() or DEFAULT_GITHUB_REPO
+        try:
+            self.notify_github_pr = int(block.get("pr") or 0)
+        except (TypeError, ValueError):
+            raise ConfigError("notify_github.pr must be an integer")
+        path = block.get("gh_path")
+        if path is None or str(path).strip() == "":
+            self.notify_github_gh_path = "gh"
+        else:
+            self.notify_github_gh_path = str(path).strip()
+        self.notify_github_timeout_seconds = float(
+            block.get("timeout_seconds") or DEFAULT_GH_TIMEOUT
+        )
+
     def notify_url(self, environ=None):
         if self._notify_block is None:
             return ""
@@ -264,8 +295,11 @@ class Config(object):
 
         return lookup_env(self.notify_key_env, self._file_env, environ=environ)
 
+    def notify_github_active(self):
+        return bool(self._github_block and self.notify_github_repo and self.notify_github_pr)
+
     def notify_active(self, environ=None):
-        return bool(self.notify_url(environ=environ))
+        return bool(self.notify_url(environ=environ) or self.notify_github_active())
 
     def _load_desks(self, raw, base_dir):
         legacy = Desk(

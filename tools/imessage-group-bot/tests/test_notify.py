@@ -9,9 +9,13 @@ from imessage_group_bot.cli import cmd_notify_test
 from imessage_group_bot.engine import Engine
 from imessage_group_bot.notify import (
     DEFAULT_ENV_FILE,
+    format_github_comment,
+    github_comment_argv,
     load_key_value_env,
     lookup_env,
+    post_github_comment,
     post_webhook,
+    resolve_gh_path,
     sample_payload,
 )
 from imessage_group_bot.state import already_answered, load_state, save_state
@@ -157,6 +161,7 @@ class NotifyEngineTests(unittest.TestCase):
             clock=lambda: 1_000_000.0,
             sleeper=lambda _s: None,
             webhook_post=kwargs.get("webhook_post", self.poster),
+            gh_run=kwargs.get("gh_run"),
         )
 
     def _prime(self):
@@ -329,7 +334,7 @@ class NotifyCliTests(unittest.TestCase):
         buf = StringIO()
         code = cmd_notify_test(cfg, out=buf, http_post=rec)
         self.assertEqual(code, 0)
-        self.assertIn("notify-test HTTP 201", buf.getvalue())
+        self.assertIn("notify-test webhook HTTP 201", buf.getvalue())
         self.assertEqual(len(rec.calls), 1)
         payload = rec.calls[0]["payload"]
         self.assertEqual(payload["question"], "notify-test sample")
@@ -345,7 +350,210 @@ class NotifyCliTests(unittest.TestCase):
         buf = StringIO()
         code = cmd_notify_test(cfg, out=buf, http_post=Recorder())
         self.assertEqual(code, 1)
-        self.assertIn("webhook URL is empty", buf.getvalue())
+        self.assertIn("no transport", buf.getvalue())
+
+
+class GhRecorder(object):
+    def __init__(self, results=None):
+        self.calls = []
+        self.results = list(results if results is not None else [0])
+
+    def __call__(self, argv, timeout):
+        self.calls.append({"argv": argv, "timeout": timeout})
+        if not self.results:
+            return 0
+        item = self.results.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item
+
+
+def _github_block(**extra):
+    block = {
+        "repo": "mike-health/hms-command-center",
+        "pr": 19,
+        "gh_path": "/opt/homebrew/bin/gh",
+        "timeout_seconds": 15,
+    }
+    block.update(extra)
+    return block
+
+
+class GitHubNotifyTests(unittest.TestCase):
+    def test_resolve_gh_path_uses_absolute_config(self):
+        self.assertEqual(resolve_gh_path("/opt/homebrew/bin/gh"), "/opt/homebrew/bin/gh")
+        self.assertEqual(resolve_gh_path("/usr/local/bin/gh"), "/usr/local/bin/gh")
+
+    def test_comment_body_has_human_line_and_json_fence(self):
+        payload = {
+            "desk": "@ops",
+            "question": "is the studio up?",
+            "trigger_text": "@ops is the studio up?",
+            "reply_to": "G1",
+            "chat_guid": GROUP_GUID,
+            "source_chat_guid": GROUP_GUID,
+            "sender_handle": "+15555550101",
+            "ts": "2026-09-26T23:00:00+00:00",
+        }
+        body = format_github_comment(payload)
+        self.assertIn("HMS bot queued @ops from +15555550101", body)
+        self.assertIn("is the studio up?", body)
+        self.assertIn("```json", body)
+        self.assertIn('"reply_to": "G1"', body)
+        test_body = format_github_comment(payload, test=True)
+        self.assertTrue(test_body.startswith("TEST"))
+        self.assertIn("notify-test", test_body.lower())
+
+    def test_gh_argv_and_retry(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        cfg = write_config(tmp.name, notify_github=_github_block())
+        rec = GhRecorder([RuntimeError("boom"), 0])
+        sleeps = []
+        post_github_comment(cfg, {"desk": "@ops", "question": "q"}, gh_run=rec, sleeper=sleeps.append)
+        self.assertEqual(len(rec.calls), 2)
+        self.assertEqual(sleeps, [0.2])
+        argv = rec.calls[0]["argv"]
+        self.assertEqual(argv[0], "/opt/homebrew/bin/gh")
+        self.assertEqual(argv[1], "api")
+        self.assertEqual(
+            argv[2],
+            "repos/mike-health/hms-command-center/issues/19/comments",
+        )
+        self.assertEqual(argv[3], "-f")
+        self.assertTrue(argv[4].startswith("body="))
+        self.assertEqual(rec.calls[0]["timeout"], 15)
+
+    def test_github_only_acks_and_skips_stub(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        cfg = write_config(tmp.name, notify_github=_github_block(), max_reply_chars=500)
+        self.assertTrue(cfg.notify_active())
+        self.assertTrue(cfg.notify_github_active())
+        rec = GhRecorder()
+        poster = Recorder()
+        state = load_state(cfg.state_file)
+        state["high_water_rowid"] = 0
+        save_state(cfg.state_file, state)
+        engine = Engine(
+            cfg,
+            chat_db=FakeDB(
+                messages=[msg(rowid=2, guid="G-DEV-2", text="@dev ship the build")],
+                max_id=0,
+            ),
+            send_fn=lambda *_a: (_ for _ in ()).throw(AssertionError("no send")),
+            clock=lambda: 1_000_000.0,
+            sleeper=lambda _s: None,
+            webhook_post=poster,
+            gh_run=rec,
+        )
+        result = engine.process_once()
+        self.assertEqual(result["replies"], 1)
+        self.assertEqual(poster.calls, [])
+        self.assertEqual(len(rec.calls), 1)
+        body = rec.calls[0]["argv"][4]
+        self.assertIn("ship the build", body)
+        self.assertIn("G-DEV-2", body)
+        self.assertTrue(body.startswith("body=HMS bot queued"))
+        self.assertNotIn("do not treat as a real queue item", body)
+        hit = [e for e in _events(cfg) if e.get("rowid") == 2][-1]
+        self.assertEqual(hit["would_send"], "🤖 Dev: on it")
+        self.assertIn("queued_for_github", hit["decisions"])
+        self.assertNotIn("routing to the dev desk", hit["would_send"])
+        self.assertFalse(already_answered(load_state(cfg.state_file), "G-DEV-2"))
+
+    def test_health_check_does_not_comment(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        cfg = write_config(tmp.name, notify_github=_github_block())
+        rec = GhRecorder()
+        state = load_state(cfg.state_file)
+        state["high_water_rowid"] = 0
+        save_state(cfg.state_file, state)
+        engine = Engine(
+            cfg,
+            chat_db=FakeDB(messages=[msg(rowid=4, guid="G-T", text="@ops test")], max_id=0),
+            send_fn=lambda *_a: (_ for _ in ()).throw(AssertionError("no send")),
+            clock=lambda: 1_000_000.0,
+            sleeper=lambda _s: None,
+            gh_run=rec,
+        )
+        engine.process_once()
+        self.assertEqual(rec.calls, [])
+
+    def test_github_failure_alerts_and_keeps_running(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        cfg = write_config(tmp.name, notify_github=_github_block())
+        rec = GhRecorder([RuntimeError("down"), RuntimeError("still down")])
+        state = load_state(cfg.state_file)
+        state["high_water_rowid"] = 0
+        save_state(cfg.state_file, state)
+        engine = Engine(
+            cfg,
+            chat_db=FakeDB(
+                messages=[
+                    msg(rowid=10, guid="G10", text="@ops first"),
+                    msg(rowid=11, guid="G11", text="@ops second"),
+                ],
+                max_id=0,
+            ),
+            send_fn=lambda *_a: (_ for _ in ()).throw(AssertionError("no send")),
+            clock=lambda: 1_000_000.0,
+            sleeper=lambda _s: None,
+            gh_run=rec,
+        )
+        result = engine.process_once()
+        self.assertEqual(result["processed"], 2)
+        self.assertGreaterEqual(len(rec.calls), 2)
+        alerts = _alerts(cfg)
+        self.assertTrue(any(a.get("transport") == "github" for a in alerts))
+
+    def test_webhook_and_github_both_fire(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        os.environ[URL_ENV] = "https://example.test/hook"
+        os.environ[KEY_ENV] = "k"
+        self.addCleanup(lambda: os.environ.pop(URL_ENV, None))
+        self.addCleanup(lambda: os.environ.pop(KEY_ENV, None))
+        cfg = write_config(
+            tmp.name,
+            notify_webhook=_notify_block(),
+            notify_github=_github_block(),
+        )
+        poster = Recorder()
+        rec = GhRecorder()
+        state = load_state(cfg.state_file)
+        state["high_water_rowid"] = 0
+        save_state(cfg.state_file, state)
+        engine = Engine(
+            cfg,
+            chat_db=FakeDB(messages=[msg(rowid=3, guid="G3", text="@ops both")], max_id=0),
+            send_fn=lambda *_a: (_ for _ in ()).throw(AssertionError("no send")),
+            clock=lambda: 1_000_000.0,
+            sleeper=lambda _s: None,
+            webhook_post=poster,
+            gh_run=rec,
+        )
+        engine.process_once()
+        self.assertEqual(len(poster.calls), 1)
+        self.assertEqual(len(rec.calls), 1)
+
+    def test_notify_test_posts_labeled_github_comment(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        cfg = write_config(tmp.name, notify_github=_github_block())
+        rec = GhRecorder()
+        buf = StringIO()
+        code = cmd_notify_test(cfg, out=buf, gh_run=rec)
+        self.assertEqual(code, 0)
+        self.assertIn("notify-test github comment posted", buf.getvalue())
+        self.assertIn("#19", buf.getvalue())
+        self.assertEqual(len(rec.calls), 1)
+        body = rec.calls[0]["argv"][4]
+        self.assertTrue(body.startswith("body=TEST"))
+        argv = github_comment_argv(cfg, sample_payload(cfg), test=True)
+        self.assertIn("TEST", argv[4])
 
 
 if __name__ == "__main__":

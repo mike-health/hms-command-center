@@ -32,7 +32,7 @@ from .outbox import (
     load_queue_guids,
     parse_outbox_record,
 )
-from .notify import build_notify_payload, post_webhook
+from .notify import build_notify_payload, post_github_comment, post_webhook
 from .responder import generate_reply
 from .sender import send_and_confirm
 from .state import (
@@ -82,6 +82,7 @@ class Engine(object):
         http_post=None,
         hook_runner=None,
         webhook_post=None,
+        gh_run=None,
     ):
         self.config = config
         self.live_flag = bool(live_flag)
@@ -96,6 +97,7 @@ class Engine(object):
         self.http_post = http_post
         self.hook_runner = hook_runner
         self.webhook_post = webhook_post
+        self.gh_run = gh_run
 
     def live_send_allowed(self):
         return self.config.live_send_allowed(self.live_flag)
@@ -346,7 +348,11 @@ class Engine(object):
         self._notify_queued(desk, message, rest, now, decisions)
 
         if notify_on:
-            decisions.append("queued_for_webhook")
+            decisions.append("queued_for_notify")
+            if self.config.notify_url():
+                decisions.append("queued_for_webhook")
+            if self.config.notify_github_active():
+                decisions.append("queued_for_github")
             if self.config.ack_on_queue:
                 prefix = desk.bot_prefix if desk else self.config.bot_prefix
                 ack = clamp_reply("on it", prefix, self.config.max_reply_chars)
@@ -849,39 +855,77 @@ class Engine(object):
         if not self.config.notify_active():
             return
         payload = build_notify_payload(self.config, desk, message, rest, now_ts=now)
-        try:
-            status = post_webhook(
-                self.config,
-                payload,
-                http_post=self.webhook_post,
-                sleeper=self.sleeper,
-            )
-            decisions.append("notify_ok")
-            log_event(
-                self.config.events_log,
-                {
-                    "event": "notify_webhook",
-                    "outcome": "ok",
-                    "http_status": status,
-                    "desk": desk.trigger_word,
-                    "reply_to": message.guid,
-                },
-                now_ts=now,
-            )
-        except Exception as exc:
-            decisions.append("notify_failed")
-            raise_alert(
-                self.config.alerts_log,
-                "notify webhook failed: %s" % exc,
-                self.config.alert_hook_command,
-                extra={
-                    "event": "notify_failed",
-                    "desk": desk.trigger_word,
-                    "reply_to": message.guid,
-                },
-                now_ts=now,
-                runner=self.hook_runner,
-            )
+        if self.config.notify_url():
+            try:
+                status = post_webhook(
+                    self.config,
+                    payload,
+                    http_post=self.webhook_post,
+                    sleeper=self.sleeper,
+                )
+                decisions.append("notify_ok")
+                log_event(
+                    self.config.events_log,
+                    {
+                        "event": "notify_webhook",
+                        "outcome": "ok",
+                        "http_status": status,
+                        "desk": desk.trigger_word,
+                        "reply_to": message.guid,
+                    },
+                    now_ts=now,
+                )
+            except Exception as trans_exc:
+                decisions.append("notify_failed")
+                raise_alert(
+                    self.config.alerts_log,
+                    "notify webhook failed: %s" % trans_exc,
+                    self.config.alert_hook_command,
+                    extra={
+                        "event": "notify_failed",
+                        "transport": "webhook",
+                        "desk": desk.trigger_word,
+                        "reply_to": message.guid,
+                    },
+                    now_ts=now,
+                    runner=self.hook_runner,
+                )
+        if self.config.notify_github_active():
+            try:
+                post_github_comment(
+                    self.config,
+                    payload,
+                    gh_run=self.gh_run,
+                    sleeper=self.sleeper,
+                )
+                decisions.append("notify_github_ok")
+                log_event(
+                    self.config.events_log,
+                    {
+                        "event": "notify_github",
+                        "outcome": "ok",
+                        "desk": desk.trigger_word,
+                        "reply_to": message.guid,
+                        "repo": self.config.notify_github_repo,
+                        "pr": self.config.notify_github_pr,
+                    },
+                    now_ts=now,
+                )
+            except Exception as trans_exc:
+                decisions.append("notify_github_failed")
+                raise_alert(
+                    self.config.alerts_log,
+                    "notify github failed: %s" % trans_exc,
+                    self.config.alert_hook_command,
+                    extra={
+                        "event": "notify_failed",
+                        "transport": "github",
+                        "desk": desk.trigger_word,
+                        "reply_to": message.guid,
+                    },
+                    now_ts=now,
+                    runner=self.hook_runner,
+                )
 
     def _enqueue(self, desk, message, rest, now):
         timestamp = format_apple_date(message.date_raw) or iso_now(now)

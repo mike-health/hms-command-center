@@ -111,7 +111,7 @@ Do not prune `state.json` (high-water mark, rate-cap timestamps, outbox byte off
 | `list-groups` | Prints group chats: guid, display name, participant handles, last message date |
 | `once` | One poll of new messages (and new outbox lines), then exit |
 | `run` | Poll forever (`poll_interval_seconds`, default 10) |
-| `notify-test` | POST a sample payload to `notify_webhook` and print the HTTP status |
+| `notify-test` | Sample notify: webhook POST and/or a clearly labeled TEST GitHub comment |
 
 ```bash
 cd tools/imessage-group-bot
@@ -137,13 +137,18 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `trigger_word` | Legacy/dev trigger. Confirmed `@dev`. Kept for older configs. |
 | `desks` | Optional list of desk objects (see below). When omitted, the legacy keys become a stub desk and a default `@ops` outbox desk is added. |
 | `max_reply_chars` | Default `200` if omitted. Example config uses `500`. Outbox replies keep newlines up to this cap. |
-| `ack_on_queue` | JSON `true`/`false`. Default `true`. When a webhook URL is set, send an instant `<prefix> on it` after queueing. Set `false` to queue/notify with no ack. |
-| `notify_webhook` | Optional object. If omitted, or if the resolved URL is empty, behavior is unchanged (no POST). |
+| `ack_on_queue` | JSON `true`/`false`. Default `true`. When notify is configured (webhook URL and/or `notify_github`), send an instant `<prefix> on it` after queueing. |
+| `notify_webhook` | Optional object. If omitted, or if the resolved URL is empty, no HTTP POST. |
 | `notify_webhook.url_env` | Env var **name** for the webhook URL (default `HMS_BOT_WEBHOOK_URL`) |
 | `notify_webhook.key_env` | Env var **name** for the auth key (default `HMS_BOT_WEBHOOK_KEY`) |
 | `notify_webhook.key_header` | HTTP header for the key (default `Authorization`) |
 | `notify_webhook.key_prefix` | Prefix before the key (default `Bearer `) |
 | `notify_webhook.timeout_seconds` | POST timeout (default `10`) |
+| `notify_github` | Optional object. When `repo` + `pr` are set, each queued question posts **one** comment on that PR's issue thread via `gh`. Works in addition to or instead of the webhook. |
+| `notify_github.repo` | Default `mike-health/hms-command-center` |
+| `notify_github.pr` | Inbox PR number (example: `19`). Required to enable this transport. |
+| `notify_github.gh_path` | Path to `gh`. launchd PATH may omit Homebrew. The bot tries `/opt/homebrew/bin/gh`, then `/usr/local/bin/gh`, then this value (default `gh`). Set an absolute path to pin it. |
+| `notify_github.timeout_seconds` | `gh` timeout (default `15`) |
 | `allowlist_handles` | Todd/Rudy handles (Mike = `is_from_me`) |
 | `poll_interval_seconds` | Default `10` |
 | `delivery_confirm_seconds` | Wait for `is_from_me` row after send (default `15`) |
@@ -163,6 +168,8 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `responder.base_url` / `model` / `timeout_seconds` | OpenAI-compatible chat completions |
 
 URL and key are read from those environment variables. If unset, the bot also reads `var/webhook.env` (relative to the config file) as `KEY=VALUE` lines. Keep that file mode `600` so launchd does not need the env injected. Never put the URL or key in `config.json`.
+
+GitHub notify uses the Mac's existing `gh` auth (`gh api repos/{repo}/issues/{pr}/comments -f body=...`). The inbox PR is **#19** (`HMS Mgt bot inbox (do not merge)`); do not merge it. That repo is **public**, so comments on #19 are public.
 
 ### `desks[]` entries
 
@@ -246,13 +253,13 @@ Every outbox decision is written to `events_log` with `"event": "outbox"`, `"out
 - Read-only sqlite: `file:<path>?mode=ro`. Decodes `attributedBody` when `text` is NULL (no `imsg` dependency).
 - Trigger: a configured desk trigger appears as a **standalone token anywhere** in the text **and** sender is Mike (`is_from_me`, `from_me_handle`, or an allowlisted handle). The queue `question` is the text after that token (trimmed). Self-loop (`🤖` prefix) still wins over a nested trigger in **every** watched chat.
 - Dual Apple ID: one iMessage group can appear as two `chat.db` rows. Set `group_guid` to the chat whose `last_addressed_handle` is the **bot** address (replies come from that identity). Put the other row in `watch_chat_guids`. Queue lines record `source_chat_guid` and `reply_chat_guid`. Outbox `chat_guid` may be any watched guid; sends always go to `group_guid`. Duplicate copies (same message guid, or same text+sender within 60s) produce one reply.
-- Skip: leading `🤖` (self-loop), `associated_message_type != 0` (tapbacks/reactions), edits (`date_edited`), empty/attachment-only, item_type ≠ 0, backlog from before first start (high-water ROWID). Stub quiet hours: `suppressed: quiet_hours`, not queued — unless `notify_webhook` has a URL, in which case the question is still queued and POSTed (the ack is suppressed in the quiet window). A trigger token with no following non-whitespace text is `not_trigger`.
+- Skip: leading `🤖` (self-loop), `associated_message_type != 0` (tapbacks/reactions), edits (`date_edited`), empty/attachment-only, item_type ≠ 0, backlog from before first start (high-water ROWID). Stub quiet hours: `suppressed: quiet_hours`, not queued — unless notify is configured (webhook URL and/or `notify_github`), in which case the question is still queued and notified (the ack is suppressed in the quiet window). A trigger token with no following non-whitespace text is `not_trigger`.
 - One reply per trigger message (idempotent on ROWID/guid). Outbox `reply_to` is marked answered only when the **outbox** line is sent, not when a queue ack is sent. Earliest desk token in the message wins if several appear.
 - Stub canned reply: one line, desk prefix, markdown/newlines stripped, clamped to `max_reply_chars`. Outbox replies may be multi-line.
-- `stub` responder (default for `@dev` **without** a webhook URL): `🤖 Dev: got it, routing to the dev desk: <question>`. (A message that is only `@dev` with no question is not a trigger.)
+- `stub` responder (default for `@dev` **without** notify configured): `🤖 Dev: got it, routing to the dev desk: <question>`. (A message that is only `@dev` with no question is not a trigger.)
 - Health check: if the text after the trigger is only `test` (case-insensitive; surrounding whitespace and trailing `.` `!` `?` ignored), the bot replies instantly `<desk prefix> I'm here` and does **not** queue or notify. `@ops test the schedule` is a normal ops question.
-- `notify_webhook`: on a real queued question (`@dev` or `@ops`), POST JSON `{desk, question, trigger_text, reply_to, chat_guid, source_chat_guid, sender_handle, ts}` with the configured key header. Short timeout, one retry. Failures go to `alerts.jsonl`; the poll loop keeps running. Not sent for health-check `test` or Mike stop/start.
-- When the webhook URL is set, `@dev` does **not** send the stub routing text. If `ack_on_queue` is true (default), both desks send `<prefix> on it` immediately; the answering service writes the real reply to the desk outbox (`reply_to` = the queue guid).
+- `notify_webhook` / `notify_github`: on a real queued question (`@dev` or `@ops`), send the payload `{desk, question, trigger_text, reply_to, chat_guid, source_chat_guid, sender_handle, ts}`. Webhook: HTTP JSON. GitHub: one PR issue comment (short human line + fenced `json` block) via `gh`. Short timeout, one retry per transport. Failures go to `alerts.jsonl`; the poll loop keeps running. Not sent for health-check `test` or Mike stop/start.
+- When either transport is configured, `@dev` does **not** send the stub routing text. If `ack_on_queue` is true (default), both desks send `<prefix> on it` immediately; the answering service writes the real reply to the desk outbox (`reply_to` = the queue guid).
 - `outbox` desks do not call the stub/OpenAI responder on the trigger. The later outbox `text` is sanitized (newlines kept) and prefixed.
 - `openai_compatible` is off unless `responder.type` is exactly `openai_compatible`. It is not called until kill-switch, `enabled`, quiet hours, and rate caps have already allowed a reply. On any error it falls back to stub. Money / leases / partners / Greene / JV → `🤖 Dev: Mike will answer that`.
 - Live send: `osascript` with text and chat GUID as argv (so 🤖 is never JSON `\\u`-escaped into AppleScript), then look for a new `is_from_me` row with that text within 15s; retry once; each osascript attempt counts toward rate caps whether or not delivery confirms; then alerts log + optional hook. The hook must not send iMessage.
@@ -271,7 +278,7 @@ Use a **Mike-only throwaway group first** (Mike talking to himself in a group he
 7. `touch` the kill flag file; `@dev ping` should log `kill_flag_file`. Outbox lines should hold, not drop.
 8. From Mike: `@dev stop` then `@ops start` (or the reverse). Confirm flag file create/remove and `paused` / `running` in the log. Confirm `notify-test` is **not** required for this step; stop/start must **not** POST the webhook.
 9. Restart the process with the same `state.json` and confirm the already-sent outbox line is **not** resent.
-10. With `notify_webhook` + `var/webhook.env` (mode 600) or `HMS_BOT_WEBHOOK_URL` / `HMS_BOT_WEBHOOK_KEY`, send `@ops ping` and confirm a POST (or a `notify_failed` alert if the URL is unreachable). `python3 bot.py --config config.json notify-test` prints `notify-test HTTP …`.
+10. With `notify_github` (PR **#19**) and/or `notify_webhook`, send `@ops ping` and confirm a GitHub comment and/or HTTP POST (or a `notify_failed` alert). `python3 bot.py --config config.json notify-test` posts a clearly labeled **TEST** GitHub comment and/or a webhook sample.
 11. Only after a dry-run day: `dry_run: false` **and** `--live` on the throwaway group. Confirm one `🤖 Dev:` stub or ack line and one `🤖 Ops:` outbox line in the thread, and that the bot does not reply to its own lines.
 12. Mike approves before pointing `group_guid` at the real group.
 

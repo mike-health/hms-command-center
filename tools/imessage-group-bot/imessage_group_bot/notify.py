@@ -1,9 +1,10 @@
-"""POST queued questions to an answering-service webhook (stdlib urllib)."""
+"""Notify queued questions via webhook and/or a GitHub PR comment (`gh`)."""
 
 from __future__ import print_function
 
 import json
 import os
+import subprocess
 import urllib.error
 import urllib.request
 
@@ -16,6 +17,13 @@ DEFAULT_KEY_HEADER = "Authorization"
 DEFAULT_KEY_PREFIX = "Bearer "
 DEFAULT_TIMEOUT = 10.0
 DEFAULT_ENV_FILE = os.path.join("var", "webhook.env")
+DEFAULT_GH_TIMEOUT = 15.0
+DEFAULT_GH_CANDIDATES = (
+    "/opt/homebrew/bin/gh",
+    "/usr/local/bin/gh",
+    "gh",
+)
+DEFAULT_GITHUB_REPO = "mike-health/hms-command-center"
 
 
 def load_key_value_env(path):
@@ -123,3 +131,81 @@ def _default_http_post(url, body, headers, timeout):
         return int(exc.code)
     except urllib.error.URLError as exc:
         raise RuntimeError("webhook HTTP error: %s" % exc)
+
+
+def resolve_gh_path(configured=None):
+    """Prefer an explicit path, then Homebrew, then /usr/local, then `gh`."""
+    wanted = str(configured or "").strip()
+    if wanted and os.path.isabs(wanted):
+        return wanted
+    for candidate in DEFAULT_GH_CANDIDATES:
+        if candidate == "gh":
+            continue
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return wanted or "gh"
+
+
+def format_github_comment(payload, test=False):
+    desk = payload.get("desk") or ""
+    question = (payload.get("question") or "").replace("\n", " ").strip()
+    sender = payload.get("sender_handle") or ""
+    if test:
+        headline = (
+            "TEST — HMS bot notify-test (do not treat as a real queue item). "
+            "desk=%s from %s: %s" % (desk, sender, question)
+        )
+    else:
+        headline = "HMS bot queued %s from %s: %s" % (desk, sender, question)
+    blob = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
+    return "%s\n\n```json\n%s\n```\n" % (headline, blob)
+
+
+def github_comment_argv(config, payload, test=False):
+    repo = config.notify_github_repo
+    pr = int(config.notify_github_pr)
+    path = resolve_gh_path(config.notify_github_gh_path)
+    body = format_github_comment(payload, test=test)
+    return [
+        path,
+        "api",
+        "repos/%s/issues/%s/comments" % (repo, pr),
+        "-f",
+        "body=%s" % body,
+    ]
+
+
+def post_github_comment(config, payload, gh_run=None, sleeper=None, test=False):
+    """Post one issue comment via `gh api ... -f body=`. Retry once on failure."""
+    if not config.notify_github_active():
+        raise ValueError("notify_github is not configured")
+    argv = github_comment_argv(config, payload, test=test)
+    timeout = float(config.notify_github_timeout_seconds or DEFAULT_GH_TIMEOUT)
+    runner = gh_run or _default_gh_run
+    last_error = None
+    for attempt in (1, 2):
+        try:
+            runner(argv, timeout)
+            return 0
+        except Exception as exc:
+            last_error = exc
+        if attempt == 1:
+            if sleeper:
+                sleeper(0.2)
+    raise last_error
+
+
+def _default_gh_run(argv, timeout):
+    try:
+        result = subprocess.run(
+            argv,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("gh comment timed out after %ss" % timeout) from exc
+    if result.returncode != 0:
+        err = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError("gh comment failed (%s): %s" % (result.returncode, err[:500]))
+    return result.returncode

@@ -9,7 +9,7 @@ import sys
 from .chat_db import ChatDB
 from .config import load_config
 from .engine import Engine, ensure_data_dirs
-from .notify import post_webhook, sample_payload
+from .notify import post_github_comment, post_webhook, sample_payload
 
 
 def build_parser():
@@ -37,7 +37,7 @@ def build_parser():
     sub.add_parser("run", help="Poll forever (launchd)")
     sub.add_parser(
         "notify-test",
-        help="POST a sample payload to notify_webhook and print the HTTP status",
+        help="POST a sample payload to notify_webhook and/or a TEST comment on notify_github",
     )
     return parser
 
@@ -93,20 +93,41 @@ def cmd_run(config, live_flag, out=None, engine=None):
     return 0
 
 
-def cmd_notify_test(config, out=None, http_post=None):
+def cmd_notify_test(config, out=None, http_post=None, gh_run=None):
     out = out or sys.stdout
     ensure_data_dirs(config)
-    if not config.notify_active():
-        out.write("notify-test: webhook URL is empty (set HMS_BOT_WEBHOOK_URL or var/webhook.env).\n")
+    webhook_on = bool(config.notify_url())
+    github_on = config.notify_github_active()
+    if not webhook_on and not github_on:
+        out.write(
+            "notify-test: no transport (set HMS_BOT_WEBHOOK_URL / var/webhook.env "
+            "or notify_github.pr).\n"
+        )
         return 1
     payload = sample_payload(config)
-    try:
-        status = post_webhook(config, payload, http_post=http_post)
-    except Exception as exc:
-        out.write("notify-test failed: %s\n" % exc)
-        return 1
-    out.write("notify-test HTTP %s\n" % status)
-    return 0 if int(status) < 400 else 1
+    failed = False
+    if webhook_on:
+        try:
+            status = post_webhook(config, payload, http_post=http_post)
+            out.write("notify-test webhook HTTP %s\n" % status)
+            if int(status) >= 400:
+                failed = True
+        except Exception as exc:
+            out.write("notify-test webhook failed: %s\n" % exc)
+            failed = True
+    if github_on:
+        try:
+            post_github_comment(
+                config, payload, gh_run=gh_run, test=True
+            )
+            out.write(
+                "notify-test github comment posted to %s#%s\n"
+                % (config.notify_github_repo, config.notify_github_pr)
+            )
+        except Exception as exc:
+            out.write("notify-test github failed: %s\n" % exc)
+            failed = True
+    return 1 if failed else 0
 
 
 def main(argv=None):

@@ -57,6 +57,12 @@
     "key_prefix": "Bearer ",
     "timeout_seconds": 10
   },
+  "notify_github": {
+    "repo": "mike-health/hms-command-center",
+    "pr": 19,
+    "gh_path": "gh",
+    "timeout_seconds": 15
+  },
   "responder": {
     "type": "stub",
     "api_key_env": "IMESSAGE_BOT_API_KEY",
