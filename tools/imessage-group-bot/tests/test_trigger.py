@@ -5,6 +5,7 @@ from imessage_group_bot.trigger import (
     handle_allowed,
     is_self_loop_text,
     looks_sensitive,
+    match_desk,
     parse_kill_command,
     trigger_match,
 )
@@ -32,6 +33,24 @@ class TriggerTests(unittest.TestCase):
         self.assertEqual(parse_kill_command("stop"), "stop")
         self.assertEqual(parse_kill_command("START"), "start")
         self.assertIsNone(parse_kill_command("stop please"))
+
+    def test_match_desk_ops_and_dev(self):
+        from imessage_group_bot.config import Desk
+
+        desks = [
+            Desk("@dev", "🤖 Dev:", "q-dev", "o-dev", "stub"),
+            Desk("@ops", "🤖 Ops:", "q-ops", "o-ops", "outbox"),
+        ]
+        desk, rest = match_desk("@OPS  status please", desks)
+        self.assertEqual(desk.trigger_word, "@ops")
+        self.assertEqual(rest, "status please")
+        desk, rest = match_desk("@dev ship it", desks)
+        self.assertEqual(desk.trigger_word, "@dev")
+        self.assertEqual(rest, "ship it")
+        desk, rest = match_desk("@devastated", desks)
+        self.assertIsNone(desk)
+        desk, rest = match_desk("🤖 Ops: already sent", desks)
+        self.assertIsNone(desk)
 
     def test_sensitive_topics(self):
         self.assertTrue(looks_sensitive("what about the JV"))
