@@ -128,6 +128,18 @@ class TriggerTests(unittest.TestCase):
         self.assertTrue(out.endswith("…"))
         self.assertNotIn("\n", clamp_reply("a\nb **bold**", "🤖 Dev:", 200))
         self.assertNotIn("**", clamp_reply("a\nb **bold**", "🤖 Dev:", 200))
+        multi = clamp_reply(
+            "Line 1.\nLine 2: ok, 50% done!\n",
+            "🤖 Ops:",
+            500,
+            preserve_newlines=True,
+        )
+        self.assertIn("\n", multi)
+        self.assertEqual(multi, "🤖 Ops: Line 1.\nLine 2: ok, 50% done!")
+        self.assertIn(",", multi)
+        self.assertIn("!", multi)
+        self.assertIn("%", multi)
+        self.assertNotIn("*", clamp_reply("**bold**", "🤖 Ops:", 500, preserve_newlines=True))
 
 
 if __name__ == "__main__":

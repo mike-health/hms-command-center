@@ -81,6 +81,13 @@ class ListGroupsCliTests(unittest.TestCase):
         self.assertEqual(cfg.quiet_hours_timezone, "America/Los_Angeles")
         self.assertFalse(cfg.live_send_allowed(False))
         self.assertFalse(cfg.live_send_allowed(True))
+        self.assertTrue(cfg.ack_on_queue)
+        self.assertEqual(cfg.max_reply_chars, 500)
+        self.assertEqual(cfg.notify_url_env, "HMS_BOT_WEBHOOK_URL")
+        self.assertEqual(cfg.notify_key_env, "HMS_BOT_WEBHOOK_KEY")
+        self.assertEqual(cfg.notify_key_header, "Authorization")
+        self.assertEqual(cfg.notify_key_prefix, "Bearer ")
+        self.assertEqual(cfg.notify_timeout_seconds, 10)
         cfg.dry_run = False
         self.assertTrue(cfg.live_send_allowed(True))
         self.assertFalse(cfg.live_send_allowed(False))
@@ -116,6 +123,9 @@ class ListGroupsCliTests(unittest.TestCase):
         self.assertEqual(cfg.watch_chat_guids, [])
         self.assertEqual(cfg.watched_chat_guids, ["g"])
         self.assertEqual(cfg.from_me_handle, "")
+        self.assertTrue(cfg.ack_on_queue)
+        self.assertFalse(cfg.notify_active())
+        self.assertEqual(cfg.notify_url(), "")
 
     def test_osascript_argv_carries_raw_emoji(self):
         text = "🤖 Dev: hi there"

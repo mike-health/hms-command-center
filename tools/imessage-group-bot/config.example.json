@@ -7,7 +7,8 @@
   "from_me_handle": "",
   "trigger_word": "@dev",
   "bot_prefix": "🤖 Dev:",
-  "max_reply_chars": 200,
+  "max_reply_chars": 500,
+  "ack_on_queue": true,
   "allowlist_handles": [
     "+15555550101",
     "todd@example.com",
@@ -49,6 +50,13 @@
     }
   ],
   "alert_hook_command": "",
+  "notify_webhook": {
+    "url_env": "HMS_BOT_WEBHOOK_URL",
+    "key_env": "HMS_BOT_WEBHOOK_KEY",
+    "key_header": "Authorization",
+    "key_prefix": "Bearer ",
+    "timeout_seconds": 10
+  },
   "responder": {
     "type": "stub",
     "api_key_env": "IMESSAGE_BOT_API_KEY",

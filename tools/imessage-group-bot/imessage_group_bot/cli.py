@@ -9,6 +9,7 @@ import sys
 from .chat_db import ChatDB
 from .config import load_config
 from .engine import Engine, ensure_data_dirs
+from .notify import post_webhook, sample_payload
 
 
 def build_parser():
@@ -34,6 +35,10 @@ def build_parser():
     sub.add_parser("list-groups", help="Print group chats from chat.db (guid, name, handles, last date)")
     sub.add_parser("once", help="Process new messages for the configured group and exit")
     sub.add_parser("run", help="Poll forever (launchd)")
+    sub.add_parser(
+        "notify-test",
+        help="POST a sample payload to notify_webhook and print the HTTP status",
+    )
     return parser
 
 
@@ -88,6 +93,22 @@ def cmd_run(config, live_flag, out=None, engine=None):
     return 0
 
 
+def cmd_notify_test(config, out=None, http_post=None):
+    out = out or sys.stdout
+    ensure_data_dirs(config)
+    if not config.notify_active():
+        out.write("notify-test: webhook URL is empty (set HMS_BOT_WEBHOOK_URL or var/webhook.env).\n")
+        return 1
+    payload = sample_payload(config)
+    try:
+        status = post_webhook(config, payload, http_post=http_post)
+    except Exception as exc:
+        out.write("notify-test failed: %s\n" % exc)
+        return 1
+    out.write("notify-test HTTP %s\n" % status)
+    return 0 if int(status) < 400 else 1
+
+
 def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -98,6 +119,8 @@ def main(argv=None):
         return cmd_once(config, args.live)
     if args.command == "run":
         return cmd_run(config, args.live)
+    if args.command == "notify-test":
+        return cmd_notify_test(config)
     parser.error("unknown command")
     return 2
 

@@ -32,6 +32,7 @@ from .outbox import (
     load_queue_guids,
     parse_outbox_record,
 )
+from .notify import build_notify_payload, post_webhook
 from .responder import generate_reply
 from .sender import send_and_confirm
 from .state import (
@@ -80,6 +81,7 @@ class Engine(object):
         sleeper=None,
         http_post=None,
         hook_runner=None,
+        webhook_post=None,
     ):
         self.config = config
         self.live_flag = bool(live_flag)
@@ -93,6 +95,7 @@ class Engine(object):
         self.sleeper = sleeper or time_mod.sleep
         self.http_post = http_post
         self.hook_runner = hook_runner
+        self.webhook_post = webhook_post
 
     def live_send_allowed(self):
         return self.config.live_send_allowed(self.live_flag)
@@ -323,7 +326,8 @@ class Engine(object):
                 desk=desk,
             )
 
-        if desk.reply_mode == REPLY_MODE_STUB and self._in_quiet_hours(now):
+        notify_on = self.config.notify_active()
+        if desk.reply_mode == REPLY_MODE_STUB and self._in_quiet_hours(now) and not notify_on:
             decisions.append(SKIP_QUIET_HOURS)
             log_event(
                 self.config.events_log,
@@ -339,6 +343,38 @@ class Engine(object):
             return False
 
         self._enqueue(desk, message, rest, now)
+        self._notify_queued(desk, message, rest, now, decisions)
+
+        if notify_on:
+            decisions.append("queued_for_webhook")
+            if self.config.ack_on_queue:
+                prefix = desk.bot_prefix if desk else self.config.bot_prefix
+                ack = clamp_reply("on it", prefix, self.config.max_reply_chars)
+                decisions.append("queue_ack")
+                return self._maybe_ack(
+                    state,
+                    message,
+                    rest,
+                    ack,
+                    decisions,
+                    now,
+                    desk=desk,
+                    mark_trigger_answered=False,
+                    count_rate=False,
+                )
+            log_event(
+                self.config.events_log,
+                self._base_event(
+                    message,
+                    decisions,
+                    would_send=None,
+                    trigger_text=message.text,
+                    extra={"desk": desk.trigger_word, "reply_mode": desk.reply_mode},
+                ),
+                now_ts=now,
+            )
+            return False
+
         if desk.reply_mode == REPLY_MODE_OUTBOX:
             decisions.append("queued_outbox")
             decisions.append("no_immediate_reply")
@@ -429,7 +465,18 @@ class Engine(object):
             reply = clamp_reply("running", prefix, self.config.max_reply_chars)
         return self._maybe_ack(state, message, rest, reply, decisions, now, desk=desk)
 
-    def _maybe_ack(self, state, message, rest, reply, decisions, now, desk=None):
+    def _maybe_ack(
+        self,
+        state,
+        message,
+        rest,
+        reply,
+        decisions,
+        now,
+        desk=None,
+        mark_trigger_answered=True,
+        count_rate=True,
+    ):
         if self._in_quiet_hours(now):
             decisions.append(SKIP_QUIET_HOURS)
             log_event(
@@ -454,6 +501,8 @@ class Engine(object):
             bypass_rate=True,
             canned_reply=reply,
             desk=desk,
+            mark_trigger_answered=mark_trigger_answered,
+            count_rate=count_rate,
         )
 
     def _maybe_send(
@@ -467,6 +516,8 @@ class Engine(object):
         bypass_rate=False,
         canned_reply=None,
         desk=None,
+        mark_trigger_answered=True,
+        count_rate=True,
     ):
         if not bypass_kill:
             kills = self._kill_reasons(state)
@@ -529,6 +580,7 @@ class Engine(object):
             now,
             bypass_kill=True,
             bypass_rate=True,
+            count_rate=count_rate,
             event_factory=lambda decs, would: self._base_event(
                 message,
                 decs,
@@ -537,7 +589,7 @@ class Engine(object):
                 extra={"desk": desk.trigger_word if desk else None},
             ),
         )
-        if outcome == OUTCOME_SENT and message.guid:
+        if outcome == OUTCOME_SENT and message.guid and mark_trigger_answered:
             mark_answered(state, message.guid)
         return outcome == OUTCOME_SENT
 
@@ -549,6 +601,7 @@ class Engine(object):
         now,
         bypass_kill=False,
         bypass_rate=False,
+        count_rate=True,
         event_factory=None,
     ):
         def emit(would_send=None):
@@ -588,16 +641,18 @@ class Engine(object):
             else:
                 decisions.append("dry_run_missing_live_flag")
             decisions.append("osascript_not_invoked")
-            times.append(now)
-            state["send_times"] = times
+            if count_rate:
+                times.append(now)
+                state["send_times"] = times
             emit(reply)
             return OUTCOME_SENT, REASON_DRY_RUN
 
         decisions.append("live_send")
 
         def counting_send(guid, text):
-            times.append(self.clock())
-            state["send_times"] = times
+            if count_rate:
+                times.append(self.clock())
+                state["send_times"] = times
             sender = self.send_fn
             if sender is None:
                 from .sender import send_to_chat
@@ -710,7 +765,10 @@ class Engine(object):
                 return sent
 
             reply = clamp_reply(
-                record["text"], desk.bot_prefix, self.config.max_reply_chars
+                record["text"],
+                desk.bot_prefix,
+                self.config.max_reply_chars,
+                preserve_newlines=True,
             )
             decisions = [
                 "outbox",
@@ -786,6 +844,44 @@ class Engine(object):
             payload["outbox_chat_guid"] = record.get("chat_guid")
             payload["outbox_ts"] = record.get("ts")
         return payload
+
+    def _notify_queued(self, desk, message, rest, now, decisions):
+        if not self.config.notify_active():
+            return
+        payload = build_notify_payload(self.config, desk, message, rest, now_ts=now)
+        try:
+            status = post_webhook(
+                self.config,
+                payload,
+                http_post=self.webhook_post,
+                sleeper=self.sleeper,
+            )
+            decisions.append("notify_ok")
+            log_event(
+                self.config.events_log,
+                {
+                    "event": "notify_webhook",
+                    "outcome": "ok",
+                    "http_status": status,
+                    "desk": desk.trigger_word,
+                    "reply_to": message.guid,
+                },
+                now_ts=now,
+            )
+        except Exception as exc:
+            decisions.append("notify_failed")
+            raise_alert(
+                self.config.alerts_log,
+                "notify webhook failed: %s" % exc,
+                self.config.alert_hook_command,
+                extra={
+                    "event": "notify_failed",
+                    "desk": desk.trigger_word,
+                    "reply_to": message.guid,
+                },
+                now_ts=now,
+                runner=self.hook_runner,
+            )
 
     def _enqueue(self, desk, message, rest, now):
         timestamp = format_apple_date(message.date_raw) or iso_now(now)

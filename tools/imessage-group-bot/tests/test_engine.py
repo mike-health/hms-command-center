@@ -44,6 +44,7 @@ class EngineTests(unittest.TestCase):
             clock=kwargs.get("clock", lambda: 1_000_000.0),
             sleeper=lambda _s: None,
             http_post=kwargs.get("http_post"),
+            webhook_post=kwargs.get("webhook_post"),
         ), db
 
     def _prime_high_water(self, value=0):
@@ -469,6 +470,7 @@ class DeskOutboxTests(unittest.TestCase):
             clock=kwargs.get("clock", lambda: 1_000_000.0),
             sleeper=lambda _s: None,
             http_post=kwargs.get("http_post"),
+            webhook_post=kwargs.get("webhook_post"),
         ), db
 
     def _prime_high_water(self, value=0):

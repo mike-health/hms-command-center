@@ -207,7 +207,65 @@ class Config(object):
         self.responder_base_url = str(responder.get("base_url") or "").rstrip("/")
         self.responder_model = str(responder.get("model") or "gpt-4o-mini")
         self.responder_timeout_seconds = float(responder.get("timeout_seconds") or 20)
+        self.ack_on_queue = _strict_bool(raw, "ack_on_queue", True, True)
+        self._load_notify_webhook(raw, base_dir)
         self.desks = self._load_desks(raw, base_dir)
+
+    def _load_notify_webhook(self, raw, base_dir):
+        from .notify import (
+            DEFAULT_ENV_FILE,
+            DEFAULT_KEY_ENV,
+            DEFAULT_KEY_HEADER,
+            DEFAULT_KEY_PREFIX,
+            DEFAULT_TIMEOUT,
+            DEFAULT_URL_ENV,
+            load_key_value_env,
+            lookup_env,
+        )
+
+        self.notify_url_env = DEFAULT_URL_ENV
+        self.notify_key_env = DEFAULT_KEY_ENV
+        self.notify_key_header = DEFAULT_KEY_HEADER
+        self.notify_key_prefix = DEFAULT_KEY_PREFIX
+        self.notify_timeout_seconds = DEFAULT_TIMEOUT
+        self.webhook_env_file = _expand_path(DEFAULT_ENV_FILE, base_dir)
+        self._notify_block = None
+        block = raw.get("notify_webhook")
+        if not block:
+            self._file_env = {}
+            return
+        if not isinstance(block, dict):
+            raise ConfigError("notify_webhook must be a JSON object")
+        self._notify_block = block
+        self.notify_url_env = str(block.get("url_env") or DEFAULT_URL_ENV).strip() or DEFAULT_URL_ENV
+        self.notify_key_env = str(block.get("key_env") or DEFAULT_KEY_ENV).strip() or DEFAULT_KEY_ENV
+        self.notify_key_header = str(
+            block.get("key_header") if "key_header" in block else DEFAULT_KEY_HEADER
+        )
+        self.notify_key_prefix = str(
+            block.get("key_prefix") if "key_prefix" in block else DEFAULT_KEY_PREFIX
+        )
+        self.notify_timeout_seconds = float(block.get("timeout_seconds") or DEFAULT_TIMEOUT)
+        env_file = block.get("env_file") or DEFAULT_ENV_FILE
+        self.webhook_env_file = _expand_path(env_file, base_dir)
+        self._file_env = load_key_value_env(self.webhook_env_file)
+
+    def notify_url(self, environ=None):
+        if self._notify_block is None:
+            return ""
+        from .notify import lookup_env
+
+        return lookup_env(self.notify_url_env, self._file_env, environ=environ).strip()
+
+    def notify_key(self, environ=None):
+        if self._notify_block is None:
+            return ""
+        from .notify import lookup_env
+
+        return lookup_env(self.notify_key_env, self._file_env, environ=environ)
+
+    def notify_active(self, environ=None):
+        return bool(self.notify_url(environ=environ))
 
     def _load_desks(self, raw, base_dir):
         legacy = Desk(

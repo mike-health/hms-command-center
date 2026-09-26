@@ -4,8 +4,8 @@ Self-contained Python 3 **stdlib** bot for one iMessage group chat on Mike's Mac
 
 Several desks share the same bot and group. Each desk has its own trigger word, reply prefix, queue file, outbox file, and reply mode:
 
-- **`@dev`** (default `stub`): immediate canned reply prefixed `🤖 Dev:`, and the trigger is appended to the dev queue.
-- **`@ops`** (default `outbox`): the trigger is queued only — no immediate reply. A desk agent appends an answer to the ops outbox; the bot sends it later, prefixed `🤖 Ops:`.
+- **`@dev`** (default `stub`): immediate canned reply prefixed `🤖 Dev:`, and the trigger is appended to the dev queue. When `notify_webhook` is configured with a URL, the stub is skipped; both desks instead send a short `on it` ack (see `ack_on_queue`) and the real answer comes from the outbox.
+- **`@ops`** (default `outbox`): the trigger is queued only — no canned reply. A desk agent (or answering-service webhook) appends an answer to the ops outbox; the bot sends it later, prefixed `🤖 Ops:`.
 
 This folder does not touch the HMS web app. **Nothing in this PR sends a real iMessage** unless an operator later sets `dry_run: false` **and** passes `--live` on a Mac.
 
@@ -15,7 +15,7 @@ Linear: [HEA-41](https://linear.app/healtho2/issue/HEA-41/imessage-group-bot-on-
 
 - **Triggers:** `@dev` and `@ops` (case-insensitive **standalone tokens anywhere** in the message, with a non-empty question after the token). Same allowlist for both (Mike via `is_from_me`, plus `allowlist_handles`). A bare trailing `@ops` / `@dev` with no following text does not fire. Emails and words (`jim@dev.com`, `foo@ops`, `@devops`, `@operations`) do not match. If both appear, the **earliest** token wins (one desk per message).
 - **Prefixes:** `🤖 Dev:` and `🤖 Ops:`.
-- **Reply modes:** `@dev` = `stub` (immediate canned reply). `@ops` = `outbox` (queue only; send from outbox).
+- **Reply modes:** `@dev` = `stub` (immediate canned reply unless `notify_webhook` has a URL). `@ops` = `outbox` (queue; send from outbox). Both desks POST the queued question to `notify_webhook` when a URL is set.
 - **Quiet hours:** 21:00–06:00 `America/Los_Angeles`, overnight wrap included. Stub desks do **not** queue or reply in that window (`suppressed: quiet_hours`). Outbox **sends** are held until the window ends (not dropped). Explicit empty `quiet_hours.start` / `end` in a local config disables the window.
 - **Kill switch:** `@dev stop` / `@dev start` from Mike remains global; `@ops stop` / `@ops start` from Mike does the same.
 
@@ -111,12 +111,14 @@ Do not prune `state.json` (high-water mark, rate-cap timestamps, outbox byte off
 | `list-groups` | Prints group chats: guid, display name, participant handles, last message date |
 | `once` | One poll of new messages (and new outbox lines), then exit |
 | `run` | Poll forever (`poll_interval_seconds`, default 10) |
+| `notify-test` | POST a sample payload to `notify_webhook` and print the HTTP status |
 
 ```bash
 cd tools/imessage-group-bot
 python3 bot.py --config config.json list-groups
 python3 bot.py --config config.json once
 python3 bot.py --config config.json run
+python3 bot.py --config config.json notify-test
 ```
 
 ## Config keys
@@ -134,7 +136,14 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `from_me_handle` | Optional E.164/email for the Messages owner (Mike's phone). `is_from_me` in an alias chat is treated as this handle for allowlist, queue `sender_handle`, and cross-chat dedupe. Also allows stop/start from that handle even when `is_from_me=0`. |
 | `trigger_word` | Legacy/dev trigger. Confirmed `@dev`. Kept for older configs. |
 | `desks` | Optional list of desk objects (see below). When omitted, the legacy keys become a stub desk and a default `@ops` outbox desk is added. |
-| `max_reply_chars` | Default `200` |
+| `max_reply_chars` | Default `200` if omitted. Example config uses `500`. Outbox replies keep newlines up to this cap. |
+| `ack_on_queue` | JSON `true`/`false`. Default `true`. When a webhook URL is set, send an instant `<prefix> on it` after queueing. Set `false` to queue/notify with no ack. |
+| `notify_webhook` | Optional object. If omitted, or if the resolved URL is empty, behavior is unchanged (no POST). |
+| `notify_webhook.url_env` | Env var **name** for the webhook URL (default `HMS_BOT_WEBHOOK_URL`) |
+| `notify_webhook.key_env` | Env var **name** for the auth key (default `HMS_BOT_WEBHOOK_KEY`) |
+| `notify_webhook.key_header` | HTTP header for the key (default `Authorization`) |
+| `notify_webhook.key_prefix` | Prefix before the key (default `Bearer `) |
+| `notify_webhook.timeout_seconds` | POST timeout (default `10`) |
 | `allowlist_handles` | Todd/Rudy handles (Mike = `is_from_me`) |
 | `poll_interval_seconds` | Default `10` |
 | `delivery_confirm_seconds` | Wait for `is_from_me` row after send (default `15`) |
@@ -153,6 +162,8 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `responder.api_key_env` | Env var **name** for the API key (never put the key in the file) |
 | `responder.base_url` / `model` / `timeout_seconds` | OpenAI-compatible chat completions |
 
+URL and key are read from those environment variables. If unset, the bot also reads `var/webhook.env` (relative to the config file) as `KEY=VALUE` lines. Keep that file mode `600` so launchd does not need the env injected. Never put the URL or key in `config.json`.
+
 ### `desks[]` entries
 
 | Key | Meaning |
@@ -163,7 +174,7 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `outbox_file` | JSONL answers written by a desk agent |
 | `reply_mode` | `stub` (immediate canned reply) or `outbox` (queue only; send from outbox). `@ops` defaults to `outbox`. |
 
-Exactly **one** bot reply per trigger still holds: a stub send marks that message guid answered, so a later outbox line for the same `reply_to` is rejected as a duplicate.
+A stub canned send still marks that message guid answered, so a later outbox line for the same `reply_to` is rejected as a duplicate. A webhook **queue ack** (`on it`) does **not** mark `reply_to` answered — the outbox answer is still sent.
 
 ## Queue format
 
@@ -226,7 +237,7 @@ On every poll the bot reads **new** complete lines (trailing newline required) a
 
 1. **Rejects** (advances the offset, never sends) if `chat_guid` is not the configured group, if `reply_to` is not a queued trigger **for that desk**, or if that `reply_to` was already answered (idempotent, persisted in state). Invalid JSON / missing fields are also rejected.
 2. **Holds** (does not advance the offset) on quiet hours, kill switch / `enabled: false`, or shared rate caps, so the line is retried later.
-3. **Sends** with the desk prefix, after the same one-line / 200-character / strip-markdown-and-newlines sanitizer. Dry-run logs `would_send` and **never** calls `osascript`. Live send uses the same delivery confirmation as stub replies.
+3. **Sends** with the desk prefix. Newlines in `text` are preserved (whitespace is still collapsed **per line**). Length is clamped to `max_reply_chars` (example: 500). Only markdown markers `*` `_` `` ` `` are stripped; normal punctuation stays. Dry-run logs `would_send` and **never** calls `osascript`. Live send uses the same delivery confirmation as stub replies.
 
 Every outbox decision is written to `events_log` with `"event": "outbox"`, `"outcome": "sent"|"held"|"rejected"`, and `"reason"`.
 
@@ -235,12 +246,14 @@ Every outbox decision is written to `events_log` with `"event": "outbox"`, `"out
 - Read-only sqlite: `file:<path>?mode=ro`. Decodes `attributedBody` when `text` is NULL (no `imsg` dependency).
 - Trigger: a configured desk trigger appears as a **standalone token anywhere** in the text **and** sender is Mike (`is_from_me`, `from_me_handle`, or an allowlisted handle). The queue `question` is the text after that token (trimmed). Self-loop (`🤖` prefix) still wins over a nested trigger in **every** watched chat.
 - Dual Apple ID: one iMessage group can appear as two `chat.db` rows. Set `group_guid` to the chat whose `last_addressed_handle` is the **bot** address (replies come from that identity). Put the other row in `watch_chat_guids`. Queue lines record `source_chat_guid` and `reply_chat_guid`. Outbox `chat_guid` may be any watched guid; sends always go to `group_guid`. Duplicate copies (same message guid, or same text+sender within 60s) produce one reply.
-- Skip: leading `🤖` (self-loop), `associated_message_type != 0` (tapbacks/reactions), edits (`date_edited`), empty/attachment-only, item_type ≠ 0, backlog from before first start (high-water ROWID). Stub quiet hours: `suppressed: quiet_hours`, not queued. A trigger token with no following non-whitespace text is `not_trigger`.
-- One reply per trigger message (idempotent on ROWID/guid, and on outbox `reply_to`). Earliest desk token in the message wins if several appear.
-- Reply: one line, ≤200 chars, desk prefix, markdown/newlines stripped.
-- `stub` responder (default for `@dev`): `🤖 Dev: got it, routing to the dev desk: <question>`. (A message that is only `@dev` with no question is not a trigger.)
-- Health check: if the text after the trigger is only `test` (case-insensitive; surrounding whitespace and trailing `.` `!` `?` ignored), the bot replies instantly `<desk prefix> I'm here` and does **not** queue. `@ops test the schedule` is a normal ops question.
-- `outbox` desks do not call the stub/OpenAI responder on the trigger. The later outbox `text` is sanitized and prefixed.
+- Skip: leading `🤖` (self-loop), `associated_message_type != 0` (tapbacks/reactions), edits (`date_edited`), empty/attachment-only, item_type ≠ 0, backlog from before first start (high-water ROWID). Stub quiet hours: `suppressed: quiet_hours`, not queued — unless `notify_webhook` has a URL, in which case the question is still queued and POSTed (the ack is suppressed in the quiet window). A trigger token with no following non-whitespace text is `not_trigger`.
+- One reply per trigger message (idempotent on ROWID/guid). Outbox `reply_to` is marked answered only when the **outbox** line is sent, not when a queue ack is sent. Earliest desk token in the message wins if several appear.
+- Stub canned reply: one line, desk prefix, markdown/newlines stripped, clamped to `max_reply_chars`. Outbox replies may be multi-line.
+- `stub` responder (default for `@dev` **without** a webhook URL): `🤖 Dev: got it, routing to the dev desk: <question>`. (A message that is only `@dev` with no question is not a trigger.)
+- Health check: if the text after the trigger is only `test` (case-insensitive; surrounding whitespace and trailing `.` `!` `?` ignored), the bot replies instantly `<desk prefix> I'm here` and does **not** queue or notify. `@ops test the schedule` is a normal ops question.
+- `notify_webhook`: on a real queued question (`@dev` or `@ops`), POST JSON `{desk, question, trigger_text, reply_to, chat_guid, source_chat_guid, sender_handle, ts}` with the configured key header. Short timeout, one retry. Failures go to `alerts.jsonl`; the poll loop keeps running. Not sent for health-check `test` or Mike stop/start.
+- When the webhook URL is set, `@dev` does **not** send the stub routing text. If `ack_on_queue` is true (default), both desks send `<prefix> on it` immediately; the answering service writes the real reply to the desk outbox (`reply_to` = the queue guid).
+- `outbox` desks do not call the stub/OpenAI responder on the trigger. The later outbox `text` is sanitized (newlines kept) and prefixed.
 - `openai_compatible` is off unless `responder.type` is exactly `openai_compatible`. It is not called until kill-switch, `enabled`, quiet hours, and rate caps have already allowed a reply. On any error it falls back to stub. Money / leases / partners / Greene / JV → `🤖 Dev: Mike will answer that`.
 - Live send: `osascript` with text and chat GUID as argv (so 🤖 is never JSON `\\u`-escaped into AppleScript), then look for a new `is_from_me` row with that text within 15s; retry once; each osascript attempt counts toward rate caps whether or not delivery confirms; then alerts log + optional hook. The hook must not send iMessage.
 - Kill switch (any one blocks send): `enabled: false`, kill flag file, `@dev stop` or `@ops stop` from **Mike only** when the **whole message** is that command (`Hi @ops stop` is a normal question, not a kill). `@dev start` / `@ops start` from Mike clears the flag file and runtime pause (it cannot override `enabled: false`). Mike's stop/start still apply the flag during quiet hours; the acknowledgement reply is suppressed.
@@ -251,15 +264,16 @@ Use a **Mike-only throwaway group first** (Mike talking to himself in a group he
 
 1. Create the throwaway group. `list-groups`, set `group_guid`, keep `dry_run: true`, run `once`/`run`.
 2. From Mike send `@dev ping`. Confirm `events.jsonl` has `would_send` starting `🤖 Dev:` and `osascript_not_invoked`. Confirm no Messages send. Confirm a line in the dev queue with `question` = `ping`. Also try a mid-sentence health check (`Hi rudy … @ops test`) and confirm an instant `🤖 Ops: I'm here` with **no** ops queue line.
-3. From Mike send `@ops ping`. Confirm **no** immediate `would_send`. Confirm a line in the ops queue (`guid`, `question` with trigger stripped). Append an outbox line with that `reply_to` and the group's `chat_guid`. Run `once` again. Confirm an `outbox` event with `outcome=sent`, `would_send` starting `🤖 Ops:`, and `osascript_not_invoked`.
+3. From Mike send `@ops ping`. Without a webhook URL, confirm **no** immediate `would_send`. With a webhook URL and `ack_on_queue`, confirm `🤖 Ops: on it` then later an outbox `🤖 Ops:` answer. Confirm a line in the ops queue (`guid`, `question` with trigger stripped). Append an outbox line with that `reply_to` and the group's `chat_guid`. Run `once` again. Confirm an `outbox` event with `outcome=sent`, `would_send` starting `🤖 Ops:`, and `osascript_not_invoked`. Multi-line outbox `text` should keep newlines in `would_send`.
 4. Wrong `chat_guid`, unknown `reply_to`, and a duplicate of a sent `reply_to` must log `outcome=rejected` with reasons `wrong_chat_guid` / `unknown_reply_to` / `duplicate`.
-5. Hit `@dev` then immediately an ops outbox send (or two stub `@dev`s) within 20s; the second send should log `rate_cap:min_interval` (caps are shared across desks).
+5. Hit `@dev` then immediately an ops outbox send (or two stub `@dev`s) within 20s; the second send should log `rate_cap:min_interval` (caps are shared across desks). Queue acks do not consume the rate-cap window.
 6. During quiet hours, an ops outbox line should log `outcome=held` / `quiet_hours` and send after the window (offset must not skip the line).
 7. `touch` the kill flag file; `@dev ping` should log `kill_flag_file`. Outbox lines should hold, not drop.
-8. From Mike: `@dev stop` then `@ops start` (or the reverse). Confirm flag file create/remove and `paused` / `running` in the log.
+8. From Mike: `@dev stop` then `@ops start` (or the reverse). Confirm flag file create/remove and `paused` / `running` in the log. Confirm `notify-test` is **not** required for this step; stop/start must **not** POST the webhook.
 9. Restart the process with the same `state.json` and confirm the already-sent outbox line is **not** resent.
-10. Only after a dry-run day: `dry_run: false` **and** `--live` on the throwaway group. Confirm one `🤖 Dev:` stub line and one `🤖 Ops:` outbox line in the thread, and that the bot does not reply to its own lines.
-11. Mike approves before pointing `group_guid` at the real group.
+10. With `notify_webhook` + `var/webhook.env` (mode 600) or `HMS_BOT_WEBHOOK_URL` / `HMS_BOT_WEBHOOK_KEY`, send `@ops ping` and confirm a POST (or a `notify_failed` alert if the URL is unreachable). `python3 bot.py --config config.json notify-test` prints `notify-test HTTP …`.
+11. Only after a dry-run day: `dry_run: false` **and** `--live` on the throwaway group. Confirm one `🤖 Dev:` stub or ack line and one `🤖 Ops:` outbox line in the thread, and that the bot does not reply to its own lines.
+12. Mike approves before pointing `group_guid` at the real group.
 
 ## Tests (Linux / CI, no macOS)
 
