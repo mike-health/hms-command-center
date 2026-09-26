@@ -13,6 +13,8 @@ DEFAULT_STATE = {
     "send_times": [],
     "runtime_paused": False,
     "stop_ack_sent": False,
+    "outbox_offsets": {},
+    "answered_reply_tos": [],
 }
 
 
@@ -28,6 +30,10 @@ def load_state(path):
         state["processed"] = []
     if state["send_times"] is None:
         state["send_times"] = []
+    if not isinstance(state.get("outbox_offsets"), dict):
+        state["outbox_offsets"] = {}
+    if state.get("answered_reply_tos") is None:
+        state["answered_reply_tos"] = []
     return state
 
 
@@ -65,6 +71,37 @@ def mark_processed(state, rowid, guid, keep=400):
     current = state.get("high_water_rowid")
     if current is None or int(rowid) > int(current):
         state["high_water_rowid"] = int(rowid)
+
+
+def already_answered(state, reply_to):
+    if not reply_to:
+        return False
+    answered = state.get("answered_reply_tos") or []
+    return str(reply_to) in answered
+
+
+def mark_answered(state, reply_to, keep=2000):
+    if not reply_to:
+        return
+    answered = list(state.get("answered_reply_tos") or [])
+    key = str(reply_to)
+    if key not in answered:
+        answered.append(key)
+    state["answered_reply_tos"] = answered[-keep:]
+
+
+def outbox_offset(state, path):
+    offsets = state.get("outbox_offsets") or {}
+    try:
+        return int(offsets.get(path, 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def set_outbox_offset(state, path, offset):
+    offsets = dict(state.get("outbox_offsets") or {})
+    offsets[path] = int(offset)
+    state["outbox_offsets"] = offsets
 
 
 def _key(rowid, guid):

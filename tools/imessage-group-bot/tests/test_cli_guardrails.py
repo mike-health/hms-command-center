@@ -72,6 +72,10 @@ class ListGroupsCliTests(unittest.TestCase):
         cfg = load_config(os.path.join(root, "config.example.json"))
         self.assertTrue(cfg.dry_run)
         self.assertEqual(cfg.trigger_word, "@dev")
+        self.assertEqual(len(cfg.desks), 2)
+        ops = [d for d in cfg.desks if d.trigger_word.lower() == "@ops"][0]
+        self.assertEqual(ops.reply_mode, "outbox")
+        self.assertEqual(ops.bot_prefix, "🤖 Ops:")
         self.assertEqual(cfg.quiet_hours_start, "21:00")
         self.assertEqual(cfg.quiet_hours_end, "06:00")
         self.assertEqual(cfg.quiet_hours_timezone, "America/Los_Angeles")
@@ -102,6 +106,13 @@ class ListGroupsCliTests(unittest.TestCase):
         self.assertEqual(cfg.quiet_hours_end, DEFAULT_QUIET_HOURS_END)
         self.assertEqual(cfg.quiet_hours_timezone, DEFAULT_QUIET_HOURS_TIMEZONE)
         self.assertTrue(cfg.dry_run)
+        self.assertEqual(len(cfg.desks), 2)
+        self.assertEqual(cfg.desks[0].trigger_word, "@dev")
+        self.assertEqual(cfg.desks[0].reply_mode, "stub")
+        self.assertEqual(cfg.desks[1].trigger_word, "@ops")
+        self.assertEqual(cfg.desks[1].reply_mode, "outbox")
+        self.assertTrue(cfg.desks[1].queue_file.endswith("desk-queue-ops.jsonl"))
+        self.assertTrue(cfg.desks[1].outbox_file.endswith("outbox-ops.jsonl"))
 
     def test_osascript_argv_carries_raw_emoji(self):
         text = "🤖 Dev: hi there"

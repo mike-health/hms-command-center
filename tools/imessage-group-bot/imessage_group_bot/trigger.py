@@ -83,6 +83,21 @@ def trigger_match(text, trigger_word, bot_prefix=None):
     return rest.lstrip(" \t:,;-")
 
 
+def match_desk(text, desks):
+    """Return (desk, rest) for the longest matching trigger, or (None, None)."""
+    if not text or not desks:
+        return None, None
+    stripped = text.strip()
+    if is_self_loop_text(stripped):
+        return None, None
+    ranked = sorted(desks, key=lambda desk: len(desk.trigger_word or ""), reverse=True)
+    for desk in ranked:
+        rest = trigger_match(stripped, desk.trigger_word, bot_prefix=desk.bot_prefix)
+        if rest is not None:
+            return desk, rest
+    return None, None
+
+
 def parse_kill_command(rest):
     if rest is None:
         return None

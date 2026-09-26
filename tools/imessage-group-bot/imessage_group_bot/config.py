@@ -12,6 +12,14 @@ DEFAULT_BOT_PREFIX = "🤖 Dev:"
 DEFAULT_QUIET_HOURS_START = "21:00"
 DEFAULT_QUIET_HOURS_END = "06:00"
 DEFAULT_QUIET_HOURS_TIMEZONE = "America/Los_Angeles"
+DEFAULT_DEV_OUTBOX = os.path.join("var", "outbox-dev.jsonl")
+DEFAULT_OPS_TRIGGER_WORD = "@ops"
+DEFAULT_OPS_PREFIX = "🤖 Ops:"
+DEFAULT_OPS_QUEUE = os.path.join("var", "desk-queue-ops.jsonl")
+DEFAULT_OPS_OUTBOX = os.path.join("var", "outbox-ops.jsonl")
+REPLY_MODE_STUB = "stub"
+REPLY_MODE_OUTBOX = "outbox"
+VALID_REPLY_MODES = (REPLY_MODE_STUB, REPLY_MODE_OUTBOX)
 
 REQUIRED_KEYS = (
     "dry_run",
@@ -43,6 +51,25 @@ def load_config(path):
 
 class ConfigError(ValueError):
     pass
+
+
+class Desk(object):
+    """One trigger/prefix/queue/outbox/reply-mode tuple."""
+
+    def __init__(self, trigger_word, bot_prefix, queue_file, outbox_file, reply_mode):
+        self.trigger_word = trigger_word
+        self.bot_prefix = bot_prefix
+        self.queue_file = queue_file
+        self.outbox_file = outbox_file
+        self.reply_mode = reply_mode
+
+    @property
+    def name(self):
+        word = (self.trigger_word or "").lstrip("@").strip().lower()
+        return word or "desk"
+
+    def uses_outbox(self):
+        return self.reply_mode == REPLY_MODE_OUTBOX
 
 
 def _strict_bool(raw, key, missing_default, non_bool_value):
@@ -85,6 +112,32 @@ def _expand_path(value, base_dir):
     if not os.path.isabs(expanded):
         expanded = os.path.normpath(os.path.join(base_dir, expanded))
     return expanded
+
+
+def _normalize_reply_mode(value, default):
+    mode = str(value or default).strip().lower() or default
+    if mode not in VALID_REPLY_MODES:
+        raise ConfigError("reply_mode must be stub or outbox, got %r" % value)
+    return mode
+
+
+def _desk_from_mapping(item, base_dir, fallback):
+    if not isinstance(item, dict):
+        raise ConfigError("each desks[] entry must be a JSON object")
+    trigger = str(item.get("trigger_word") or fallback.trigger_word).strip() or fallback.trigger_word
+    prefix = _require_bot_prefix(
+        str(item.get("bot_prefix") or item.get("prefix") or fallback.bot_prefix).strip()
+        or fallback.bot_prefix
+    )
+    queue = _expand_path(item.get("queue_file") or fallback.queue_file, base_dir)
+    outbox = _expand_path(item.get("outbox_file") or fallback.outbox_file, base_dir)
+    default_mode = (
+        REPLY_MODE_OUTBOX
+        if trigger.lower() == DEFAULT_OPS_TRIGGER_WORD
+        else fallback.reply_mode
+    )
+    mode = _normalize_reply_mode(item.get("reply_mode"), default_mode)
+    return Desk(trigger, prefix, queue, outbox, mode)
 
 
 class Config(object):
@@ -133,6 +186,9 @@ class Config(object):
         self.events_log = _expand_path(raw["events_log"], base_dir)
         self.alerts_log = _expand_path(raw["alerts_log"], base_dir)
         self.queue_file = _expand_path(raw["queue_file"], base_dir)
+        self.outbox_file = _expand_path(
+            raw.get("outbox_file") or DEFAULT_DEV_OUTBOX, base_dir
+        )
         hook = raw.get("alert_hook_command") or ""
         self.alert_hook_command = hook if hook else ""
         responder = raw.get("responder") or {}
@@ -141,6 +197,51 @@ class Config(object):
         self.responder_base_url = str(responder.get("base_url") or "").rstrip("/")
         self.responder_model = str(responder.get("model") or "gpt-4o-mini")
         self.responder_timeout_seconds = float(responder.get("timeout_seconds") or 20)
+        self.desks = self._load_desks(raw, base_dir)
+
+    def _load_desks(self, raw, base_dir):
+        legacy = Desk(
+            self.trigger_word,
+            self.bot_prefix,
+            self.queue_file,
+            self.outbox_file,
+            REPLY_MODE_STUB,
+        )
+        configured = raw.get("desks")
+        if configured is None:
+            desks = [legacy]
+            if not _desk_has_trigger(desks, DEFAULT_OPS_TRIGGER_WORD):
+                desks.append(
+                    Desk(
+                        DEFAULT_OPS_TRIGGER_WORD,
+                        _require_bot_prefix(DEFAULT_OPS_PREFIX),
+                        _expand_path(DEFAULT_OPS_QUEUE, base_dir),
+                        _expand_path(DEFAULT_OPS_OUTBOX, base_dir),
+                        REPLY_MODE_OUTBOX,
+                    )
+                )
+            self._check_desk_triggers(desks)
+            return desks
+        if not isinstance(configured, list) or not configured:
+            raise ConfigError("desks must be a non-empty list")
+        desks = [_desk_from_mapping(item, base_dir, legacy) for item in configured]
+        self._check_desk_triggers(desks)
+        return desks
+
+    def _check_desk_triggers(self, desks):
+        seen = {}
+        for desk in desks:
+            key = desk.trigger_word.strip().lower()
+            if key in seen:
+                raise ConfigError("duplicate desk trigger_word %r" % desk.trigger_word)
+            seen[key] = desk
+
+    def desk_for_trigger(self, trigger_word):
+        wanted = (trigger_word or "").strip().lower()
+        for desk in self.desks:
+            if desk.trigger_word.strip().lower() == wanted:
+                return desk
+        return None
 
     def live_send_allowed(self, live_flag):
         """Real send requires dry_run false AND --live. Default is always dry-run."""
@@ -148,3 +249,11 @@ class Config(object):
 
     def quiet_hours_enabled(self):
         return bool(self.quiet_hours_start and self.quiet_hours_end)
+
+
+def _desk_has_trigger(desks, trigger_word):
+    wanted = trigger_word.strip().lower()
+    for desk in desks:
+        if desk.trigger_word.strip().lower() == wanted:
+            return True
+    return False

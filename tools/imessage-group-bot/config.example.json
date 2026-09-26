@@ -29,6 +29,23 @@
   "events_log": "./data/events.jsonl",
   "alerts_log": "./data/alerts.jsonl",
   "queue_file": "./data/desk-queue.jsonl",
+  "outbox_file": "./data/outbox-dev.jsonl",
+  "desks": [
+    {
+      "trigger_word": "@dev",
+      "bot_prefix": "🤖 Dev:",
+      "queue_file": "./data/desk-queue.jsonl",
+      "outbox_file": "./data/outbox-dev.jsonl",
+      "reply_mode": "stub"
+    },
+    {
+      "trigger_word": "@ops",
+      "bot_prefix": "🤖 Ops:",
+      "queue_file": "./data/desk-queue-ops.jsonl",
+      "outbox_file": "./data/outbox-ops.jsonl",
+      "reply_mode": "outbox"
+    }
+  ],
   "alert_hook_command": "",
   "responder": {
     "type": "stub",

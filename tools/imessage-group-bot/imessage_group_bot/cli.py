@@ -15,7 +15,7 @@ def build_parser():
     parser = argparse.ArgumentParser(
         prog="imessage-group-bot",
         description=(
-            "Poll chat.db for one iMessage group and optionally reply as 🤖 Dev:. "
+            "Poll chat.db for one iMessage group and optionally reply as 🤖 Dev: / 🤖 Ops:. "
             "Dry-run is the default. A real AppleScript send requires dry_run=false "
             "in config AND --live on the command line."
         ),
