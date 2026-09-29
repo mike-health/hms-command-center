@@ -4,6 +4,7 @@ const path = require('path');
 const cors = require('cors');
 const { getOpsCadenceBoard } = require('./lib/ops-cadence');
 const { applyOpsPlan, previewOpsInstruction } = require('./lib/ops-chat');
+const { getPleasantHillBoard } = require('./lib/pleasant-hill');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -78,6 +79,29 @@ app.get('/api/referrals', (req, res) => res.json({ success: true, data: data.ref
 app.get('/api/tasks', (req, res) => res.json({ success: true, data: data.tasks }));
 app.get('/api/alerts', (req, res) => res.json({ success: true, data: data.alerts }));
 
+app.get('/api/pleasant-hill', async (req, res) => {
+  try {
+    const fixture = req.query.fixture === '1' || req.query.fixture === 'true';
+    const now = req.query.now || undefined;
+    const board = await getPleasantHillBoard({ fixture, now });
+    res.json({ success: true, ...board });
+  } catch (err) {
+    console.error('Pleasant Hill fetch failed:', err.message);
+    res.json({
+      success: true,
+      configured: Boolean(process.env.LINEAR_API_KEY),
+      source: process.env.LINEAR_API_KEY ? 'error' : 'unconfigured',
+      message: process.env.LINEAR_API_KEY ? (err.message || 'Failed to load Linear issues') : 'Linear not configured',
+      error: err.message || 'Failed to load Linear issues',
+      issues: [],
+      phases: [],
+      thisWeek: [],
+      late: [],
+      gates: []
+    });
+  }
+});
+
 app.get('/api/ops-cadence', async (req, res) => {
   try {
     const board = await getOpsCadenceBoard();
@@ -133,7 +157,7 @@ app.get('/api/summary', (req, res) => {
 
 /* ===== STATIC FILES ===== */
 // Explicitly serve each HTML module page (works even if static middleware fails)
-const modulePages = ['index.html', 'modules/org-chart.html', 'modules/map.html', 'modules/referrals.html', 'modules/tasks.html', 'modules/ops-board.html', 'modules/reports.html', 'modules/pm-chart.html', 'modules/clinic-detail.html'];
+const modulePages = ['index.html', 'modules/org-chart.html', 'modules/map.html', 'modules/referrals.html', 'modules/tasks.html', 'modules/ops-board.html', 'modules/pleasant-hill.html', 'modules/reports.html', 'modules/pm-chart.html', 'modules/clinic-detail.html'];
 
 modulePages.forEach(page => {
   const filePath = path.join(PUBLIC_DIR, page);
