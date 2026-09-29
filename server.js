@@ -86,13 +86,14 @@ app.get('/api/pleasant-hill', async (req, res) => {
     const board = await getPleasantHillBoard({ fixture, now });
     res.json({ success: true, ...board });
   } catch (err) {
-    console.error('Pleasant Hill fetch failed:', err.message);
+    console.error('Pleasant Hill fetch failed:', err && err.message);
     res.json({
       success: true,
       configured: Boolean(process.env.LINEAR_API_KEY),
       source: process.env.LINEAR_API_KEY ? 'error' : 'unconfigured',
-      message: process.env.LINEAR_API_KEY ? (err.message || 'Failed to load Linear issues') : 'Linear not configured',
-      error: err.message || 'Failed to load Linear issues',
+      message: process.env.LINEAR_API_KEY
+        ? 'The schedule could not be loaded. Try again later.'
+        : 'Linear not configured',
       issues: [],
       phases: [],
       thisWeek: [],

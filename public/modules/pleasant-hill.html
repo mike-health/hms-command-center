@@ -34,7 +34,7 @@
       <div class="topbar-title">Pleasant Hill</div>
       <div class="topbar-actions">
         <div class="status-pill"><span class="status-dot" id="status-dot"></span><span id="status-text">Loading</span></div>
-        <a class="btn btn-secondary btn-sm" id="linear-project-link" href="https://linear.app/healtho2/project/clinic-development-todd-b427db81414e" target="_blank" rel="noopener">Open in Linear</a>
+        <a class="btn btn-secondary btn-sm" id="linear-project-link" href="#" target="_blank" rel="noopener" hidden>Open in Linear</a>
         <button class="btn btn-primary btn-sm" type="button" onclick="loadBoard()">↻ Refresh</button>
       </div>
     </header>
@@ -71,11 +71,17 @@
 </div>
 
 <script src="/js/app.js?v=8"></script>
+<script src="/js/strip-financials.js?v=8"></script>
 <script src="/js/pleasant-hill-format.js?v=8"></script>
 <script>
+const VIEWER_LOAD_ERROR = 'The schedule could not be loaded. Try again later.';
+const stripFn = (typeof stripFinancials === 'function')
+  ? stripFinancials
+  : (typeof PleasantHillStrip !== 'undefined' ? PleasantHillStrip.stripFinancials : (s) => s);
+
 const fmt = {
-  strip: typeof stripFinancialsClient === 'function' ? stripFinancialsClient : (s) => s,
-  title: typeof displayTitle === 'function' ? displayTitle : (s) => s,
+  strip: stripFn,
+  title: typeof displayTitle === 'function' ? displayTitle : (s) => stripFn(s),
   date: typeof formatShortDate === 'function' ? formatShortDate : (s) => s || '—',
   days: typeof daysBetween === 'function' ? daysBetween : () => 0,
   ticks: typeof monthTicks === 'function' ? monthTicks : () => [],
@@ -83,6 +89,10 @@ const fmt = {
   row: typeof issueRowHtml === 'function' ? issueRowHtml : () => '',
   noDollar: typeof assertNoDollar === 'function' ? assertNoDollar : () => {}
 };
+
+function view(s) {
+  return esc(fmt.strip(s == null ? '' : String(s)));
+}
 
 function apiUrl() {
   const q = new URLSearchParams(window.location.search);
@@ -102,7 +112,7 @@ function gateClass(status) {
 }
 
 function emptyNote(text) {
-  return `<p class="ph-empty">${esc(text)}</p>`;
+  return `<p class="ph-empty">${view(text)}</p>`;
 }
 
 function renderList(el, issues, empty) {
@@ -110,17 +120,17 @@ function renderList(el, issues, empty) {
     el.innerHTML = emptyNote(empty);
     return;
   }
-  el.innerHTML = issues.map((issue) => fmt.row(issue, esc)).join('');
+  el.innerHTML = issues.map((issue) => fmt.row(issue, (s) => view(s))).join('');
 }
 
 function renderGates(gates) {
   const host = document.getElementById('ph-gates');
   host.innerHTML = (gates || []).map((g) => `
     <div class="${gateClass(g.status)}">
-      <div class="ph-gate-code">${esc(g.code)}</div>
-      <div class="ph-gate-name">${esc(fmt.strip(g.name || ''))}</div>
-      <div class="ph-gate-date">${esc(fmt.date(g.targetDate))}</div>
-      <div class="ph-gate-status">${esc(g.status || '')}</div>
+      <div class="ph-gate-code">${view(g.code)}</div>
+      <div class="ph-gate-name">${view(g.name || '')}</div>
+      <div class="ph-gate-date">${view(fmt.date(g.targetDate))}</div>
+      <div class="ph-gate-status">${view(g.status || '')}</div>
     </div>
   `).join('');
 }
@@ -138,21 +148,21 @@ function renderGantt(board) {
 
   stack.innerHTML = (board.phases || []).map((phase) => `
     <div class="ph-phase">
-      <h3 class="ph-phase-title">${esc(phase.name)}</h3>
-      ${phase.issues.map((issue) => fmt.row(issue, esc)).join('')}
+      <h3 class="ph-phase-title">${view(phase.name)}</h3>
+      ${phase.issues.map((issue) => fmt.row(issue, (s) => view(s))).join('')}
     </div>
   `).join('') || emptyNote('No Pleasant Hill issues yet.');
 
   const monthRow = ticks.map((t) => {
     const left = fmt.pct(t.ymd, start, end);
-    return `<span class="ph-month" style="left:${left}%">${esc(t.label)}</span>`;
+    return `<span class="ph-month" style="left:${left}%">${view(t.label)}</span>`;
   }).join('');
 
   const gateMarks = (board.gates || []).map((g) => {
     if (!g.targetDate) return '';
     const left = fmt.pct(g.targetDate, start, end);
-    return `<span class="ph-gate-line" style="left:${left}%" title="${esc(g.code)}"></span>
-      <span class="ph-gate-label" style="left:${left}%">${esc(g.code)}</span>`;
+    return `<span class="ph-gate-line" style="left:${left}%" title="${view(g.code)}"></span>
+      <span class="ph-gate-label" style="left:${left}%">${view(g.code)}</span>`;
   }).join('');
 
   const rows = issues.map((issue) => {
@@ -164,8 +174,8 @@ function renderGantt(board) {
     const owners = (issue.owners || []).join(', ');
     return `<div class="ph-gantt-row${late}">
       <div class="ph-gantt-label">
-        <div class="ph-gantt-task">${esc(fmt.title(issue.title))}</div>
-        <div class="ph-gantt-owner">${esc(owners)}</div>
+        <div class="ph-gantt-task">${view(fmt.title(issue.title))}</div>
+        <div class="ph-gantt-owner">${view(owners)}</div>
       </div>
       <div class="ph-gantt-track">
         <span class="ph-bar${late}" style="left:${left}%;width:${width}%"></span>
@@ -209,19 +219,28 @@ async function loadBoard() {
   try {
     const res = await fetch(apiUrl());
     const json = await res.json();
-    if (!json.success) throw new Error(json.error || 'Failed to load');
+    if (!json.success || json.source === 'error') {
+      banner.hidden = false;
+      banner.className = 'ops-banner error';
+      banner.textContent = VIEWER_LOAD_ERROR;
+      showStatus('status-text', 'error', 'Error');
+      return;
+    }
     if (!json.configured && json.source === 'unconfigured') {
       showUnconfigured();
       return;
     }
-    try { fmt.noDollar(json); } catch (err) {
-      banner.hidden = false;
-      banner.className = 'ops-banner error';
-      banner.textContent = 'Financial figures were stripped from this view.';
-    }
     const site = json.site || {};
-    document.getElementById('ph-lede').textContent = `${site.name || 'Pleasant Hill'} · ${site.address || ''}`;
-    if (json.project && json.project.url) document.getElementById('linear-project-link').href = json.project.url;
+    document.getElementById('ph-lede').textContent = fmt.strip(
+      `${site.name || 'Pleasant Hill'} · ${site.address || ''}`
+    );
+    const projectLink = document.getElementById('linear-project-link');
+    if (json.project && json.project.url) {
+      projectLink.href = json.project.url;
+      projectLink.hidden = false;
+    } else {
+      projectLink.hidden = true;
+    }
     renderGates(json.gates || []);
     document.getElementById('late-count').textContent = String((json.late || []).length);
     document.getElementById('week-count').textContent = String((json.thisWeek || []).length);
@@ -231,17 +250,14 @@ async function loadBoard() {
     if (json.source === 'fixture') {
       banner.hidden = false;
       banner.className = 'ops-banner';
-      banner.textContent = 'Sample schedule from the installation timeline draft (fixture). Live Linear is used when LINEAR_API_KEY is set and fixture mode is off.';
-    } else if (json.error) {
-      banner.hidden = false;
-      banner.className = 'ops-banner error';
-      banner.textContent = json.error;
+      banner.textContent = 'Sample schedule (fixture). Live Linear is used when LINEAR_API_KEY is set and fixture mode is off.';
     }
     showStatus('status-text', 'ok', json.source === 'linear' ? 'Live' : json.source === 'fixture' ? 'Fixture' : 'Ready');
   } catch (err) {
+    console.error('Pleasant Hill page failed to load');
     banner.hidden = false;
     banner.className = 'ops-banner error';
-    banner.textContent = err.message || 'Failed to load Pleasant Hill board';
+    banner.textContent = VIEWER_LOAD_ERROR;
     showStatus('status-text', 'error', 'Error');
   }
 }

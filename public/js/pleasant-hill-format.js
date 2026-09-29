@@ -1,15 +1,17 @@
 'use strict';
 
+const stripApi = (typeof require === 'function')
+  ? require('./strip-financials')
+  : (typeof globalThis !== 'undefined' ? globalThis.PleasantHillStrip : null);
+
+const stripFinancials = stripApi && stripApi.stripFinancials
+  ? stripApi.stripFinancials
+  : function stripFinancialsFallback(text) {
+    return text == null ? '' : String(text);
+  };
+
 function stripFinancialsClient(text) {
-  if (text == null) return '';
-  let out = String(text);
-  out = out.replace(/40\s*\/\s*30\s*\/\s*20\s*\/\s*10/g, '');
-  out = out.replace(/20\s*\/\s*30\s*\/\s*30\s*\/\s*20/g, '');
-  out = out.replace(/\$\s*[0-9][0-9,]*(?:\.\d+)?\s*[kKmMbB]?/g, '');
-  out = out.replace(/\b(?:USD|us\$)\s*[0-9][0-9,]*(?:\.\d+)?\s*[kKmMbB]?/gi, '');
-  out = out.replace(/\(\s*\d{1,3}\s*%\s*\)/g, '');
-  out = out.replace(/\b\d{1,3}\s*%\b/g, '');
-  return out.replace(/[ \t]{2,}/g, ' ').trim();
+  return stripFinancials(text == null ? '' : text);
 }
 
 function displayTitle(title) {
@@ -69,8 +71,8 @@ function pctOnRange(ymd, start, end) {
 
 function assertNoDollar(value, path) {
   if (typeof value === 'string') {
-    if (value.indexOf('$') !== -1) {
-      throw new Error('Dollar figure found at ' + (path || 'root') + ': ' + value);
+    if (/[$€£]/.test(value) || /\bUSD\b|\bEUR\b|\bGBP\b/i.test(value)) {
+      throw new Error('Money figure found at ' + (path || 'root') + ': ' + value);
     }
     return;
   }
@@ -83,16 +85,20 @@ function assertNoDollar(value, path) {
   }
 }
 
+function viewText(text) {
+  return stripFinancialsClient(text == null ? '' : String(text));
+}
+
 function issueRowHtml(issue, esc) {
   const late = issue.late ? ' ph-late' : '';
-  const owners = (issue.owners || []).map((o) => `<span class="ph-owner">${esc(stripFinancialsClient(o))}</span>`).join('');
+  const owners = (issue.owners || []).map((o) => `<span class="ph-owner">${esc(viewText(o))}</span>`).join('');
   const dates = `${formatShortDate(issue.startDate)} – ${formatShortDate(issue.dueDate)}`;
-  const href = issue.url ? `href="${esc(issue.url)}" target="_blank" rel="noopener"` : 'href="#"';
-  return `<article class="ph-item${late}" data-id="${esc(issue.id)}">
+  const href = issue.url ? `href="${esc(viewText(issue.url))}" target="_blank" rel="noopener"` : 'href="#"';
+  return `<article class="ph-item${late}" data-id="${esc(viewText(issue.id))}">
     <div class="ph-item-top">
-      <a class="ph-item-id" ${href}>${esc(issue.identifier || '')}</a>
+      <a class="ph-item-id" ${href}>${esc(viewText(issue.identifier || ''))}</a>
       ${issue.late ? '<span class="badge badge-red">Late</span>' : ''}
-      ${issue.gate ? `<span class="ph-gate-pill">${esc(issue.gate)}</span>` : ''}
+      ${issue.gate ? `<span class="ph-gate-pill">${esc(viewText(issue.gate))}</span>` : ''}
     </div>
     <div class="ph-item-title">${esc(displayTitle(issue.title))}</div>
     <div class="ph-item-meta">
@@ -111,6 +117,7 @@ if (typeof module === 'object' && module.exports) {
     issueRowHtml,
     monthTicks,
     pctOnRange,
-    stripFinancialsClient
+    stripFinancialsClient,
+    viewText
   };
 }

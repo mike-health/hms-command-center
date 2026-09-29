@@ -65,7 +65,7 @@ Page: `/modules/pleasant-hill.html` (one click from the Org Chart hub via **Plea
 
 1. Team **HEA**, title starts with `Pleasant Hill:` (exact prefix), in **Clinic Development - Todd** or **Supervision Standard Rollout**.
 2. In **Supervision Standard Rollout** only: titles that contain `Pleasant Hill` even without the prefix (so the parent “Bring Pleasant Hill to supervision standard” is included).
-3. Do **not** file Pleasant Hill work as `Pleasanton:`. HEA-33 / HEA-36 stay in the Todd project but are excluded here.
+3. Do **not** file Pleasant Hill work as `Pleasanton:` — that prefix is excluded.
 
 **Owners (Todd and Leddy have no Linear seats)**
 
@@ -86,7 +86,7 @@ Prefer Linear **project milestones** named with `M1`–`M4` if they exist. Other
 
 The page never shows `$` amounts, capital-call percents, or `40/30/20/10` splits even if they appear in Linear text.
 
-**Optional:** `?fixture=1` renders the filed-issue snapshot in `data/pleasant-hill-linear-fixture.json` (for tests/screenshots). Production Render should set `LINEAR_API_KEY` and omit fixture mode.
+**Optional:** `?fixture=1` renders the synthetic snapshot in `data/pleasant-hill-fixture.json` (tests/screenshots only; fake ids, no Linear URLs). Production Render should set `LINEAR_API_KEY` and omit fixture mode.
 
 ### Tagging issues for the Ops board
 
