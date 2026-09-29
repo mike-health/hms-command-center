@@ -4,14 +4,14 @@ const stripApi = (typeof require === 'function')
   ? require('./strip-financials')
   : (typeof globalThis !== 'undefined' ? globalThis.PleasantHillStrip : null);
 
-const stripFinancials = stripApi && stripApi.stripFinancials
+const stripMoney = stripApi && stripApi.stripFinancials
   ? stripApi.stripFinancials
   : function stripFinancialsFallback(text) {
     return text == null ? '' : String(text);
   };
 
 function stripFinancialsClient(text) {
-  return stripFinancials(text == null ? '' : text);
+  return stripMoney(text == null ? '' : text);
 }
 
 function displayTitle(title) {

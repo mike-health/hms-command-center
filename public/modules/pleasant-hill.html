@@ -75,9 +75,9 @@
 <script src="/js/pleasant-hill-format.js?v=8"></script>
 <script>
 const VIEWER_LOAD_ERROR = 'The schedule could not be loaded. Try again later.';
-const stripFn = (typeof stripFinancials === 'function')
-  ? stripFinancials
-  : (typeof PleasantHillStrip !== 'undefined' ? PleasantHillStrip.stripFinancials : (s) => s);
+const stripFn = (typeof PleasantHillStrip !== 'undefined' && PleasantHillStrip.stripFinancials)
+  ? PleasantHillStrip.stripFinancials
+  : (s) => (s == null ? '' : String(s));
 
 const fmt = {
   strip: stripFn,

@@ -174,6 +174,15 @@ describe('no-money filter', () => {
     assert.doesNotMatch(cleaned, /Capital Call/i);
   });
 
+  it('browser scripts do not redeclare stripFinancials on the global object', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const stripSrc = fs.readFileSync(path.join(__dirname, '../public/js/strip-financials.js'), 'utf8');
+    const formatSrc = fs.readFileSync(path.join(__dirname, '../public/js/pleasant-hill-format.js'), 'utf8');
+    assert.equal(/globalThis\.stripFinancials\s*=/.test(stripSrc), false);
+    assert.doesNotMatch(formatSrc, /(?:const|let|var)\s+stripFinancials\b/);
+  });
+
   it('applies the choke point to fixture JSON and rendered rows', () => {
     const board = fixtureBoard(new Date('2026-09-29T19:00:00Z'));
     assertNoDollar(board);

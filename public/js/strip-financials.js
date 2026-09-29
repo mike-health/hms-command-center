@@ -60,7 +60,4 @@ if (typeof module === 'object' && module.exports) {
   module.exports = api;
 } else if (typeof globalThis !== 'undefined') {
   globalThis.PleasantHillStrip = api;
-  globalThis.stripFinancials = stripFinancials;
-  globalThis.deepStrip = deepStrip;
-  globalThis.sanitizeForView = sanitizeForView;
 }
