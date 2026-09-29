@@ -71,6 +71,8 @@ class ListGroupsCliTests(unittest.TestCase):
         root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         cfg = load_config(os.path.join(root, "config.example.json"))
         self.assertTrue(cfg.dry_run)
+        self.assertFalse(cfg.linear_allow_writes)
+        self.assertEqual(cfg.linear_title_prefix, "Pleasant Hill:")
         self.assertEqual(cfg.trigger_word, "@dev")
         self.assertEqual(cfg.quiet_hours_start, "21:00")
         self.assertEqual(cfg.quiet_hours_end, "06:00")
