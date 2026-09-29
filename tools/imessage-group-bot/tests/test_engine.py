@@ -44,6 +44,8 @@ class EngineTests(unittest.TestCase):
             clock=kwargs.get("clock", lambda: 1_000_000.0),
             sleeper=lambda _s: None,
             http_post=kwargs.get("http_post"),
+            linear_client=kwargs.get("linear_client"),
+            proposal_code_factory=kwargs.get("proposal_code_factory"),
         ), db
 
     def _prime_high_water(self, value=0):

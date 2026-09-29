@@ -71,6 +71,36 @@ def _require_bot_prefix(prefix):
     return text
 
 
+def _normalize_owner_map(owners):
+    defaults = {
+        "mike": ["Mike", "Michael Greenhalgh"],
+        "todd": ["Todd", "Todd Slayden"],
+        "leddy": ["Leddy"],
+        "rudy": ["Rudy", "Rudy Alvarez"],
+        "architect": ["Architect"],
+    }
+    if not isinstance(owners, dict) or not owners:
+        return defaults
+    out = {}
+    for key, value in owners.items():
+        name = str(key).strip().lower()
+        if not name:
+            continue
+        if isinstance(value, dict):
+            names = list(value.get("aliases") or []) + list(value.get("assignee_names") or [])
+            names += list(value.get("labels") or [])
+        elif isinstance(value, list):
+            names = value
+        else:
+            names = [value]
+        cleaned = [str(item).strip() for item in names if str(item).strip()]
+        if cleaned:
+            out[name] = cleaned
+    for key, names in defaults.items():
+        out.setdefault(key, names)
+    return out
+
+
 def _hhmm_field(quiet, key, default):
     """Missing key → decided default. Explicit empty string disables that bound."""
     if key not in quiet:
@@ -141,6 +171,49 @@ class Config(object):
         self.responder_base_url = str(responder.get("base_url") or "").rstrip("/")
         self.responder_model = str(responder.get("model") or "gpt-4o-mini")
         self.responder_timeout_seconds = float(responder.get("timeout_seconds") or 20)
+        linear = raw.get("linear") or {}
+        if not isinstance(linear, dict):
+            linear = {}
+        self.linear_api_key_env = str(linear.get("api_key_env") or "LINEAR_API_KEY")
+        key_file = linear.get("api_key_file") or ""
+        self.linear_api_key_file = _expand_path(key_file, base_dir) if key_file else ""
+        self.linear_graphql_url = str(
+            linear.get("graphql_url") or "https://api.linear.app/graphql"
+        ).rstrip("/")
+        self.linear_team_key = str(linear.get("team_key") or "HEA").strip() or "HEA"
+        self.linear_project_name = str(
+            linear.get("project_name") or "Clinic Development - Todd"
+        ).strip()
+        self.linear_title_prefix = str(
+            linear.get("title_prefix") or "Pleasant Hill:"
+        ).strip() or "Pleasant Hill:"
+        self.linear_allow_writes = _strict_bool(linear, "allow_writes", False, False)
+        self.linear_proposal_ttl_seconds = float(
+            linear.get("proposal_ttl_seconds") or 86400
+        )
+        self.linear_confirm_from_me = _strict_bool(linear, "confirm_from_me", True, False)
+        confirm_handles = linear.get("confirm_handles") or []
+        if not isinstance(confirm_handles, list):
+            confirm_handles = []
+        self.linear_confirm_handles = [
+            str(item).strip() for item in confirm_handles if str(item).strip()
+        ]
+        owners = linear.get("owners") or {}
+        self.linear_owner_map = _normalize_owner_map(owners)
+
+    def linear_api_key(self):
+        env_name = self.linear_api_key_env or "LINEAR_API_KEY"
+        from_env = os.environ.get(env_name, "")
+        if from_env and str(from_env).strip():
+            return str(from_env).strip()
+        path = self.linear_api_key_file
+        if path and os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as handle:
+                return handle.read().strip()
+        return ""
+
+    def linear_write_allowed(self):
+        return (not self.dry_run) and bool(self.linear_allow_writes)
 
     def live_send_allowed(self, live_flag):
         """Real send requires dry_run false AND --live. Default is always dry-run."""

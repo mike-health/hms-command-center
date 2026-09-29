@@ -36,5 +36,27 @@
     "base_url": "https://api.openai.com/v1",
     "model": "gpt-4o-mini",
     "timeout_seconds": 20
+  },
+  "linear": {
+    "api_key_env": "LINEAR_API_KEY",
+    "api_key_file": "",
+    "graphql_url": "https://api.linear.app/graphql",
+    "team_key": "HEA",
+    "project_name": "Clinic Development - Todd",
+    "title_prefix": "Pleasant Hill:",
+    "allow_writes": false,
+    "proposal_ttl_seconds": 86400,
+    "confirm_from_me": true,
+    "confirm_handles": [
+      "todd@example.com",
+      "+15555550101"
+    ],
+    "owners": {
+      "mike": ["Mike", "Michael Greenhalgh"],
+      "todd": ["Todd", "Todd Slayden"],
+      "leddy": ["Leddy"],
+      "rudy": ["Rudy", "Rudy Alvarez"],
+      "architect": ["Architect"]
+    }
   }
 }

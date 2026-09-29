@@ -139,6 +139,16 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `responder.type` | `stub` (default) or `openai_compatible` |
 | `responder.api_key_env` | Env var **name** for the API key (never put the key in the file) |
 | `responder.base_url` / `model` / `timeout_seconds` | OpenAI-compatible chat completions |
+| `linear.api_key_env` | Env var **name** for the Linear key (default `LINEAR_API_KEY`). Never commit the key. |
+| `linear.api_key_file` | Optional path **outside the repo** to a file containing the key |
+| `linear.team_key` | Default `HEA` |
+| `linear.project_name` | Default `Clinic Development - Todd` |
+| `linear.title_prefix` | Default `Pleasant Hill:` |
+| `linear.allow_writes` | Default **`false`**. Required (with `dry_run: false`) before any Linear mutation. |
+| `linear.proposal_ttl_seconds` | Default `86400` (24h) |
+| `linear.confirm_from_me` | Default `true` (Mike) |
+| `linear.confirm_handles` | Todd (and only other people allowed to confirm date writes) |
+| `linear.owners` | Map of mike/todd/leddy/rudy/architect → assignee names, labels, title tokens |
 
 ## Behavior
 
@@ -152,6 +162,9 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 - Triggers that would be answered (not suppressed by quiet hours) are appended to `queue_file` for a later desk agent.
 - Live send: `osascript` with text and chat GUID as argv (so 🤖 is never JSON `\\u`-escaped into AppleScript), then look for a new `is_from_me` row with that text within 15s; retry once; each osascript attempt counts toward rate caps whether or not delivery confirms; then alerts log + optional hook. The hook must not send iMessage.
 - Kill switch (any one blocks send): `enabled: false`, kill flag file, `@dev stop` from **Mike only**. `@dev start` from Mike clears the flag file and runtime pause (it cannot override `enabled: false`). Mike's stop/start still apply the flag during quiet hours; the acknowledgement reply is suppressed.
+- Pleasant Hill Linear (team HEA, project "Clinic Development - Todd", titles `Pleasant Hill:`): `@dev what's next on Pleasant Hill`, `@dev what's late on Pleasant Hill`, `@dev what's Leddy doing this week`. Replies are one line, ≤200 chars, and never include dollar amounts. Owners map to Linear assignee, Owner labels, or name tokens in the title (configurable).
+- Date moves (`@dev survey moved to 10/20`) create a **proposal** with a confirm code. Linear is not updated until Mike (`is_from_me`) or Todd (`confirm_handles`) sends `@dev confirm 7K` within 24h. Rudy cannot confirm. Ambiguous matches ask instead of guessing. Expiry, proposals, confirms, and rejected confirms are JSONL-logged.
+- Linear **writes** require `dry_run: false` **and** `linear.allow_writes: true`. Otherwise the mutation is logged as `linear_write_blocked` / `would_mutate` and not sent.
 
 ## Throwaway-group test plan
 
@@ -161,8 +174,14 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 4. Hit `@dev` twice within 20s; second line should log `rate_cap:min_interval`.
 5. `touch` the kill flag file; `@dev ping` should log `kill_flag_file`.
 6. From Mike: `@dev stop` then `@dev start`. Confirm flag file create/remove and `paused` / `running` in the log.
-7. Only after a dry-run day: `dry_run: false` **and** `--live` on the throwaway group. Confirm one `🤖 Dev:` line in the thread and that the bot does not reply to its own line.
-8. Mike approves before pointing `group_guid` at the real group.
+7. Point `LINEAR_API_KEY` (or `api_key_file`) at a key that can read HEA. Keep `dry_run: true` and `linear.allow_writes: false`.
+8. In the throwaway group send `@dev what's next on Pleasant Hill`, `@dev what's Leddy doing this week`, `@dev what's late on Pleasant Hill`. Confirm one-line `🤖 Dev:` would-sends, **no `$`**, and that `osascript` is not invoked.
+9. Send `@dev layout freeze moved to 11/20` (or another unique title). Confirm `linear_proposal` in the log and a confirm code in `would_send`.
+10. From a non-confirmer (Rudy test handle): `@dev confirm <code>`. Confirm `linear_confirm_rejected` and no Linear write.
+11. From Mike or Todd: `@dev confirm <code>`. Confirm `linear_write_blocked` with `would_mutate` and **no** GraphQL mutation (dry-run + `allow_writes` false).
+12. Optional: wait 24h or set a short `proposal_ttl_seconds` and confirm expiry logging.
+13. Only after a dry-run day: `dry_run: false` **and** `--live` on the throwaway group for iMessage delivery. Leave `linear.allow_writes` false until Mike explicitly wants Linear due dates changed.
+14. Mike approves before pointing `group_guid` at the real group and before `allow_writes: true`.
 
 ## Tests (Linux / CI, no macOS)
 

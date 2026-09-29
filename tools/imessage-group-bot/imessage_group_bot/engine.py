@@ -42,6 +42,8 @@ class Engine(object):
         sleeper=None,
         http_post=None,
         hook_runner=None,
+        linear_client=None,
+        proposal_code_factory=None,
     ):
         self.config = config
         self.live_flag = bool(live_flag)
@@ -51,6 +53,8 @@ class Engine(object):
         self.sleeper = sleeper or time_mod.sleep
         self.http_post = http_post
         self.hook_runner = hook_runner
+        self.linear_client = linear_client
+        self.proposal_code_factory = proposal_code_factory
 
     def live_send_allowed(self):
         return self.config.live_send_allowed(self.live_flag)
@@ -320,7 +324,7 @@ class Engine(object):
             reply = canned_reply
             meta = {"responder": "canned"}
         else:
-            reply, meta = generate_reply(self.config, rest, http_post=self.http_post)
+            reply, meta = self._compose_reply(state, message, rest, now)
             if meta.get("openai_error"):
                 decisions.append("openai_fallback_stub")
         decisions.append("responder:%s" % meta.get("responder"))
@@ -402,6 +406,33 @@ class Engine(object):
                 runner=self.hook_runner,
             )
             return False
+
+    def _compose_reply(self, state, message, rest, now):
+        from .linear_desk import client_from_config, handle_linear, parse_intent
+
+        client = self.linear_client
+        if client is None:
+            client = client_from_config(self.config, http_post=self.http_post)
+        if client is not None:
+            result = handle_linear(
+                self.config,
+                rest,
+                message,
+                state,
+                now,
+                client,
+                events_log=self.config.events_log,
+                code_factory=self.proposal_code_factory,
+            )
+            if result is not None:
+                return result
+        elif parse_intent(rest) is not None:
+            return clamp_reply(
+                "Linear API key not set; cannot read Pleasant Hill.",
+                self.config.bot_prefix,
+                self.config.max_reply_chars,
+            ), {"responder": "linear_unconfigured"}
+        return generate_reply(self.config, rest, http_post=self.http_post)
 
     def _enqueue(self, message, rest, now):
         log_event(
