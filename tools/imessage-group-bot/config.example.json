@@ -42,7 +42,10 @@
     "api_key_file": "",
     "graphql_url": "https://api.linear.app/graphql",
     "team_key": "HEA",
-    "project_name": "Clinic Development - Todd",
+    "project_names": [
+      "Clinic Development - Todd",
+      "Supervision Standard Rollout"
+    ],
     "title_prefix": "Pleasant Hill:",
     "allow_writes": false,
     "proposal_ttl_seconds": 86400,

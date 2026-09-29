@@ -30,8 +30,14 @@ OWNER_WEEK_RE = re.compile(
     r"(?:what(?:'s| is|s)?|whats)\s+(?P<who>.+?)\s+doing\s+this\s+week",
     re.IGNORECASE,
 )
+NEXT_GATE_RE = re.compile(
+    r"(?:what(?:'s| is|s)?\s+(?:the\s+)?)?next\s+gate",
+    re.IGNORECASE,
+)
 NEXT_RE = re.compile(r"what(?:'s| is|s)?\s+next", re.IGNORECASE)
 LATE_RE = re.compile(r"what(?:'s| is|s)?\s+late", re.IGNORECASE)
+TITLE_OWNER_RE = re.compile(r"\s*\(\s*Owner:\s*([^)]+?)\s*\)\s*$", re.IGNORECASE)
+GATE_RE = re.compile(r"\bM([1-4])\b", re.IGNORECASE)
 MONTHS = {
     "jan": 1,
     "january": 1,
@@ -152,6 +158,8 @@ def parse_intent(rest):
         return {"type": "owner_week", "who": owner_week.group("who").strip()}
     if LATE_RE.search(text):
         return {"type": "late"}
+    if NEXT_GATE_RE.search(text):
+        return {"type": "next_gate"}
     if NEXT_RE.search(text):
         return {"type": "next"}
     if "pleasant hill" in text.lower() or "pleasanton" in text.lower():
@@ -177,14 +185,33 @@ def due_date(issue):
         return None
 
 
+def strip_owner_suffix(title):
+    return TITLE_OWNER_RE.sub("", title or "").strip()
+
+
+def title_owner_suffix(title):
+    match = TITLE_OWNER_RE.search(title or "")
+    return match.group(1).strip() if match else ""
+
+
 def owner_blob(issue):
+    title = issue.get("title") or ""
+    assignee = (issue.get("assignee_name") or "").strip()
+    parsed_owner = title_owner_suffix(title) if not assignee else ""
     parts = [
-        issue.get("assignee_name") or "",
-        issue.get("title") or "",
+        assignee or parsed_owner,
+        strip_owner_suffix(title),
         issue.get("description") or "",
         " ".join(issue.get("labels") or []),
     ]
     return " ".join(parts).lower()
+
+
+def issue_gate(issue):
+    match = GATE_RE.search(issue.get("title") or "")
+    if not match:
+        return None
+    return int(match.group(1))
 
 
 def issue_matches_owner(issue, owner_key, owner_map):
@@ -222,7 +249,7 @@ def week_bounds(now_ts, tz_name):
 
 
 def short_title(title, prefix):
-    text = title or ""
+    text = strip_owner_suffix(title or "")
     pre = prefix or ""
     if pre and text.lower().startswith(pre.lower()):
         text = text[len(pre) :].lstrip(" :-")
@@ -242,7 +269,7 @@ def match_issues_by_phrase(issues, phrase, prefix):
         return []
     hits = []
     for issue in issues:
-        hay = ((issue.get("title") or "") + " " + (issue.get("identifier") or "")).lower()
+        hay = (strip_owner_suffix(issue.get("title") or "") + " " + (issue.get("identifier") or "")).lower()
         if prefix and hay.startswith(prefix.lower()):
             hay = hay[len(prefix) :]
         if all(token in hay for token in tokens):
@@ -328,7 +355,7 @@ def handle_linear(
 def _load_issues(config, client):
     return client.list_issues(
         config.linear_team_key,
-        config.linear_project_name,
+        config.linear_project_names,
         config.linear_title_prefix,
     )
 
@@ -380,6 +407,21 @@ def _handle_query(config, intent, now_ts, client):
         return "%s this week: %s." % (label, "; ".join(bits)), {
             "responder": "linear",
             "kind": "owner_week",
+        }
+    if intent["type"] == "next_gate":
+        gates = [issue for issue in issues if issue_gate(issue) is not None]
+        gates.sort(key=lambda i: (issue_gate(i), due_date(i) or date.max))
+        if not gates:
+            return "no open Pleasant Hill gates (M1-M4).", {
+                "responder": "linear",
+                "kind": "next_gate",
+            }
+        issue = gates[0]
+        return "next gate: %s." % format_issue_bit(issue, prefix), {
+            "responder": "linear",
+            "kind": "next_gate",
+            "gate": issue_gate(issue),
+            "identifier": issue.get("identifier"),
         }
     # next / overview
     upcoming = []

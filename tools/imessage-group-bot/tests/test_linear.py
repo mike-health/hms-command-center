@@ -8,12 +8,13 @@ import unittest
 
 from helpers import FakeDB, msg, write_config
 from imessage_group_bot.engine import Engine
-from imessage_group_bot.linear_client import MockLinearClient
+from imessage_group_bot.linear_client import MockLinearClient, title_in_scope
 from imessage_group_bot.linear_desk import (
     handle_linear,
     parse_date_token,
     parse_intent,
     strip_dollars,
+    strip_owner_suffix,
 )
 from imessage_group_bot.state import load_state, save_state
 
@@ -91,6 +92,7 @@ class LinearDeskTests(unittest.TestCase):
 
     def test_parse_intents_and_dates(self):
         self.assertEqual(parse_intent("what's next on Pleasant Hill")["type"], "next")
+        self.assertEqual(parse_intent("what's the next gate on Pleasant Hill")["type"], "next_gate")
         self.assertEqual(parse_intent("what's late on Pleasant Hill")["type"], "late")
         self.assertEqual(parse_intent("what's Leddy doing this week")["who"].lower(), "leddy")
         self.assertEqual(parse_intent("survey moved to 10/20")["type"], "date_change")
@@ -248,6 +250,155 @@ class LinearDeskTests(unittest.TestCase):
         self.assertIn("osascript_not_invoked", hit["decisions"])
         self.assertIn("HEA-35", hit["would_send"])
         self.assertNotIn("$", hit["would_send"] or "")
+
+
+FIXTURE_PATH = os.path.join(
+    os.path.dirname(__file__),
+    "fixtures",
+    "hea-pleasant-hill-timeline-2026-09-29.json",
+)
+SUPERVISION_IDS = frozenset({"HEA-91", "HEA-100", "HEA-101", "HEA-102", "HEA-103"})
+PREFIX = "Pleasant Hill:"
+
+
+def filed_issues():
+    with open(FIXTURE_PATH, encoding="utf-8") as handle:
+        data = json.load(handle)
+    out = []
+    for item in (data.get("updated") or []) + (data.get("created") or []):
+        ident = item["id"]
+        project = item.get("project")
+        if not project:
+            project = (
+                "Supervision Standard Rollout"
+                if ident in SUPERVISION_IDS
+                else "Clinic Development - Todd"
+            )
+        status = (item.get("status") or "Backlog").lower()
+        done = status in ("done", "completed", "canceled", "cancelled")
+        owner = item.get("owner") or ""
+        assignee = ""
+        if owner and "unassigned" not in owner.lower():
+            first = owner.split("/")[0].strip()
+            if first.lower() not in ("gc", "owner-side"):
+                assignee = first
+        out.append(
+            {
+                "id": ident,
+                "identifier": ident,
+                "title": item["title"],
+                "description": "",
+                "dueDate": item.get("due"),
+                "assignee_name": assignee,
+                "labels": [],
+                "state_name": item.get("status") or "Backlog",
+                "state_type": "completed" if done else "unstarted",
+                "project": project,
+            }
+        )
+    return out
+
+
+class FiledLinearFixtureTests(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.config = write_config(
+            self.tmpdir.name,
+            linear={
+                "allow_writes": False,
+                "confirm_from_me": True,
+                "confirm_handles": ["+15555550101"],
+                "proposal_ttl_seconds": 86400,
+                "title_prefix": PREFIX,
+                "team_key": "HEA",
+            },
+        )
+        self.issues = filed_issues()
+        self.client = MockLinearClient(self.issues)
+        self.now = _la_ts(2026, 10, 14)
+        self.state = {"linear_proposals": []}
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _handle(self, rest, client=None, now=None):
+        message = msg(rowid=1, text="@dev " + rest, handle="+15555550101")
+        return handle_linear(
+            self.config,
+            rest,
+            message,
+            self.state,
+            now if now is not None else self.now,
+            client or self.client,
+            events_log=self.config.events_log,
+        )
+
+    def test_fixture_scope_includes_supervision_excludes_pleasanton(self):
+        listed = self.client.list_issues(
+            "HEA",
+            self.config.linear_project_names,
+            PREFIX,
+        )
+        ids = {item["identifier"] for item in listed}
+        self.assertIn("HEA-91", ids)
+        self.assertIn("HEA-100", ids)
+        self.assertIn("HEA-101", ids)
+        self.assertIn("HEA-102", ids)
+        self.assertIn("HEA-103", ids)
+        self.assertIn("HEA-35", ids)
+        self.assertIn("HEA-136", ids)
+        self.assertNotIn("HEA-33", ids)
+        self.assertNotIn("HEA-36", ids)
+        self.assertTrue(title_in_scope("Bring Pleasant Hill to supervision standard", PREFIX))
+        self.assertFalse(title_in_scope("Pleasanton: intake Andrew site diagrams", PREFIX))
+
+        clinic_only = MockLinearClient(self.issues).list_issues(
+            "HEA",
+            ["Clinic Development - Todd"],
+            PREFIX,
+        )
+        clinic_ids = {item["identifier"] for item in clinic_only}
+        self.assertNotIn("HEA-91", clinic_ids)
+        self.assertNotIn("HEA-100", clinic_ids)
+        self.assertIn("HEA-136", clinic_ids)
+
+    def test_next_gate_is_m1_then_m2(self):
+        reply, meta = self._handle("what's the next gate on Pleasant Hill")
+        self.assertEqual(meta["kind"], "next_gate")
+        self.assertEqual(meta["gate"], 1)
+        self.assertIn("HEA-136", reply)
+        self.assertIn("M1", reply)
+        self.assertNotIn("(Owner:", reply)
+        self.assertTrue(reply.startswith("🤖 Dev:"))
+        self.assertLessEqual(len(reply), 200)
+
+        for item in self.client.issues:
+            if item["identifier"] == "HEA-136":
+                item["state_type"] = "completed"
+        reply, meta = self._handle("what's the next gate on Pleasant Hill")
+        self.assertEqual(meta["gate"], 2)
+        self.assertIn("HEA-142", reply)
+        self.assertIn("M2", reply)
+        self.assertNotIn("(Owner:", reply)
+
+    def test_leddy_owner_from_title_without_assignee(self):
+        hea35 = [i for i in self.issues if i["identifier"] == "HEA-35"][0]
+        self.assertEqual(hea35["assignee_name"], "")
+        self.assertIn("(Owner: Todd)", hea35["title"])
+        reply, meta = self._handle("what's Leddy doing this week")
+        self.assertEqual(meta["kind"], "owner_week")
+        self.assertIn("HEA-35", reply)
+        self.assertNotIn("HEA-135", reply)
+        self.assertNotIn("(Owner:", reply)
+        self.assertEqual(strip_owner_suffix(hea35["title"]), "Pleasant Hill: Todd advance + Leddy survey + architect field measure")
+
+    def test_replies_strip_owner_suffix(self):
+        reply, _meta = self._handle("what's Todd doing this week")
+        self.assertIn("HEA-35", reply)
+        self.assertNotIn("(Owner:", reply)
+        reply, _meta = self._handle("what's next on Pleasant Hill")
+        self.assertNotIn("(Owner:", reply)
+        self.assertNotIn("$", reply)
 
 
 def _read_events(path):

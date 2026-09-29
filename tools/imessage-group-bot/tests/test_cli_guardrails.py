@@ -73,6 +73,10 @@ class ListGroupsCliTests(unittest.TestCase):
         self.assertTrue(cfg.dry_run)
         self.assertFalse(cfg.linear_allow_writes)
         self.assertEqual(cfg.linear_title_prefix, "Pleasant Hill:")
+        self.assertEqual(
+            cfg.linear_project_names,
+            ["Clinic Development - Todd", "Supervision Standard Rollout"],
+        )
         self.assertEqual(cfg.trigger_word, "@dev")
         self.assertEqual(cfg.quiet_hours_start, "21:00")
         self.assertEqual(cfg.quiet_hours_end, "06:00")
@@ -104,6 +108,10 @@ class ListGroupsCliTests(unittest.TestCase):
         self.assertEqual(cfg.quiet_hours_end, DEFAULT_QUIET_HOURS_END)
         self.assertEqual(cfg.quiet_hours_timezone, DEFAULT_QUIET_HOURS_TIMEZONE)
         self.assertTrue(cfg.dry_run)
+        self.assertEqual(
+            cfg.linear_project_names,
+            ["Clinic Development - Todd", "Supervision Standard Rollout"],
+        )
 
     def test_osascript_argv_carries_raw_emoji(self):
         text = "🤖 Dev: hi there"

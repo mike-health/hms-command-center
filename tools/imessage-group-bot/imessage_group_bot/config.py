@@ -12,6 +12,10 @@ DEFAULT_BOT_PREFIX = "🤖 Dev:"
 DEFAULT_QUIET_HOURS_START = "21:00"
 DEFAULT_QUIET_HOURS_END = "06:00"
 DEFAULT_QUIET_HOURS_TIMEZONE = "America/Los_Angeles"
+DEFAULT_LINEAR_PROJECTS = (
+    "Clinic Development - Todd",
+    "Supervision Standard Rollout",
+)
 
 REQUIRED_KEYS = (
     "dry_run",
@@ -69,6 +73,24 @@ def _require_bot_prefix(prefix):
     if not text.startswith("🤖"):
         raise ConfigError("bot_prefix must start with 🤖, got %r" % prefix)
     return text
+
+
+def _project_names(linear):
+    names = linear.get("project_names") or linear.get("projects")
+    if not names:
+        single = linear.get("project_name")
+        names = [single] if single else list(DEFAULT_LINEAR_PROJECTS)
+    if isinstance(names, str):
+        names = [names]
+    out = []
+    seen = set()
+    for item in names:
+        text = str(item).strip()
+        if not text or text.lower() in seen:
+            continue
+        seen.add(text.lower())
+        out.append(text)
+    return out or list(DEFAULT_LINEAR_PROJECTS)
 
 
 def _normalize_owner_map(owners):
@@ -181,9 +203,8 @@ class Config(object):
             linear.get("graphql_url") or "https://api.linear.app/graphql"
         ).rstrip("/")
         self.linear_team_key = str(linear.get("team_key") or "HEA").strip() or "HEA"
-        self.linear_project_name = str(
-            linear.get("project_name") or "Clinic Development - Todd"
-        ).strip()
+        self.linear_project_names = _project_names(linear)
+        self.linear_project_name = self.linear_project_names[0] if self.linear_project_names else ""
         self.linear_title_prefix = str(
             linear.get("title_prefix") or "Pleasant Hill:"
         ).strip() or "Pleasant Hill:"

@@ -38,6 +38,22 @@ mutation SetDue($id: String!, $input: IssueUpdateInput!) {
 """
 
 
+def title_in_scope(title, prefix):
+    text = (title or "").lower()
+    pre = (prefix or "").lower()
+    if pre and text.startswith(pre):
+        return True
+    return "pleasant hill" in text
+
+
+def _as_name_list(project_names):
+    if not project_names:
+        return []
+    if isinstance(project_names, str):
+        return [project_names]
+    return [str(item).strip() for item in project_names if str(item).strip()]
+
+
 def normalize_issue(node):
     if not node:
         return None
@@ -87,22 +103,25 @@ class LinearClient(object):
             raise LinearError(msg)
         return body.get("data") or {}
 
-    def list_issues(self, team_key, project_name, title_prefix):
-        filt = {
-            "title": {"startsWithIgnoreCase": title_prefix},
-        }
-        if project_name:
-            filt["project"] = {"name": {"eqIgnoreCase": project_name}}
-        if team_key:
-            filt["team"] = {"key": {"eq": team_key}}
-        data = self.graphql(ISSUES_QUERY, {"filter": filt})
-        nodes = ((data.get("issues") or {}).get("nodes")) or []
-        issues = []
-        for node in nodes:
-            item = normalize_issue(node)
-            if item and item["id"]:
-                issues.append(item)
-        return issues
+    def list_issues(self, team_key, project_names, title_prefix):
+        names = _as_name_list(project_names)
+        seen = {}
+        for name in names or [None]:
+            filt = {}
+            if name:
+                filt["project"] = {"name": {"eqIgnoreCase": name}}
+            if team_key:
+                filt["team"] = {"key": {"eq": team_key}}
+            data = self.graphql(ISSUES_QUERY, {"filter": filt or None})
+            nodes = ((data.get("issues") or {}).get("nodes")) or []
+            for node in nodes:
+                item = normalize_issue(node)
+                if not item or not item["id"]:
+                    continue
+                if not title_in_scope(item["title"], title_prefix):
+                    continue
+                seen[item["id"]] = item
+        return list(seen.values())
 
     def update_due_date(self, issue_id, due_date):
         data = self.graphql(
@@ -121,13 +140,16 @@ class MockLinearClient(object):
         self.update_calls = []
         self.list_calls = 0
 
-    def list_issues(self, team_key, project_name, title_prefix):
+    def list_issues(self, team_key, project_names, title_prefix):
         self.list_calls += 1
-        prefix = (title_prefix or "").lower()
+        names = [n.lower() for n in _as_name_list(project_names)]
         out = []
         for item in self.issues:
-            title = (item.get("title") or "").lower()
-            if prefix and not title.startswith(prefix.lower()):
+            title = item.get("title") or ""
+            if not title_in_scope(title, title_prefix):
+                continue
+            proj = (item.get("project") or "").lower()
+            if names and proj and proj not in names:
                 continue
             out.append(dict(item))
         return out
