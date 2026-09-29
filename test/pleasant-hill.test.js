@@ -183,6 +183,13 @@ describe('no-money filter', () => {
     assert.equal(blob.includes('linear.app'), false);
     const html = board.issues.map((issue) => issueRowHtml(issue, (s) => s)).join('\n');
     assert.doesNotMatch(html, /[$€£]/);
+    const bait = issueRowHtml(
+      { id: 'x', identifier: 'PH-999', title: 'Note $1,200 and 1.2k USD', owners: ['$3M'], url: null },
+      (s) => s
+    );
+    assert.doesNotMatch(bait, /\$1,200/);
+    assert.doesNotMatch(bait, /1\.2k USD/i);
+    assert.doesNotMatch(bait, /\$3M/);
   });
 });
 

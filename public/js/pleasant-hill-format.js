@@ -89,20 +89,21 @@ function viewText(text) {
   return stripFinancialsClient(text == null ? '' : String(text));
 }
 
-function issueRowHtml(issue, esc) {
+function issueRowHtml(issue, htmlEsc) {
+  const v = (s) => htmlEsc(viewText(s == null ? '' : String(s)));
   const late = issue.late ? ' ph-late' : '';
-  const owners = (issue.owners || []).map((o) => `<span class="ph-owner">${esc(viewText(o))}</span>`).join('');
+  const owners = (issue.owners || []).map((o) => `<span class="ph-owner">${v(o)}</span>`).join('');
   const dates = `${formatShortDate(issue.startDate)} – ${formatShortDate(issue.dueDate)}`;
-  const href = issue.url ? `href="${esc(viewText(issue.url))}" target="_blank" rel="noopener"` : 'href="#"';
-  return `<article class="ph-item${late}" data-id="${esc(viewText(issue.id))}">
+  const href = issue.url ? `href="${v(issue.url)}" target="_blank" rel="noopener"` : 'href="#"';
+  return `<article class="ph-item${late}" data-id="${v(issue.id)}">
     <div class="ph-item-top">
-      <a class="ph-item-id" ${href}>${esc(viewText(issue.identifier || ''))}</a>
+      <a class="ph-item-id" ${href}>${v(issue.identifier || '')}</a>
       ${issue.late ? '<span class="badge badge-red">Late</span>' : ''}
-      ${issue.gate ? `<span class="ph-gate-pill">${esc(viewText(issue.gate))}</span>` : ''}
+      ${issue.gate ? `<span class="ph-gate-pill">${v(issue.gate)}</span>` : ''}
     </div>
-    <div class="ph-item-title">${esc(displayTitle(issue.title))}</div>
+    <div class="ph-item-title">${v(displayTitle(issue.title))}</div>
     <div class="ph-item-meta">
-      <span class="ph-dates">${esc(dates)}</span>
+      <span class="ph-dates">${v(dates)}</span>
       <span class="ph-owners">${owners || '<span class="ph-owner">Unassigned</span>'}</span>
     </div>
   </article>`;

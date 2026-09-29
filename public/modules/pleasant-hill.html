@@ -94,6 +94,10 @@ function view(s) {
   return esc(fmt.strip(s == null ? '' : String(s)));
 }
 
+function setPlain(el, s) {
+  el.textContent = fmt.strip(s == null ? '' : String(s));
+}
+
 function apiUrl() {
   const q = new URLSearchParams(window.location.search);
   const params = new URLSearchParams();
@@ -120,7 +124,7 @@ function renderList(el, issues, empty) {
     el.innerHTML = emptyNote(empty);
     return;
   }
-  el.innerHTML = issues.map((issue) => fmt.row(issue, (s) => view(s))).join('');
+  el.innerHTML = issues.map((issue) => fmt.row(issue, esc)).join('');
 }
 
 function renderGates(gates) {
@@ -149,7 +153,7 @@ function renderGantt(board) {
   stack.innerHTML = (board.phases || []).map((phase) => `
     <div class="ph-phase">
       <h3 class="ph-phase-title">${view(phase.name)}</h3>
-      ${phase.issues.map((issue) => fmt.row(issue, (s) => view(s))).join('')}
+      ${phase.issues.map((issue) => fmt.row(issue, esc)).join('')}
     </div>
   `).join('') || emptyNote('No Pleasant Hill issues yet.');
 
@@ -193,7 +197,7 @@ function renderGantt(board) {
           ${todayLeft != null ? `<span class="ph-today" style="left:${todayLeft}%"></span>` : ''}
         </div>
       </div>
-      ${rows || '<p class="ph-empty">No bars to show.</p>'}
+      ${rows || emptyNote('No bars to show.')}
     </div>`;
 }
 
@@ -201,7 +205,7 @@ function showUnconfigured() {
   const banner = document.getElementById('ph-banner');
   banner.hidden = false;
   banner.className = 'ops-banner error';
-  banner.textContent = 'Linear not configured. Set LINEAR_API_KEY on the server (Render env). This page is read-only and does not send the key to the browser.';
+  setPlain(banner, 'Linear not configured. Set LINEAR_API_KEY on the server (Render env). This page is read-only and does not send the key to the browser.');
   document.getElementById('ph-gates').innerHTML = '';
   document.getElementById('ph-late-body').innerHTML = emptyNote('Connect Linear to load late items.');
   document.getElementById('ph-week-body').innerHTML = emptyNote('Connect Linear to load this week.');
@@ -222,8 +226,8 @@ async function loadBoard() {
     if (!json.success || json.source === 'error') {
       banner.hidden = false;
       banner.className = 'ops-banner error';
-      banner.textContent = VIEWER_LOAD_ERROR;
-      showStatus('status-text', 'error', 'Error');
+      setPlain(banner, VIEWER_LOAD_ERROR);
+      showStatus('status-text', 'error', fmt.strip('Error'));
       return;
     }
     if (!json.configured && json.source === 'unconfigured') {
@@ -231,12 +235,13 @@ async function loadBoard() {
       return;
     }
     const site = json.site || {};
-    document.getElementById('ph-lede').textContent = fmt.strip(
+    setPlain(
+      document.getElementById('ph-lede'),
       `${site.name || 'Pleasant Hill'} · ${site.address || ''}`
     );
     const projectLink = document.getElementById('linear-project-link');
     if (json.project && json.project.url) {
-      projectLink.href = json.project.url;
+      projectLink.href = fmt.strip(json.project.url);
       projectLink.hidden = false;
     } else {
       projectLink.hidden = true;
@@ -250,15 +255,19 @@ async function loadBoard() {
     if (json.source === 'fixture') {
       banner.hidden = false;
       banner.className = 'ops-banner';
-      banner.textContent = 'Sample schedule (fixture). Live Linear is used when LINEAR_API_KEY is set and fixture mode is off.';
+      setPlain(banner, 'Sample schedule (fixture). Live Linear is used when LINEAR_API_KEY is set and fixture mode is off.');
     }
-    showStatus('status-text', 'ok', json.source === 'linear' ? 'Live' : json.source === 'fixture' ? 'Fixture' : 'Ready');
+    showStatus(
+      'status-text',
+      'ok',
+      fmt.strip(json.source === 'linear' ? 'Live' : json.source === 'fixture' ? 'Fixture' : 'Ready')
+    );
   } catch (err) {
     console.error('Pleasant Hill page failed to load');
     banner.hidden = false;
     banner.className = 'ops-banner error';
-    banner.textContent = VIEWER_LOAD_ERROR;
-    showStatus('status-text', 'error', 'Error');
+    setPlain(banner, VIEWER_LOAD_ERROR);
+    showStatus('status-text', 'error', fmt.strip('Error'));
   }
 }
 
