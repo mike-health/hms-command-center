@@ -21,7 +21,7 @@ const {
 } = require('../lib/pleasant-hill');
 const { stripFinancials, scrubString } = require('../public/js/strip-financials');
 const { assertNoDollar, issueRowHtml, viewText } = require('../public/js/pleasant-hill-format');
-const { failClosed, passwordRequired } = require('../lib/ph-view-gate');
+const { passwordRequired } = require('../lib/ph-view-gate');
 const { mountPleasantHill } = require('../lib/pleasant-hill-routes');
 
 describe('Linear not configured', () => {
