@@ -1,7 +1,9 @@
 'use strict';
 
-const { describe, it } = require('node:test');
+const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
+const http = require('node:http');
+const express = require('express');
 const {
   displayTitle,
   fixtureBoard,
@@ -17,8 +19,10 @@ const {
   unconfiguredBoard,
   VIEWER_LOAD_ERROR
 } = require('../lib/pleasant-hill');
-const { stripFinancials } = require('../public/js/strip-financials');
+const { stripFinancials, scrubString } = require('../public/js/strip-financials');
 const { assertNoDollar, issueRowHtml, viewText } = require('../public/js/pleasant-hill-format');
+const { failClosed, passwordRequired } = require('../lib/ph-view-gate');
+const { mountPleasantHill } = require('../lib/pleasant-hill-routes');
 
 describe('Linear not configured', () => {
   it('returns a Linear not configured board when the API key is missing', async () => {
@@ -57,6 +61,43 @@ describe('Linear errors stay off the page', () => {
     assert.equal(blob.includes(secret), false);
     assert.equal(blob.includes('401'), false);
     assert.equal(blob.includes('sk_live'), false);
+  });
+
+  it('caches Linear errors for about 60s so outages are not hammered', async () => {
+    resetPleasantHillCache();
+    let calls = 0;
+    const graphql = async () => {
+      calls += 1;
+      throw new Error('Linear HTTP 503 unavailable');
+    };
+    await getPleasantHillBoard({ apiKey: 'test-key', graphql, now: new Date('2026-09-29T19:00:00Z') });
+    await getPleasantHillBoard({ apiKey: 'test-key', graphql, now: new Date('2026-09-29T19:00:00Z') });
+    assert.equal(calls, 1);
+  });
+});
+
+describe('fail closed without viewer password', () => {
+  it('does not call Linear when the API key is set and PH_VIEW_PASSWORD is missing', async () => {
+    const prevKey = process.env.LINEAR_API_KEY;
+    const prevPw = process.env.PH_VIEW_PASSWORD;
+    process.env.LINEAR_API_KEY = 'live-key';
+    delete process.env.PH_VIEW_PASSWORD;
+    resetPleasantHillCache();
+    let calls = 0;
+    const board = await getPleasantHillBoard({
+      graphql: async () => {
+        calls += 1;
+        return {};
+      }
+    });
+    assert.equal(board.source, 'gated');
+    assert.equal(board.message, VIEWER_LOAD_ERROR);
+    assert.equal(board.issues.length, 0);
+    assert.equal(calls, 0);
+    if (prevKey == null) delete process.env.LINEAR_API_KEY;
+    else process.env.LINEAR_API_KEY = prevKey;
+    if (prevPw == null) delete process.env.PH_VIEW_PASSWORD;
+    else process.env.PH_VIEW_PASSWORD = prevPw;
   });
 });
 
@@ -143,6 +184,13 @@ describe('M1-M4 gates from titles', () => {
     );
     assert.equal(mapped.gate, 'M2');
   });
+
+  it('does not repeat the gate code in the gate name', () => {
+    const board = fixtureBoard(new Date('2026-09-29T19:00:00Z'));
+    const m1 = board.gates.find((g) => g.code === 'M1');
+    assert.equal(m1.name.includes('M1'), false);
+    assert.match(m1.name, /agreement signed/i);
+  });
 });
 
 describe('no-money filter', () => {
@@ -154,7 +202,15 @@ describe('no-money filter', () => {
     ['1,200 usd', '1,200 usd'],
     ['1.2k USD', '1.2k USD'],
     ['€900', '€900'],
-    ['£1,200', '£1,200']
+    ['£1,200', '£1,200'],
+    ['Deposit 20% due', '20%'],
+    ['Pay 30%', '30%'],
+    ['2.5%', '2.5%'],
+    ['ten percent fee', 'percent'],
+    ['$1.2 million', '$1.2 million'],
+    ['$TBD', '$TBD'],
+    ['50,000 USD', '50,000 USD'],
+    ['capital call due Nov', 'capital call']
   ];
 
   for (const [name, sample] of cases) {
@@ -167,11 +223,39 @@ describe('no-money filter', () => {
     });
   }
 
+  it('keeps surrounding words when stripping percents', () => {
+    const cleaned = stripFinancials('Deposit 20% due');
+    assert.match(cleaned, /Deposit/i);
+    assert.match(cleaned, /due/i);
+    assert.doesNotMatch(cleaned, /20%/);
+  });
+
+  it('strips $1.2 million without leaving illion', () => {
+    const cleaned = stripFinancials('Budget $1.2 million reserved');
+    assert.doesNotMatch(cleaned, /illion/i);
+    assert.doesNotMatch(cleaned, /\$/);
+    assert.match(cleaned, /Budget/i);
+    assert.match(cleaned, /reserved/i);
+  });
+
+  it('strips capital call phrases including dates with no attached figure', () => {
+    const cleaned = stripFinancials('capital call due Nov');
+    assert.doesNotMatch(cleaned, /capital call/i);
+    assert.match(cleaned, /due Nov/i);
+  });
+
   it('strips percent splits and capital-call amounts', () => {
     const cleaned = stripFinancials('Split 40/30/20/10 vs 20/30/30/20. Capital Call 1 (40%).');
     assert.doesNotMatch(cleaned, /\d+%/);
     assert.doesNotMatch(cleaned, /40\s*\/\s*30/);
     assert.doesNotMatch(cleaned, /Capital Call/i);
+  });
+
+  it('blanks leftover money instead of rendering it', () => {
+    assert.equal(scrubString('USD still here'), '');
+    assert.equal(assertNoDollar('Pay 30%'), 'Pay');
+    assert.equal(viewText('$TBD'), '');
+    assert.equal(viewText('$1.2 million'), '');
   });
 
   it('browser scripts do not redeclare stripFinancials on the global object', () => {
@@ -185,11 +269,13 @@ describe('no-money filter', () => {
 
   it('applies the choke point to fixture JSON and rendered rows', () => {
     const board = fixtureBoard(new Date('2026-09-29T19:00:00Z'));
-    assertNoDollar(board);
-    const blob = JSON.stringify(board);
+    const scrubbed = assertNoDollar(board);
+    const blob = JSON.stringify(scrubbed);
     assert.doesNotMatch(blob, /[$€£]/);
     assert.doesNotMatch(blob, /\bUSD\b/i);
     assert.equal(blob.includes('linear.app'), false);
+    assert.equal(blob.includes('"description"'), false);
+    assert.equal(blob.includes('"rawTitle"'), false);
     const html = board.issues.map((issue) => issueRowHtml(issue, (s) => s)).join('\n');
     assert.doesNotMatch(html, /[$€£]/);
     const bait = issueRowHtml(
@@ -220,7 +306,104 @@ describe('synthetic fixture', () => {
     assert.deepEqual(todd.owners, ['Todd']);
     assert.equal(todd.title.includes('(Owner:'), false);
     assert.equal(todd.url, null);
+    assert.equal(Object.prototype.hasOwnProperty.call(todd, 'description'), false);
+    assert.equal(Object.prototype.hasOwnProperty.call(todd, 'rawTitle'), false);
     assert.ok(board.late.some((i) => i.identifier === 'PH-090'));
     assert.ok(board.thisWeek.some((i) => i.identifier === 'PH-091'));
+  });
+
+  it('ignores ?fixture=1 when production is set', async () => {
+    const board = await getPleasantHillBoard({
+      fixture: true,
+      production: true,
+      now: new Date('2026-09-29T19:00:00Z')
+    });
+    assert.equal(board.source, 'unconfigured');
+    assert.equal(board.issues.length, 0);
+  });
+});
+
+describe('Pleasant Hill viewer gate', () => {
+  let server;
+  let base;
+  const prev = {};
+
+  before(async () => {
+    prev.LINEAR_API_KEY = process.env.LINEAR_API_KEY;
+    prev.PH_VIEW_PASSWORD = process.env.PH_VIEW_PASSWORD;
+    prev.NODE_ENV = process.env.NODE_ENV;
+    process.env.PH_VIEW_PASSWORD = 'test-pass';
+    delete process.env.LINEAR_API_KEY;
+    process.env.NODE_ENV = 'test';
+    const app = express();
+    app.use(express.json());
+    mountPleasantHill(app);
+    server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    base = 'http://127.0.0.1:' + port;
+  });
+
+  after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    if (prev.LINEAR_API_KEY == null) delete process.env.LINEAR_API_KEY;
+    else process.env.LINEAR_API_KEY = prev.LINEAR_API_KEY;
+    if (prev.PH_VIEW_PASSWORD == null) delete process.env.PH_VIEW_PASSWORD;
+    else process.env.PH_VIEW_PASSWORD = prev.PH_VIEW_PASSWORD;
+    if (prev.NODE_ENV == null) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = prev.NODE_ENV;
+  });
+
+  function request(pathname, opts) {
+    return new Promise((resolve, reject) => {
+      const url = new URL(pathname, base);
+      const req = http.request(url, {
+        method: (opts && opts.method) || 'GET',
+        headers: opts && opts.headers
+      }, (res) => {
+        let body = '';
+        res.setEncoding('utf8');
+        res.on('data', (c) => { body += c; });
+        res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body }));
+      });
+      req.on('error', reject);
+      if (opts && opts.body) req.write(opts.body);
+      req.end();
+    });
+  }
+
+  it('requires a passcode for the API when PH_VIEW_PASSWORD is set', async () => {
+    assert.equal(passwordRequired(), true);
+    const res = await request('/api/pleasant-hill?fixture=1');
+    assert.equal(res.status, 401);
+    assert.match(res.body, /Passcode required/);
+    assert.equal(res.body.includes('PH-101'), false);
+  });
+
+  it('unlocks with a passcode cookie and then serves the board', async () => {
+    const unlock = await request('/api/pleasant-hill/unlock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'test-pass' })
+    });
+    assert.equal(unlock.status, 200);
+    const setCookie = unlock.headers['set-cookie'] && unlock.headers['set-cookie'][0];
+    assert.match(setCookie, /ph_view=/);
+    const cookie = setCookie.split(';')[0];
+    const res = await request('/api/pleasant-hill?fixture=1', { headers: { Cookie: cookie } });
+    assert.equal(res.status, 200);
+    const json = JSON.parse(res.body);
+    assert.equal(json.source, 'fixture');
+    assert.ok(json.issues.some((i) => i.identifier === 'PH-101'));
+    assert.equal(JSON.stringify(json).includes('"description"'), false);
+  });
+
+  it('accepts HTTP basic auth', async () => {
+    const token = Buffer.from('view:test-pass').toString('base64');
+    const res = await request('/api/pleasant-hill?fixture=1', {
+      headers: { Authorization: 'Basic ' + token }
+    });
+    assert.equal(res.status, 200);
+    assert.equal(JSON.parse(res.body).source, 'fixture');
   });
 });

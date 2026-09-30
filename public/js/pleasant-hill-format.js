@@ -19,8 +19,6 @@ function displayTitle(title) {
     String(title || '')
       .replace(/^Pleasant Hill:\s*/i, '')
       .replace(/\s*\(\s*Owner:\s*[^)]+\)\s*$/i, '')
-      .replace(/\(\s*Capital Call\s+\d+\s*\)/gi, '')
-      .replace(/\bCapital Call\s+\d+\b/gi, '')
   );
 }
 
@@ -71,22 +69,31 @@ function pctOnRange(ymd, start, end) {
 
 function assertNoDollar(value, path) {
   if (typeof value === 'string') {
-    if (/[$€£]/.test(value) || /\bUSD\b|\bEUR\b|\bGBP\b/i.test(value)) {
-      throw new Error('Money figure found at ' + (path || 'root') + ': ' + value);
-    }
-    return;
+    const cleaned = stripFinancialsClient(value);
+    if (stripApi && stripApi.looksFinancial && stripApi.looksFinancial(cleaned)) return '';
+    if (/[$€£¥]/.test(cleaned) || /\bUSD\b|\bEUR\b|\bGBP\b/i.test(cleaned)) return '';
+    return cleaned;
   }
   if (Array.isArray(value)) {
-    value.forEach((item, i) => assertNoDollar(item, (path || '') + '[' + i + ']'));
-    return;
+    return value.map((item, i) => assertNoDollar(item, (path || '') + '[' + i + ']'));
   }
   if (value && typeof value === 'object') {
-    Object.keys(value).forEach((k) => assertNoDollar(value[k], (path ? path + '.' : '') + k));
+    const out = {};
+    Object.keys(value).forEach((k) => {
+      out[k] = assertNoDollar(value[k], (path ? path + '.' : '') + k);
+    });
+    return out;
   }
+  return value;
 }
 
 function viewText(text) {
-  return stripFinancialsClient(text == null ? '' : String(text));
+  const cleaned = stripFinancialsClient(text == null ? '' : String(text));
+  if (stripApi && stripApi.looksFinancial && stripApi.looksFinancial(cleaned)) return '';
+  if (/[$€£¥]/.test(cleaned) || /\bUSD\b|\bEUR\b|\bGBP\b/i.test(cleaned) || /\bpercent\b/i.test(cleaned)) {
+    return '';
+  }
+  return cleaned;
 }
 
 function issueRowHtml(issue, htmlEsc) {

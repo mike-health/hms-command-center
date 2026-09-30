@@ -4,9 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pleasant Hill — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=9">
+<link rel="stylesheet" href="/css/app.css?v=10">
 <style>
   #linear-project-link[hidden] { display: none !important; }
+  .ph-pass-form {
+    max-width: 360px;
+    margin: 12px auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+  .ph-pass-form label { font-size: 14px; font-weight: 600; color: #0f172a; }
+  .ph-pass-form input {
+    font-size: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+  }
+  .ph-pass-form button { min-height: 44px; }
 </style>
 </head>
 <body>
@@ -73,9 +92,9 @@
   </main>
 </div>
 
-<script src="/js/app.js?v=9"></script>
-<script src="/js/strip-financials.js?v=9"></script>
-<script src="/js/pleasant-hill-format.js?v=9"></script>
+<script src="/js/app.js?v=10"></script>
+<script src="/js/strip-financials.js?v=10"></script>
+<script src="/js/pleasant-hill-format.js?v=10"></script>
 <script>
 const VIEWER_LOAD_ERROR = 'The schedule could not be loaded. Try again later.';
 const stripFn = (typeof PleasantHillStrip !== 'undefined' && PleasantHillStrip.stripFinancials)
@@ -94,11 +113,20 @@ const fmt = {
 };
 
 function view(s) {
-  return esc(fmt.strip(s == null ? '' : String(s)));
+  const raw = s == null ? '' : String(s);
+  const stripped = fmt.strip(raw);
+  const scrubbed = (typeof PleasantHillStrip !== 'undefined' && PleasantHillStrip.scrubString)
+    ? PleasantHillStrip.scrubString(raw)
+    : stripped;
+  return esc(scrubbed == null ? '' : String(scrubbed));
 }
 
 function setPlain(el, s) {
-  el.textContent = fmt.strip(s == null ? '' : String(s));
+  const raw = s == null ? '' : String(s);
+  const scrubbed = (typeof PleasantHillStrip !== 'undefined' && PleasantHillStrip.scrubString)
+    ? PleasantHillStrip.scrubString(raw)
+    : fmt.strip(raw);
+  el.textContent = scrubbed == null ? '' : String(scrubbed);
 }
 
 function apiUrl() {
@@ -219,6 +247,46 @@ function showUnconfigured() {
   showStatus('status-text', 'error', 'Not configured');
 }
 
+function showPasscodeGate(message) {
+  const banner = document.getElementById('ph-banner');
+  banner.hidden = false;
+  banner.className = 'ops-banner error';
+  setPlain(banner, message || 'Enter the viewer passcode to open this schedule.');
+  document.getElementById('ph-gates').innerHTML = '';
+  document.getElementById('ph-late-body').innerHTML = `
+    <form id="ph-gate-form" class="ph-pass-form">
+      <label for="ph-pass">Passcode</label>
+      <input id="ph-pass" name="password" type="password" autocomplete="current-password" inputmode="text" required>
+      <button class="btn btn-primary" type="submit">View schedule</button>
+    </form>`;
+  document.getElementById('ph-week-body').innerHTML = '';
+  document.getElementById('ph-stack').innerHTML = '';
+  document.getElementById('ph-gantt-scroll').innerHTML = '';
+  document.getElementById('late-count').textContent = '0';
+  document.getElementById('week-count').textContent = '0';
+  showStatus('status-text', 'error', fmt.strip('Locked'));
+  const form = document.getElementById('ph-gate-form');
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const password = document.getElementById('ph-pass').value;
+    try {
+      const res = await fetch('/api/pleasant-hill/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setPlain(banner, json.message || 'Passcode incorrect.');
+        return;
+      }
+      loadBoard();
+    } catch (err) {
+      setPlain(banner, VIEWER_LOAD_ERROR);
+    }
+  });
+}
+
 async function loadBoard() {
   showStatus('status-text', 'saving', 'Loading');
   const banner = document.getElementById('ph-banner');
@@ -226,38 +294,43 @@ async function loadBoard() {
   try {
     const res = await fetch(apiUrl());
     const json = await res.json();
-    if (!json.success || json.source === 'error') {
+    if (res.status === 401 || json.source === 'auth') {
+      showPasscodeGate(json.message);
+      return;
+    }
+    const board = typeof fmt.noDollar === 'function' ? fmt.noDollar(json) : json;
+    if (!board.success || board.source === 'error' || board.source === 'gated') {
       banner.hidden = false;
       banner.className = 'ops-banner error';
       setPlain(banner, VIEWER_LOAD_ERROR);
       showStatus('status-text', 'error', fmt.strip('Error'));
       return;
     }
-    if (!json.configured && json.source === 'unconfigured') {
+    if (!board.configured && board.source === 'unconfigured') {
       showUnconfigured();
       return;
     }
-    const site = json.site || {};
+    const site = board.site || {};
     setPlain(
       document.getElementById('ph-lede'),
       `${site.name || 'Pleasant Hill'} · ${site.address || ''}`
     );
     const projectLink = document.getElementById('linear-project-link');
-    const projectUrl = json.project && json.project.url;
-    if (json.source !== 'fixture' && projectUrl && /^https?:/i.test(String(projectUrl))) {
+    const projectUrl = board.project && board.project.url;
+    if (board.source !== 'fixture' && projectUrl && /^https?:/i.test(String(projectUrl))) {
       projectLink.href = fmt.strip(projectUrl);
       projectLink.hidden = false;
     } else {
       projectLink.removeAttribute('href');
       projectLink.hidden = true;
     }
-    renderGates(json.gates || []);
-    document.getElementById('late-count').textContent = String((json.late || []).length);
-    document.getElementById('week-count').textContent = String((json.thisWeek || []).length);
-    renderList(document.getElementById('ph-late-body'), json.late, 'No late items.');
-    renderList(document.getElementById('ph-week-body'), json.thisWeek, 'Nothing scheduled this week.');
-    renderGantt(json);
-    if (json.source === 'fixture') {
+    renderGates(board.gates || []);
+    document.getElementById('late-count').textContent = String((board.late || []).length);
+    document.getElementById('week-count').textContent = String((board.thisWeek || []).length);
+    renderList(document.getElementById('ph-late-body'), board.late, 'No late items.');
+    renderList(document.getElementById('ph-week-body'), board.thisWeek, 'Nothing scheduled this week.');
+    renderGantt(board);
+    if (board.source === 'fixture') {
       banner.hidden = false;
       banner.className = 'ops-banner';
       setPlain(banner, 'Sample schedule (fixture). Live Linear is used when LINEAR_API_KEY is set and fixture mode is off.');
@@ -265,7 +338,7 @@ async function loadBoard() {
     showStatus(
       'status-text',
       'ok',
-      fmt.strip(json.source === 'linear' ? 'Live' : json.source === 'fixture' ? 'Fixture' : 'Ready')
+      fmt.strip(board.source === 'linear' ? 'Live' : board.source === 'fixture' ? 'Fixture' : 'Ready')
     );
   } catch (err) {
     console.error('Pleasant Hill page failed to load');

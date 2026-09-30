@@ -49,8 +49,10 @@ Copy `.env.example` and set values in the host (Render, Railway, or a local `.en
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `LINEAR_API_KEY` | For live data | Linear API key (workspace **healtho2**, team **HEA**). The server calls `https://api.linear.app/graphql` and never sends the key to the browser. **Without this key the Pleasant Hill page shows “Linear not configured”** (it does not crash). The Ops board still falls back to documented mock issues. |
+| `PH_VIEW_PASSWORD` | **Required before the Linear key is set** | Shared viewer passcode for `/modules/pleasant-hill.html` and `GET /api/pleasant-hill`. Cookie is stored after first correct entry (HTTP Basic also accepted). **If `LINEAR_API_KEY` is set and this is missing, live Linear data is not served.** |
 | `LINEAR_PROJECT_NAME` | No | Ops cadence project name. Defaults to `Ops cadence`. |
 | `LINEAR_PROJECT_ID` | No | Ops cadence project id. |
+| `LINEAR_TEAM_ID` | No | Linear team UUID used by ops-cadence writes. |
 | `LINEAR_TEAM_KEY` | No | Defaults to `HEA`. |
 | `LINEAR_PLEASANT_HILL_PROJECT` | No | Primary clinic-build project. Defaults to `Clinic Development - Todd`. |
 | `LINEAR_PLEASANT_HILL_PROJECTS` | No | Comma-separated Linear projects to scan. Defaults to `Clinic Development - Todd,Supervision Standard Rollout`. |
@@ -86,7 +88,7 @@ Prefer Linear **project milestones** named with `M1`–`M4` if they exist. Other
 
 The page never shows `$` amounts, capital-call percents, or `40/30/20/10` splits even if they appear in Linear text.
 
-**Optional:** `?fixture=1` renders the synthetic snapshot in `data/pleasant-hill-fixture.json` (tests/screenshots only; fake ids, no Linear URLs). Production Render should set `LINEAR_API_KEY` and omit fixture mode.
+**Optional:** `?fixture=1` renders the synthetic snapshot in `data/pleasant-hill-fixture.json` (tests/screenshots only; fake ids, no Linear URLs). **Disabled when `NODE_ENV=production`.** Production Render should set `LINEAR_API_KEY` and `PH_VIEW_PASSWORD` together; omit fixture mode.
 
 ### Tagging issues for the Ops board
 

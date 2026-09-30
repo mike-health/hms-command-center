@@ -76,6 +76,7 @@ body {
   background: none;
   width: 100%;
   text-align: left;
+  white-space: nowrap;
 }
 .nav-item:hover {
   background: #f8fafc;
@@ -1012,6 +1013,7 @@ body {
   .sidebar { width: 60px; }
   .brand h1, .brand .sub, .nav-section-title, .sidebar-footer { display: none; }
   .nav-item { justify-content: center; padding: 10px; }
+  .nav-item > span:not(.nav-icon):not(.nav-badge) { display: none; }
   .nav-icon { font-size: 18px; }
   .summary-grid { grid-template-columns: repeat(2, 1fr); }
   .org-chart-wrap { gap: 20px; flex-direction: column; }
