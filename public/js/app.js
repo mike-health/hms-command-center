@@ -61,6 +61,7 @@ function setActiveNav() {
   else if (path.includes('ops-board')) page = 'ops-board';
   else if (path.includes('tasks')) page = 'tasks';
   else if (path.includes('reports')) page = 'reports';
+  else if (path.includes('pleasant-hill')) page = 'pleasant-hill';
 
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.toggle('active', item.dataset.page === page);

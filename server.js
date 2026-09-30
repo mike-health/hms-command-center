@@ -4,6 +4,7 @@ const path = require('path');
 const cors = require('cors');
 const { getOpsCadenceBoard } = require('./lib/ops-cadence');
 const { applyOpsPlan, previewOpsInstruction } = require('./lib/ops-chat');
+const { mountPleasantHill } = require('./lib/pleasant-hill-routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -77,6 +78,8 @@ app.get('/api/clinics', (req, res) => res.json({ success: true, data: data.clini
 app.get('/api/referrals', (req, res) => res.json({ success: true, data: data.referrals }));
 app.get('/api/tasks', (req, res) => res.json({ success: true, data: data.tasks }));
 app.get('/api/alerts', (req, res) => res.json({ success: true, data: data.alerts }));
+
+mountPleasantHill(app, { publicDir: PUBLIC_DIR });
 
 app.get('/api/ops-cadence', async (req, res) => {
   try {

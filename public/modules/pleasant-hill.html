@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pleasant Hill — HMS Command</title>
+<link rel="stylesheet" href="/css/app.css?v=10">
+<style>
+  #linear-project-link[hidden] { display: none !important; }
+  .ph-pass-form {
+    max-width: 360px;
+    margin: 12px auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+  .ph-pass-form label { font-size: 14px; font-weight: 600; color: #0f172a; }
+  .ph-pass-form input {
+    font-size: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+  }
+  .ph-pass-form button { min-height: 44px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><h1>HMS Command</h1><div class="sub">Hyperbaric Management</div></div>
+    <nav class="nav">
+      <div class="nav-section"><div class="nav-section-title">Overview</div>
+        <a href="/" class="nav-item" data-page="dashboard"><span class="nav-icon">◈</span><span>Dashboard</span></a>
+      </div>
+      <div class="nav-section"><div class="nav-section-title">Operations</div>
+        <a href="/modules/org-chart.html" class="nav-item" data-page="org-chart"><span class="nav-icon">⚙</span><span>Org Chart</span></a>
+        <a href="/modules/pleasant-hill.html" class="nav-item active" data-page="pleasant-hill"><span class="nav-icon">▣</span><span>Pleasant Hill</span></a>
+        <a href="/modules/map.html" class="nav-item" data-page="map"><span class="nav-icon">◎</span><span>Clinic Map</span><span class="nav-badge blue" id="map-badge">6</span></a>
+        <a href="/modules/referrals.html" class="nav-item" data-page="referrals"><span class="nav-icon">⇄</span><span>Referrals</span><span class="nav-badge green" id="ref-badge">4</span></a>
+        <a href="/modules/tasks.html" class="nav-item" data-page="tasks"><span class="nav-icon">☰</span><span>Tasks</span><span class="nav-badge" id="task-badge">3</span></a>
+        <a href="/modules/ops-board.html" class="nav-item" data-page="ops-board"><span class="nav-icon">▦</span><span>Ops board</span></a>
+      </div>
+      <div class="nav-section"><div class="nav-section-title">Analytics</div>
+        <a href="/modules/reports.html" class="nav-item" data-page="reports"><span class="nav-icon">▤</span><span>Reports</span></a>
+      </div>
+    </nav>
+    <div class="sidebar-footer">v1.0 · Auto-saving</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Pleasant Hill</div>
+      <div class="topbar-actions">
+        <div class="status-pill"><span class="status-dot" id="status-dot"></span><span id="status-text">Loading</span></div>
+        <a class="btn btn-secondary btn-sm" id="linear-project-link" href="#" target="_blank" rel="noopener" hidden>Open in Linear</a>
+        <button class="btn btn-primary btn-sm" type="button" onclick="loadBoard()">↻ Refresh</button>
+      </div>
+    </header>
+    <div class="content ph-page">
+      <p class="ph-lede" id="ph-lede">Six-chamber HBOT clinic · 400 Taylor Blvd, Suite 103, Pleasant Hill, CA</p>
+      <div id="ph-banner" class="ops-banner" hidden></div>
+      <section class="ph-gates" id="ph-gates" aria-label="Milestone gates"></section>
+      <section class="section" id="ph-late-section">
+        <div class="section-header">
+          <div class="section-title">Late items</div>
+          <span class="badge badge-red" id="late-count">0</span>
+        </div>
+        <div class="section-body" id="ph-late-body"></div>
+      </section>
+      <section class="section">
+        <div class="section-header">
+          <div class="section-title">This week</div>
+          <span class="badge badge-blue" id="week-count">0</span>
+        </div>
+        <div class="section-body" id="ph-week-body"></div>
+      </section>
+      <section class="section">
+        <div class="section-header">
+          <div class="section-title">Schedule</div>
+          <span class="ph-gantt-hint">Swipe the chart sideways on a phone</span>
+        </div>
+        <div class="section-body ph-schedule-body">
+          <div id="ph-stack" class="ph-stack" aria-label="Stacked schedule"></div>
+          <div id="ph-gantt-scroll" class="ph-gantt-scroll" aria-label="Gantt chart"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="/js/app.js?v=10"></script>
+<script src="/js/strip-financials.js?v=10"></script>
+<script src="/js/pleasant-hill-format.js?v=10"></script>
+<script>
+const VIEWER_LOAD_ERROR = 'The schedule could not be loaded. Try again later.';
+const stripFn = (typeof PleasantHillStrip !== 'undefined' && PleasantHillStrip.stripFinancials)
+  ? PleasantHillStrip.stripFinancials
+  : (s) => (s == null ? '' : String(s));
+
+const fmt = {
+  strip: stripFn,
+  title: typeof displayTitle === 'function' ? displayTitle : (s) => stripFn(s),
+  date: typeof formatShortDate === 'function' ? formatShortDate : (s) => s || '—',
+  days: typeof daysBetween === 'function' ? daysBetween : () => 0,
+  ticks: typeof monthTicks === 'function' ? monthTicks : () => [],
+  pct: typeof pctOnRange === 'function' ? pctOnRange : () => 0,
+  row: typeof issueRowHtml === 'function' ? issueRowHtml : () => '',
+  noDollar: typeof assertNoDollar === 'function' ? assertNoDollar : () => {}
+};
+
+function view(s) {
+  const raw = s == null ? '' : String(s);
+  const stripped = fmt.strip(raw);
+  const scrubbed = (typeof PleasantHillStrip !== 'undefined' && PleasantHillStrip.scrubString)
+    ? PleasantHillStrip.scrubString(raw)
+    : stripped;
+  return esc(scrubbed == null ? '' : String(scrubbed));
+}
+
+function setPlain(el, s) {
+  const raw = s == null ? '' : String(s);
+  const scrubbed = (typeof PleasantHillStrip !== 'undefined' && PleasantHillStrip.scrubString)
+    ? PleasantHillStrip.scrubString(raw)
+    : fmt.strip(raw);
+  el.textContent = scrubbed == null ? '' : String(scrubbed);
+}
+
+function apiUrl() {
+  const q = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams();
+  if (q.get('fixture') === '1' || q.get('fixture') === 'true') params.set('fixture', '1');
+  if (q.get('now')) params.set('now', q.get('now'));
+  const s = params.toString();
+  return '/api/pleasant-hill' + (s ? '?' + s : '');
+}
+
+function gateClass(status) {
+  if (status === 'done') return 'ph-gate done';
+  if (status === 'late') return 'ph-gate late';
+  if (status === 'in-progress') return 'ph-gate progress';
+  if (status === 'unknown') return 'ph-gate unknown';
+  return 'ph-gate';
+}
+
+function emptyNote(text) {
+  return `<p class="ph-empty">${view(text)}</p>`;
+}
+
+function renderList(el, issues, empty) {
+  if (!issues || !issues.length) {
+    el.innerHTML = emptyNote(empty);
+    return;
+  }
+  el.innerHTML = issues.map((issue) => fmt.row(issue, esc)).join('');
+}
+
+function renderGates(gates) {
+  const host = document.getElementById('ph-gates');
+  host.innerHTML = (gates || []).map((g) => `
+    <div class="${gateClass(g.status)}">
+      <div class="ph-gate-code">${view(g.code)}</div>
+      <div class="ph-gate-name">${view(g.name || '')}</div>
+      <div class="ph-gate-date">${view(fmt.date(g.targetDate))}</div>
+      <div class="ph-gate-status">${view(g.status || '')}</div>
+    </div>
+  `).join('');
+}
+
+function renderGantt(board) {
+  const host = document.getElementById('ph-gantt-scroll');
+  const stack = document.getElementById('ph-stack');
+  const issues = board.issues || [];
+  const start = board.gantt && board.gantt.start || '2026-10-01';
+  const end = board.gantt && board.gantt.end || '2027-05-31';
+  const total = Math.max(1, fmt.days(start, end));
+  const ticks = fmt.ticks(start, end);
+  const today = board.week && board.week.today;
+  const todayLeft = today ? fmt.pct(today, start, end) : null;
+
+  stack.innerHTML = (board.phases || []).map((phase) => `
+    <div class="ph-phase">
+      <h3 class="ph-phase-title">${view(phase.name)}</h3>
+      ${phase.issues.map((issue) => fmt.row(issue, esc)).join('')}
+    </div>
+  `).join('') || emptyNote('No Pleasant Hill issues yet.');
+
+  const monthRow = ticks.map((t) => {
+    const left = fmt.pct(t.ymd, start, end);
+    return `<span class="ph-month" style="left:${left}%">${view(t.label)}</span>`;
+  }).join('');
+
+  const gateMarks = (board.gates || []).map((g) => {
+    if (!g.targetDate) return '';
+    const left = fmt.pct(g.targetDate, start, end);
+    return `<span class="ph-gate-line" style="left:${left}%" title="${view(g.code)}"></span>
+      <span class="ph-gate-label" style="left:${left}%">${view(g.code)}</span>`;
+  }).join('');
+
+  const rows = issues.map((issue) => {
+    const s = issue.startDate || issue.dueDate || start;
+    const e = issue.dueDate || issue.startDate || s;
+    const left = fmt.pct(s, start, end);
+    const width = Math.max(1.2, (Math.max(0, fmt.days(s, e)) / total) * 100);
+    const late = issue.late ? ' late' : '';
+    const owners = (issue.owners || []).join(', ');
+    return `<div class="ph-gantt-row${late}">
+      <div class="ph-gantt-label">
+        <div class="ph-gantt-task">${view(fmt.title(issue.title))}</div>
+        <div class="ph-gantt-owner">${view(owners)}</div>
+      </div>
+      <div class="ph-gantt-track">
+        <span class="ph-bar${late}" style="left:${left}%;width:${width}%"></span>
+      </div>
+    </div>`;
+  }).join('');
+
+  host.innerHTML = `
+    <div class="ph-gantt">
+      <div class="ph-gantt-head">
+        <div class="ph-gantt-label ph-gantt-label-head">Task / owner</div>
+        <div class="ph-gantt-track ph-gantt-months">
+          ${monthRow}
+          ${gateMarks}
+          ${todayLeft != null ? `<span class="ph-today" style="left:${todayLeft}%"></span>` : ''}
+        </div>
+      </div>
+      ${rows || emptyNote('No bars to show.')}
+    </div>`;
+}
+
+function showUnconfigured() {
+  const banner = document.getElementById('ph-banner');
+  banner.hidden = false;
+  banner.className = 'ops-banner error';
+  setPlain(banner, 'Linear not configured. Set LINEAR_API_KEY on the server (Render env). This page is read-only and does not send the key to the browser.');
+  document.getElementById('ph-gates').innerHTML = '';
+  document.getElementById('ph-late-body').innerHTML = emptyNote('Connect Linear to load late items.');
+  document.getElementById('ph-week-body').innerHTML = emptyNote('Connect Linear to load this week.');
+  document.getElementById('ph-stack').innerHTML = emptyNote('Connect Linear to load the schedule.');
+  document.getElementById('ph-gantt-scroll').innerHTML = '';
+  document.getElementById('late-count').textContent = '0';
+  document.getElementById('week-count').textContent = '0';
+  showStatus('status-text', 'error', 'Not configured');
+}
+
+function showPasscodeGate(message) {
+  const banner = document.getElementById('ph-banner');
+  banner.hidden = false;
+  banner.className = 'ops-banner error';
+  setPlain(banner, message || 'Enter the viewer passcode to open this schedule.');
+  document.getElementById('ph-gates').innerHTML = '';
+  document.getElementById('ph-late-body').innerHTML = `
+    <form id="ph-gate-form" class="ph-pass-form">
+      <label for="ph-pass">Passcode</label>
+      <input id="ph-pass" name="password" type="password" autocomplete="current-password" inputmode="text" required>
+      <button class="btn btn-primary" type="submit">View schedule</button>
+    </form>`;
+  document.getElementById('ph-week-body').innerHTML = '';
+  document.getElementById('ph-stack').innerHTML = '';
+  document.getElementById('ph-gantt-scroll').innerHTML = '';
+  document.getElementById('late-count').textContent = '0';
+  document.getElementById('week-count').textContent = '0';
+  showStatus('status-text', 'error', fmt.strip('Locked'));
+  const form = document.getElementById('ph-gate-form');
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const password = document.getElementById('ph-pass').value;
+    try {
+      const res = await fetch('/api/pleasant-hill/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setPlain(banner, json.message || 'Passcode incorrect.');
+        return;
+      }
+      loadBoard();
+    } catch (err) {
+      setPlain(banner, VIEWER_LOAD_ERROR);
+    }
+  });
+}
+
+async function loadBoard() {
+  showStatus('status-text', 'saving', 'Loading');
+  const banner = document.getElementById('ph-banner');
+  banner.hidden = true;
+  try {
+    const res = await fetch(apiUrl());
+    const json = await res.json();
+    if (res.status === 429) {
+      banner.hidden = false;
+      banner.className = 'ops-banner error';
+      setPlain(banner, json.message || VIEWER_LOAD_ERROR);
+      showStatus('status-text', 'error', fmt.strip('Error'));
+      return;
+    }
+    if (res.status === 401 || json.source === 'auth') {
+      showPasscodeGate(json.message);
+      return;
+    }
+    const board = typeof fmt.noDollar === 'function' ? fmt.noDollar(json) : json;
+    if (!board.success || board.source === 'error' || board.source === 'gated' || res.status === 503) {
+      banner.hidden = false;
+      banner.className = 'ops-banner error';
+      setPlain(banner, VIEWER_LOAD_ERROR);
+      showStatus('status-text', 'error', fmt.strip('Error'));
+      return;
+    }
+    if (!board.configured && board.source === 'unconfigured') {
+      showUnconfigured();
+      return;
+    }
+    const site = board.site || {};
+    setPlain(
+      document.getElementById('ph-lede'),
+      `${site.name || 'Pleasant Hill'} · ${site.address || ''}`
+    );
+    const projectLink = document.getElementById('linear-project-link');
+    const projectUrl = board.project && board.project.url;
+    if (board.source !== 'fixture' && projectUrl && /^https?:/i.test(String(projectUrl))) {
+      projectLink.href = fmt.strip(projectUrl);
+      projectLink.hidden = false;
+    } else {
+      projectLink.removeAttribute('href');
+      projectLink.hidden = true;
+    }
+    renderGates(board.gates || []);
+    document.getElementById('late-count').textContent = String((board.late || []).length);
+    document.getElementById('week-count').textContent = String((board.thisWeek || []).length);
+    renderList(document.getElementById('ph-late-body'), board.late, 'No late items.');
+    renderList(document.getElementById('ph-week-body'), board.thisWeek, 'Nothing scheduled this week.');
+    renderGantt(board);
+    if (board.source === 'fixture') {
+      banner.hidden = false;
+      banner.className = 'ops-banner';
+      setPlain(banner, 'Sample schedule (fixture). Live Linear is used when LINEAR_API_KEY is set and fixture mode is off.');
+    }
+    showStatus(
+      'status-text',
+      'ok',
+      fmt.strip(board.source === 'linear' ? 'Live' : board.source === 'fixture' ? 'Fixture' : 'Ready')
+    );
+  } catch (err) {
+    console.error('Pleasant Hill page failed to load');
+    banner.hidden = false;
+    banner.className = 'ops-banner error';
+    setPlain(banner, VIEWER_LOAD_ERROR);
+    showStatus('status-text', 'error', fmt.strip('Error'));
+  }
+}
+
+loadBoard();
+</script>
+</body>
+</html>
