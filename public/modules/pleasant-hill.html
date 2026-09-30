@@ -294,12 +294,19 @@ async function loadBoard() {
   try {
     const res = await fetch(apiUrl());
     const json = await res.json();
+    if (res.status === 429) {
+      banner.hidden = false;
+      banner.className = 'ops-banner error';
+      setPlain(banner, json.message || VIEWER_LOAD_ERROR);
+      showStatus('status-text', 'error', fmt.strip('Error'));
+      return;
+    }
     if (res.status === 401 || json.source === 'auth') {
       showPasscodeGate(json.message);
       return;
     }
     const board = typeof fmt.noDollar === 'function' ? fmt.noDollar(json) : json;
-    if (!board.success || board.source === 'error' || board.source === 'gated') {
+    if (!board.success || board.source === 'error' || board.source === 'gated' || res.status === 503) {
       banner.hidden = false;
       banner.className = 'ops-banner error';
       setPlain(banner, VIEWER_LOAD_ERROR);

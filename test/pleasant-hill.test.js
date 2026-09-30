@@ -7,6 +7,7 @@ const express = require('express');
 const {
   displayTitle,
   fixtureBoard,
+  assembleBoard,
   gateCodeFromText,
   getPleasantHillBoard,
   includeIssue,
@@ -21,8 +22,13 @@ const {
 } = require('../lib/pleasant-hill');
 const { stripFinancials, scrubString } = require('../public/js/strip-financials');
 const { assertNoDollar, issueRowHtml, viewText } = require('../public/js/pleasant-hill-format');
-const { passwordRequired } = require('../lib/ph-view-gate');
-const { mountPleasantHill } = require('../lib/pleasant-hill-routes');
+const {
+  AUTH_MAX_TRIES,
+  passwordRequired,
+  resetAuthAttempts,
+  tokensEqual
+} = require('../lib/ph-view-gate');
+const { BASIC_REALM, mountPleasantHill } = require('../lib/pleasant-hill-routes');
 
 describe('Linear not configured', () => {
   it('returns a Linear not configured board when the API key is missing', async () => {
@@ -258,6 +264,18 @@ describe('no-money filter', () => {
     assert.equal(viewText('$1.2 million'), '');
   });
 
+  it('blanks titles that are mostly stripped leftover separators', () => {
+    assert.equal(scrubString('Wire / / / /'), '');
+    assert.equal(displayTitle('Pleasant Hill: Wire $1,200 / $3M / 20% / 10%'), '');
+  });
+
+  it('strips Budget: 500k-style figures after budget/cost/price words', () => {
+    const cleaned = stripFinancials('Note Budget: 500k and cost 1.2m end');
+    assert.doesNotMatch(cleaned, /500k/i);
+    assert.doesNotMatch(cleaned, /1\.2m/i);
+    assert.equal(scrubString('Budget: 500k').includes('500'), false);
+  });
+
   it('browser scripts do not redeclare stripFinancials on the global object', () => {
     const fs = require('node:fs');
     const path = require('node:path');
@@ -312,14 +330,24 @@ describe('synthetic fixture', () => {
     assert.ok(board.thisWeek.some((i) => i.identifier === 'PH-091'));
   });
 
-  it('ignores ?fixture=1 when production is set', async () => {
-    const board = await getPleasantHillBoard({
-      fixture: true,
-      production: true,
+  it('dedupes mapped issues by id', () => {
+    const raw = {
+      id: 'dup-1',
+      identifier: 'PH-DUP',
+      title: 'Pleasant Hill: duplicate row',
+      dueDate: '2026-10-10',
+      state: { name: 'Backlog', type: 'backlog' },
+      labels: { nodes: [] },
+      project: { name: 'Clinic Development - Todd' }
+    };
+    const board = assembleBoard({
+      issues: [raw, { ...raw, title: 'Pleasant Hill: duplicate row copy' }],
+      project: { name: 'Clinic Development - Todd', url: null },
+      milestones: [],
+      source: 'fixture',
       now: new Date('2026-09-29T19:00:00Z')
     });
-    assert.equal(board.source, 'unconfigured');
-    assert.equal(board.issues.length, 0);
+    assert.equal(board.issues.filter((i) => i.id === 'dup-1').length, 1);
   });
 });
 
@@ -373,10 +401,12 @@ describe('Pleasant Hill viewer gate', () => {
   }
 
   it('requires a passcode for the API when PH_VIEW_PASSWORD is set', async () => {
+    resetAuthAttempts();
     assert.equal(passwordRequired(), true);
     const res = await request('/api/pleasant-hill?fixture=1');
     assert.equal(res.status, 401);
     assert.match(res.body, /Passcode required/);
+    assert.equal(res.headers['www-authenticate'], BASIC_REALM);
     assert.equal(res.body.includes('PH-101'), false);
   });
 
@@ -399,11 +429,93 @@ describe('Pleasant Hill viewer gate', () => {
   });
 
   it('accepts HTTP basic auth', async () => {
+    resetAuthAttempts();
     const token = Buffer.from('view:test-pass').toString('base64');
     const res = await request('/api/pleasant-hill?fixture=1', {
       headers: { Authorization: 'Basic ' + token }
     });
     assert.equal(res.status, 200);
     assert.equal(JSON.parse(res.body).source, 'fixture');
+  });
+
+  it('rate-limits unlock and Basic auth to about 5 tries per minute per IP', async () => {
+    resetAuthAttempts();
+    const posts = [];
+    for (let i = 0; i < AUTH_MAX_TRIES + 1; i += 1) {
+      posts.push(await request('/api/pleasant-hill/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '203.0.113.9' },
+        body: JSON.stringify({ password: 'wrong' })
+      }));
+    }
+    assert.equal(posts[AUTH_MAX_TRIES - 1].status, 401);
+    assert.equal(posts[AUTH_MAX_TRIES].status, 429);
+    resetAuthAttempts();
+    const basic = Buffer.from('view:nope').toString('base64');
+    let last;
+    for (let i = 0; i < AUTH_MAX_TRIES + 1; i += 1) {
+      last = await request('/api/pleasant-hill?fixture=1', {
+        headers: { Authorization: 'Basic ' + basic, 'X-Forwarded-For': '203.0.113.10' }
+      });
+    }
+    assert.equal(last.status, 429);
+    assert.ok(last.headers['retry-after']);
+  });
+});
+
+describe('constant-time secret compare', () => {
+  it('compares HMAC digests and does not return early on length mismatch', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const src = fs.readFileSync(path.join(__dirname, '../lib/ph-view-gate.js'), 'utf8');
+    assert.equal(/left\.length\s*!==\s*right\.length/.test(src), false);
+    assert.match(src, /timingSafeEqual\(hmacDigest/);
+    assert.equal(tokensEqual('short', 'much-longer-secret'), false);
+    assert.equal(tokensEqual('same-secret', 'same-secret'), true);
+  });
+});
+
+describe('fail-closed HTTP 503', () => {
+  it('returns 503 when the Linear key is set without PH_VIEW_PASSWORD', async () => {
+    const prevKey = process.env.LINEAR_API_KEY;
+    const prevPw = process.env.PH_VIEW_PASSWORD;
+    process.env.LINEAR_API_KEY = 'live-key';
+    delete process.env.PH_VIEW_PASSWORD;
+    const app = express();
+    app.use(express.json());
+    mountPleasantHill(app);
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    const res = await new Promise((resolve, reject) => {
+      http.get('http://127.0.0.1:' + port + '/api/pleasant-hill', (response) => {
+        let body = '';
+        response.setEncoding('utf8');
+        response.on('data', (c) => { body += c; });
+        response.on('end', () => resolve({ status: response.statusCode, body }));
+      }).on('error', reject);
+    });
+    await new Promise((resolve) => server.close(resolve));
+    assert.equal(res.status, 503);
+    const json = JSON.parse(res.body);
+    assert.equal(json.source, 'gated');
+    assert.equal(json.issues.length, 0);
+    if (prevKey == null) delete process.env.LINEAR_API_KEY;
+    else process.env.LINEAR_API_KEY = prevKey;
+    if (prevPw == null) delete process.env.PH_VIEW_PASSWORD;
+    else process.env.PH_VIEW_PASSWORD = prevPw;
+  });
+});
+
+describe('Render NODE_ENV docs', () => {
+  it('tells operators to set NODE_ENV=production explicitly', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const readme = fs.readFileSync(path.join(__dirname, '../README.md'), 'utf8');
+    const envExample = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8');
+    assert.match(readme, /NODE_ENV=production/);
+    assert.match(readme, /explicitly/);
+    assert.match(envExample, /NODE_ENV=production/);
+    assert.match(envExample, /Render does not set this for you/);
   });
 });

@@ -15,11 +15,11 @@ function stripFinancialsClient(text) {
 }
 
 function displayTitle(title) {
-  return stripFinancialsClient(
-    String(title || '')
-      .replace(/^Pleasant Hill:\s*/i, '')
-      .replace(/\s*\(\s*Owner:\s*[^)]+\)\s*$/i, '')
-  );
+  const prepared = String(title || '')
+    .replace(/^Pleasant Hill:\s*/i, '')
+    .replace(/\s*\(\s*Owner:\s*[^)]+\)\s*$/i, '');
+  if (stripApi && stripApi.scrubString) return stripApi.scrubString(prepared);
+  return stripFinancialsClient(prepared);
 }
 
 function formatShortDate(ymd) {

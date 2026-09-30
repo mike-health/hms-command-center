@@ -37,6 +37,8 @@ function stripFinancials(text) {
   out = out.replace(new RegExp('\\b' + NUM + '\\s*' + DOLLARS_WORD + '\\b', 'gi'), '');
   out = out.replace(new RegExp('\\b' + DOLLARS_WORD + '\\s*' + NUM + '\\b', 'gi'), '');
 
+  out = out.replace(new RegExp('\\b(?:budget|cost|price|fee|quote|amount)s?\\b[:\\s-]*' + NUM + '(?:\\s*' + SCALE + ')?', 'gi'), '');
+
   out = out.replace(/\$[A-Za-z][\w-]*/g, '');
   out = out.replace(/\$/g, '');
   out = out.replace(/[€£¥]/g, '');
@@ -46,6 +48,18 @@ function stripFinancials(text) {
   out = out.replace(/\bpercent\b/gi, '');
 
   return collapseSpace(out);
+}
+
+function looksMostlyStripped(text) {
+  const s = String(text || '').trim();
+  if (!s) return true;
+  if (!/[A-Za-z0-9]/.test(s)) return true;
+  const withoutSeps = s.replace(/[\s\/\\|,:;\-—.–_*]+/g, ' ').trim();
+  const seps = (s.match(/[\/|]/g) || []).length;
+  const compact = withoutSeps.replace(/\s+/g, '');
+  if (seps >= 1 && compact.length <= 8 && !/\s/.test(withoutSeps)) return true;
+  if (seps >= 2 && compact.length <= 8) return true;
+  return false;
 }
 
 function looksFinancial(text) {
@@ -62,7 +76,8 @@ function looksFinancial(text) {
 function scrubString(text) {
   if (text == null) return text;
   const cleaned = stripFinancials(text);
-  if (typeof cleaned === 'string' && looksFinancial(cleaned)) return '';
+  if (typeof cleaned !== 'string') return cleaned;
+  if (looksFinancial(cleaned) || looksMostlyStripped(cleaned)) return '';
   return cleaned;
 }
 
@@ -98,6 +113,7 @@ function sanitizeForView(value) {
 
 const api = {
   stripFinancials,
+  looksMostlyStripped,
   looksFinancial,
   scrubString,
   deepStrip,
