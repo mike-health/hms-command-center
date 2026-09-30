@@ -50,6 +50,13 @@ class TriggerTests(unittest.TestCase):
         clamped = clamp_reply(proposal, "🤖 Dev:", 200)
         self.assertIn("->", clamped)
         self.assertIn("(expires 24h)", clamped)
+        money = clamp_reply("budget $1.2 million or US$1,200 (1200$) plus 20% percent", "🤖 Dev:", 200)
+        self.assertNotIn("million", money.lower())
+        self.assertNotIn("1200", money)
+        self.assertNotIn("$", money)
+        self.assertNotIn("%", money)
+        self.assertNotIn("percent", money.lower())
+        self.assertNotRegex(money, r"\bUS\b")
 
 
 if __name__ == "__main__":

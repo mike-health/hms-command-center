@@ -286,14 +286,39 @@ class LinearDeskTests(unittest.TestCase):
         leftover = strip_dollars("order chambers $1.2k now")
         self.assertNotIn("k", leftover.lower())
         self.assertIn("order chambers", leftover)
+        extra = [
+            ("cost $1.2 million extra", ("million", "1.2", "$")),
+            ("about 2 thousand units", ("thousand",)),
+            ("cap 1 billion USD", ("billion", "USD")),
+            ("pay 1200$ today", ("1200", "$")),
+            ("invoice US$1,200 due", ("US", "1200", "$")),
+            ("fee 20% now", ("20%", "%", "20")),
+            ("spread 2.5% wide", ("2.5%", "%", "2.5")),
+            ("up 15 percent this week", ("percent", "15")),
+        ]
+        for sample, banned in extra:
+            cleaned = strip_dollars(sample)
+            cleaned_l = cleaned.lower()
+            for token in banned:
+                self.assertNotIn(token.lower(), cleaned_l, sample)
         money_issue = [i for i in fixture_issues() if i["identifier"] == "PH-36"][0]
         from imessage_group_bot.guardrails import clamp_reply
 
-        for blob in (money_issue["title"], money_issue["description"], "can we spend $1,200"):
+        for blob in (
+            money_issue["title"],
+            money_issue["description"],
+            "can we spend $1,200",
+            "US$1,200 at 20%",
+            "$1.2 million and 1200$",
+        ):
             out = clamp_reply(blob, "🤖 Dev:", 200)
             self.assertNotIn("$", out)
             self.assertNotIn("1200", out)
             self.assertNotIn("USD", out)
+            self.assertNotIn("million", out.lower())
+            self.assertNotIn("%", out)
+            self.assertNotIn("percent", out.lower())
+            self.assertNotRegex(out, r"\bUS\b")
 
     def test_engine_dry_run_question(self):
         self.config.linear_confirm_handles = ["+15555550101"]

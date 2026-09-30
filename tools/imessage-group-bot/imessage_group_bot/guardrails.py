@@ -16,26 +16,40 @@ except ImportError:  # pragma: no cover - Python < 3.9
 MARKDOWN_RE = re.compile(r"[*_`#\[\]~]+")
 HOUR_SECONDS = 3600
 DAY_SECONDS = 86400
+SCALE_WORD = r"(?:thousand|million|billion)s?"
+CUR_SYM = r"[$€£]"
+NUM = r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
 MONEY_RES = (
-    re.compile(r"[$€£]\s*\d{1,3}(?:,\d{3})*(?:\.\d+)?\s*[kKmMbB]?\b"),
-    re.compile(r"[$€£]\s*\d+(?:\.\d+)?\s*[kKmMbB]?\b"),
+    # US$1,200 / US $1.2 million
     re.compile(
-        r"\b\d{1,3}(?:,\d{3})*(?:\.\d+)?\s*[kKmMbB]?\s*"
+        r"\bUS\s*" + CUR_SYM + r"\s*(?:" + NUM + r")\s*(?:[kKmMbB]|" + SCALE_WORD + r")?\b",
+        re.IGNORECASE,
+    ),
+    # $1.2 million / €1 thousand
+    re.compile(
+        r"(?:US\s*)?" + CUR_SYM + r"\s*(?:" + NUM + r")\s*" + SCALE_WORD + r"\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:" + NUM + r")\s*" + SCALE_WORD + r"(?:\s*(?:USD|EUR|GBP|dollars?|bucks|euros?|pounds?))?\b",
+        re.IGNORECASE,
+    ),
+    re.compile(CUR_SYM + r"\s*(?:" + NUM + r")\s*[kKmMbB]?\b"),
+    re.compile(
+        r"\b(?:" + NUM + r")\s*[kKmMbB]?\s*"
         r"(?:USD|EUR|GBP|dollars?|bucks|euros?|pounds?)\b",
         re.IGNORECASE,
     ),
     re.compile(
-        r"\b\d+(?:\.\d+)?\s*[kKmMbB]?\s*(?:USD|EUR|GBP|dollars?|bucks|euros?|pounds?)\b",
+        r"\b(?:USD|EUR|GBP)\s*" + CUR_SYM + r"?\s*(?:" + NUM + r")\s*(?:[kKmMbB]|" + SCALE_WORD + r")?\b",
         re.IGNORECASE,
     ),
-    re.compile(
-        r"\b(?:USD|EUR|GBP)\s*[$€£]?\s*\d{1,3}(?:,\d{3})*(?:\.\d+)?\s*[kKmMbB]?\b",
-        re.IGNORECASE,
-    ),
-    re.compile(
-        r"\b(?:USD|EUR|GBP)\s*[$€£]?\s*\d+(?:\.\d+)?\s*[kKmMbB]?\b",
-        re.IGNORECASE,
-    ),
+    # 1200$ / 1.2k€
+    re.compile(r"\b(?:" + NUM + r")\s*[kKmMbB]?\s*" + CUR_SYM),
+    # 20% / 2.5 percent
+    re.compile(r"\b(?:" + NUM + r")\s*(?:%|percent(?:age)?s?)\b", re.IGNORECASE),
+    re.compile(r"(?:" + NUM + r")\s*%"),
+    re.compile(r"\bpercent(?:age)?s?\b", re.IGNORECASE),
 )
 
 
