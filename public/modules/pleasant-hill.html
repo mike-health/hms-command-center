@@ -246,7 +246,6 @@ async function loadBoard() {
     const projectUrl = json.project && json.project.url;
     if (json.source !== 'fixture' && projectUrl && /^https?:/i.test(String(projectUrl))) {
       projectLink.href = fmt.strip(projectUrl);
-      projectLink.hidden = true;
       projectLink.hidden = false;
     } else {
       projectLink.removeAttribute('href');
