@@ -2,21 +2,17 @@
 
 from __future__ import print_function
 
-import random
 import re
+import secrets
 from datetime import date, datetime, timedelta
 
-from .guardrails import clamp_reply, local_now
+from .guardrails import clamp_reply, local_now, strip_dollars
 from .linear_client import LinearClient, LinearError
 from .logs import log_event
 from .trigger import handle_allowed
 
 
-DOLLAR_RE = re.compile(
-    r"\$\s*[\d,]+(?:\.\d+)?|\bUSD\s*[\d,]+(?:\.\d+)?|\b\d[\d,]*\s*(?:dollars?|bucks)\b",
-    re.IGNORECASE,
-)
-CONFIRM_RE = re.compile(r"^(?:confirm|ok)\s+([A-Za-z0-9]{2,8})\s*$", re.IGNORECASE)
+CONFIRM_RE = re.compile(r"^(?:confirm|ok)\s+([A-Za-z0-9]{4,12})\s*$", re.IGNORECASE)
 DATE_CHANGE_RE = re.compile(
     r"^(?:please\s+)?(?:move|moved|reschedule|change)\s+(?P<what>.+?)\s+"
     r"(?:to|for|until)\s+(?P<when>.+?)\s*$",
@@ -66,13 +62,9 @@ MONTHS = {
 }
 CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"
 CODE_DIGITS = "23456789"
+CONFIRM_CODE_LEN = 4
 DONE_STATES = frozenset(("completed", "canceled", "cancelled", "done"))
-
-
-def strip_dollars(text):
-    if not text:
-        return text
-    return " ".join(DOLLAR_RE.sub("", text).split())
+LINEAR_FAIL_REPLY = "Linear lookup failed. Check the log."
 
 
 def _short_date(value):
@@ -277,13 +269,14 @@ def match_issues_by_phrase(issues, phrase, prefix):
     return hits
 
 
-def make_code(existing):
-    for _ in range(50):
-        code = random.choice(CODE_LETTERS) + random.choice(CODE_DIGITS)
+def make_code(existing, length=CONFIRM_CODE_LEN):
+    alphabet = CODE_LETTERS + CODE_DIGITS
+    n = max(int(length or CONFIRM_CODE_LEN), CONFIRM_CODE_LEN)
+    for _ in range(80):
+        code = "".join(secrets.choice(alphabet) for _ in range(n))
         if code not in existing:
             return code
-    extra = "".join(random.choice(CODE_LETTERS + CODE_DIGITS) for _ in range(3))
-    return extra
+    return "".join(secrets.choice(alphabet) for _ in range(n + 2))
 
 
 def expire_proposals(state, now_ts, events_log):
@@ -316,8 +309,7 @@ def can_confirm(message, config):
 
 
 def _reply(config, body):
-    cleaned = strip_dollars(body)
-    return clamp_reply(cleaned, config.bot_prefix, config.max_reply_chars)
+    return clamp_reply(body, config.bot_prefix, config.max_reply_chars)
 
 
 def handle_linear(
@@ -329,6 +321,7 @@ def handle_linear(
     client,
     events_log=None,
     code_factory=None,
+    live_flag=False,
 ):
     intent = parse_intent(rest)
     if intent is None:
@@ -337,7 +330,9 @@ def handle_linear(
     expire_proposals(state, now_ts, events_log)
     try:
         if intent["type"] == "confirm":
-            text, meta = _handle_confirm(config, intent, message, state, now_ts, client, events_log)
+            text, meta = _handle_confirm(
+                config, intent, message, state, now_ts, events_log, live_flag=live_flag
+            )
         elif intent["type"] == "date_change":
             text, meta = _handle_date_change(
                 config, intent, state, now_ts, client, events_log, code_factory
@@ -345,7 +340,15 @@ def handle_linear(
         else:
             text, meta = _handle_query(config, intent, now_ts, client)
     except LinearError as exc:
-        return _reply(config, "Linear read failed: %s" % exc), {
+        log_event(
+            events_log,
+            {
+                "event": "linear_error",
+                "error": str(exc),
+            },
+            now_ts=now_ts,
+        )
+        return _reply(config, LINEAR_FAIL_REPLY), {
             "responder": "linear_error",
             "error": str(exc),
         }
@@ -498,7 +501,7 @@ def _handle_date_change(config, intent, state, now_ts, client, events_log, code_
     ), {"responder": "linear", "kind": "proposal", "code": code}
 
 
-def _handle_confirm(config, intent, message, state, now_ts, client, events_log):
+def _handle_confirm(config, intent, message, state, now_ts, events_log, live_flag=False):
     code = intent["code"]
     proposals = list(state.get("linear_proposals") or [])
     found = None
@@ -535,26 +538,27 @@ def _handle_confirm(config, intent, message, state, now_ts, client, events_log):
         "identifier": found.get("identifier"),
         "input": {"dueDate": found.get("new_due")},
     }
-    wrote = False
-    if config.linear_write_allowed():
-        client.update_due_date(found["issue_id"], found["new_due"])
-        wrote = True
-        found["status"] = "applied"
-        log_event(
-            events_log,
-            {"event": "linear_write", "code": code, "mutation": mutation},
-            now_ts=now_ts,
-        )
+    write_ok = config.linear_write_allowed(live_flag)
+    meta = {
+        "responder": "linear",
+        "kind": "confirm",
+        "wrote": False,
+        "code": code,
+    }
+    if write_ok:
         body = "updated %s due %s -> %s." % (
             found.get("identifier"),
             _short_date(found.get("old_due")),
             _short_date(found.get("new_due")),
         )
+        meta["pending_linear_write"] = mutation
     else:
         found["status"] = "logged_not_written"
         reason = []
         if config.dry_run:
             reason.append("dry_run")
+        if not live_flag:
+            reason.append("missing_live_flag")
         if not config.linear_allow_writes:
             reason.append("allow_writes_false")
         log_event(
@@ -579,11 +583,33 @@ def _handle_confirm(config, intent, message, state, now_ts, client, events_log):
             "event": "linear_confirm",
             "code": code,
             "identifier": found.get("identifier"),
-            "wrote": wrote,
+            "wrote": False,
         },
         now_ts=now_ts,
     )
-    return body, {"responder": "linear", "kind": "confirm", "wrote": wrote}
+    return body, meta
+
+
+def apply_pending_linear_write(client, state, meta, events_log, now_ts):
+    """Run issueUpdate only after the live-send gate has passed."""
+    mutation = (meta or {}).get("pending_linear_write")
+    if not mutation:
+        return meta
+    client.update_due_date(mutation["id"], mutation["input"]["dueDate"])
+    code = (meta.get("code") or "").upper()
+    for item in state.get("linear_proposals") or []:
+        if (item.get("code") or "").upper() == code and item.get("status") == "pending":
+            item["status"] = "applied"
+            break
+    log_event(
+        events_log,
+        {"event": "linear_write", "code": meta.get("code"), "mutation": mutation},
+        now_ts=now_ts,
+    )
+    out = dict(meta)
+    out["wrote"] = True
+    out.pop("pending_linear_write", None)
+    return out
 
 
 def client_from_config(config, http_post=None):

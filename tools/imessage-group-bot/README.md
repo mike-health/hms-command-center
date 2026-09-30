@@ -126,9 +126,9 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `allowlist_handles` | Todd/Rudy handles (Mike = `is_from_me`) |
 | `poll_interval_seconds` | Default `10` |
 | `delivery_confirm_seconds` | Wait for `is_from_me` row after send (default `15`) |
-| `rate_caps.min_seconds_between_replies` | Default `20` |
-| `rate_caps.max_replies_per_hour` | Default `10` |
-| `rate_caps.max_replies_per_day` | Default `40` |
+| `rate_caps.min_seconds_between_replies` | Default `20`. Explicit `0` means no minimum interval (not the default). |
+| `rate_caps.max_replies_per_hour` | Default `10`. Explicit `0` means no replies this hour. |
+| `rate_caps.max_replies_per_day` | Default `40`. Explicit `0` means no replies today. |
 | `quiet_hours.start` / `end` / `timezone` | Default **21:00–06:00** `America/Los_Angeles` (overnight wrap). Empty start/end disables. |
 | `kill_flag_file` | Presence of this file blocks sends |
 | `state_file` | High-water ROWID, processed ids, rate timestamps, pause |
@@ -143,8 +143,8 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 | `linear.api_key_file` | Optional path **outside the repo** to a file containing the key |
 | `linear.team_key` | Default `HEA` |
 | `linear.project_names` | Default `Clinic Development - Todd` and `Supervision Standard Rollout`. Legacy `project_name` / `projects` still work. |
-| `linear.title_prefix` | Default `Pleasant Hill:`. Also includes titles that contain `Pleasant Hill` (e.g. HEA-91). |
-| `linear.allow_writes` | Default **`false`**. Required (with `dry_run: false`) before any Linear mutation. |
+| `linear.title_prefix` | Default `Pleasant Hill:`. Also includes titles that contain `Pleasant Hill` (e.g. a supervision-standard parent issue). **`Pleasanton:` titles are excluded on purpose.** |
+| `linear.allow_writes` | Default **`false`**. A Linear mutation also requires `dry_run: false` **and** `--live`. |
 | `linear.proposal_ttl_seconds` | Default `86400` (24h) |
 | `linear.confirm_from_me` | Default `true` (Mike) |
 | `linear.confirm_handles` | Todd (and only other people allowed to confirm date writes) |
@@ -158,13 +158,14 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 - One reply per trigger message (idempotent on ROWID/guid).
 - Reply: one line, ≤200 chars, prefix `🤖 Dev:`, markdown/newlines stripped.
 - `stub` responder (default, only author unless `openai_compatible` is set): `🤖 Dev: got it, routing to the dev desk: <question>`. A bare `@dev` with no question gets `🤖 Dev: got it, standing by at the dev desk`.
-- `openai_compatible` is off unless `responder.type` is exactly `openai_compatible`. It is not called until kill-switch, `enabled`, quiet hours, and rate caps have already allowed a reply. On any error it falls back to stub. Money / leases / partners / Greene / JV → `🤖 Dev: Mike will answer that`.
+- `openai_compatible` is off unless `responder.type` is exactly `openai_compatible`. It is not called until kill-switch, `enabled`, quiet hours, rate caps, **and** the dry-run/`--live` gate have already allowed a live send. On any error it falls back to stub. Money / leases / partners / Greene / JV → `🤖 Dev: Mike will answer that`.
+- Every outgoing line is clamped at one choke point (`clamp_reply`): one line, ≤200 chars, prefix `🤖 Dev:`, markdown stripped without eating `->` or `(expires 24h)`, and currency amounts removed (`$1,200`, `1200 USD`, `$1.2k`, `€`/`£`). That includes stub echoes, OpenAI, and Linear replies.
 - Triggers that would be answered (not suppressed by quiet hours) are appended to `queue_file` for a later desk agent.
 - Live send: `osascript` with text and chat GUID as argv (so 🤖 is never JSON `\\u`-escaped into AppleScript), then look for a new `is_from_me` row with that text within 15s; retry once; each osascript attempt counts toward rate caps whether or not delivery confirms; then alerts log + optional hook. The hook must not send iMessage.
 - Kill switch (any one blocks send): `enabled: false`, kill flag file, `@dev stop` from **Mike only**. `@dev start` from Mike clears the flag file and runtime pause (it cannot override `enabled: false`). Mike's stop/start still apply the flag during quiet hours; the acknowledgement reply is suppressed.
-- Pleasant Hill Linear (team HEA, configurable `project_names`, default Clinic Development + Supervision Standard Rollout). Titles starting with `Pleasant Hill:` or containing `Pleasant Hill` (Pleasanton is excluded). `@dev what's next on Pleasant Hill`, `@dev what's late on Pleasant Hill`, `@dev what's Leddy doing this week`, `@dev what's the next gate on Pleasant Hill` (open M1–M4, currently HEA-136 / 142 / 144 / 147). Replies are one line, ≤200 chars, never include dollar amounts, and strip `(Owner: …)` title suffixes. Todd and Leddy have no Linear accounts: unassigned issues use `(Owner: Todd)` / `(Owner: Leddy)` in the title; the bot parses that when there is no assignee, and still matches remaining title tokens (so Leddy still hits HEA-35).
-- Date moves (`@dev survey moved to 10/20`) create a **proposal** with a confirm code. Linear is not updated until Mike (`is_from_me`) or Todd (`confirm_handles`) sends `@dev confirm 7K` within 24h. Rudy cannot confirm. Ambiguous matches ask instead of guessing. Expiry, proposals, confirms, and rejected confirms are JSONL-logged.
-- Linear **writes** require `dry_run: false` **and** `linear.allow_writes: true`. Otherwise the mutation is logged as `linear_write_blocked` / `would_mutate` and not sent.
+- Pleasant Hill Linear (team HEA, configurable `project_names`, default Clinic Development + Supervision Standard Rollout). Titles starting with `Pleasant Hill:` or containing `Pleasant Hill`. **`Pleasanton:` titles are excluded (intended)** so Pleasanton clinic issues are not mixed in. `@dev what's next on Pleasant Hill`, `@dev what's late on Pleasant Hill`, `@dev what's Leddy doing this week`, `@dev what's the next gate on Pleasant Hill` (lowest open M1–M4 in the title). Replies are one line, ≤200 chars, never include currency amounts, and strip `(Owner: …)` title suffixes. Todd and Leddy have no Linear accounts: unassigned issues use `(Owner: Todd)` / `(Owner: Leddy)` in the title; the bot parses that when there is no assignee, and still matches remaining title tokens.
+- Date moves (`@dev survey moved to 10/20`) create a **proposal** with a 4+ character confirm code from `secrets`. Linear is not updated until Mike (`is_from_me`) or Todd (`confirm_handles`) sends `@dev confirm 7K2P` within 24h **and** the live-send gate passes. Rudy cannot confirm. Ambiguous matches ask instead of guessing. Expiry, proposals, confirms, and rejected confirms are JSONL-logged. Linear error details stay in the log; the group gets a generic line.
+- Linear **writes** require `dry_run: false` **and** `--live` **and** `linear.allow_writes: true`. The GraphQL `issueUpdate` runs only after that live-send gate. Otherwise the mutation is logged as `linear_write_blocked` / `would_mutate` and not sent.
 
 ## Throwaway-group test plan
 
@@ -178,7 +179,7 @@ All in one JSON file (stdlib `json`). Copy `config.example.json`. No real phone 
 8. In the throwaway group send `@dev what's next on Pleasant Hill`, `@dev what's Leddy doing this week`, `@dev what's late on Pleasant Hill`, `@dev what's the next gate on Pleasant Hill`. Confirm one-line `🤖 Dev:` would-sends, **no `$`**, no `(Owner:` suffix, and that `osascript` is not invoked.
 9. Send `@dev layout freeze moved to 11/20` (or another unique title). Confirm `linear_proposal` in the log and a confirm code in `would_send`.
 10. From a non-confirmer (Rudy test handle): `@dev confirm <code>`. Confirm `linear_confirm_rejected` and no Linear write.
-11. From Mike or Todd: `@dev confirm <code>`. Confirm `linear_write_blocked` with `would_mutate` and **no** GraphQL mutation (dry-run + `allow_writes` false).
+11. From Mike or Todd: `@dev confirm <code>`. Confirm `linear_write_blocked` with `would_mutate` and **no** GraphQL mutation (missing `--live` and/or `allow_writes` false).
 12. Optional: wait 24h or set a short `proposal_ttl_seconds` and confirm expiry logging.
 13. Only after a dry-run day: `dry_run: false` **and** `--live` on the throwaway group for iMessage delivery. Leave `linear.allow_writes` false until Mike explicitly wants Linear due dates changed.
 14. Mike approves before pointing `group_guid` at the real group and before `allow_writes: true`.

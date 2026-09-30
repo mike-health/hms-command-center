@@ -434,6 +434,133 @@ class EngineTests(unittest.TestCase):
         engine.process_once()
         self.assertEqual(calls, [])
 
+    def test_stub_strips_money_from_question(self):
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=80, text="@dev can we spend $1,200 or 1200 USD")]
+        )
+        engine.process_once()
+        hit = [e for e in _events(self.config) if e.get("rowid") == 80][-1]
+        sent = hit["would_send"] or ""
+        self.assertIn("routing to the dev desk", sent)
+        self.assertNotIn("$", sent)
+        self.assertNotIn("1200", sent)
+        self.assertNotIn("USD", sent)
+
+    def test_openai_not_called_without_live(self):
+        self.config.dry_run = False
+        self.config.responder_type = "openai_compatible"
+        calls = []
+
+        def http_post(*_args, **_kwargs):
+            calls.append(1)
+            raise AssertionError("openai must wait for the live-send gate")
+
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [msg(rowid=81, text="@dev status please")],
+            live=False,
+            http_post=http_post,
+        )
+        engine.process_once()
+        self.assertEqual(calls, [])
+        hit = [e for e in _events(self.config) if e.get("rowid") == 81][-1]
+        self.assertIn("osascript_not_invoked", hit["decisions"])
+        self.assertIn("routing to the dev desk", hit["would_send"])
+
+    def test_linear_write_blocked_without_live(self):
+        from imessage_group_bot.linear_client import MockLinearClient
+
+        client = MockLinearClient(
+            [
+                {
+                    "id": "id-layout",
+                    "identifier": "PH-203",
+                    "title": "Pleasant Hill: layout freeze (SD sign-off)",
+                    "description": "budget $1,200 and 1200 USD",
+                    "dueDate": "2026-11-13",
+                    "assignee_name": "",
+                    "labels": ["Todd"],
+                    "state_name": "unstarted",
+                    "state_type": "unstarted",
+                }
+            ]
+        )
+        self.config.dry_run = False
+        self.config.linear_allow_writes = True
+        self.config.min_seconds_between_replies = 0
+        self._prime_high_water(0)
+        engine, _ = self._engine(
+            [
+                msg(rowid=90, text="@dev layout freeze moved to 11/20"),
+                msg(rowid=91, text="@dev confirm 7K2P", is_from_me=1, handle=""),
+            ],
+            live=False,
+            linear_client=client,
+            proposal_code_factory=lambda: "7K2P",
+        )
+        engine.process_once()
+        self.assertEqual(client.update_calls, [])
+        hit = [e for e in _events(self.config) if e.get("rowid") == 91][-1]
+        self.assertIn("dry_run_missing_live_flag", hit["decisions"])
+        self.assertIn("not written", hit["would_send"])
+        self.assertNotIn("$", hit["would_send"])
+        self.assertNotIn("1200", hit["would_send"] or "")
+
+    def test_linear_write_after_live_gate(self):
+        from imessage_group_bot.linear_client import MockLinearClient
+
+        client = MockLinearClient(
+            [
+                {
+                    "id": "id-layout",
+                    "identifier": "PH-203",
+                    "title": "Pleasant Hill: layout freeze (SD sign-off)",
+                    "description": "",
+                    "dueDate": "2026-11-13",
+                    "assignee_name": "",
+                    "labels": ["Todd"],
+                    "state_name": "unstarted",
+                    "state_type": "unstarted",
+                }
+            ]
+        )
+        self.config.dry_run = False
+        self.config.linear_allow_writes = True
+        self.config.min_seconds_between_replies = 0
+        now = datetime(2026, 10, 14, 12, 0, tzinfo=__import__("zoneinfo").ZoneInfo("America/Los_Angeles")).timestamp()
+        self._prime_high_water(0)
+        sent = []
+        db = FakeDB(
+            messages=[
+                msg(rowid=92, text="@dev layout freeze moved to 11/20"),
+                msg(rowid=93, text="@dev confirm 7K2P", is_from_me=1, handle=""),
+            ],
+            max_id=91,
+        )
+
+        def send_ok(guid, text):
+            sent.append(text)
+            db.from_me.append((300 + len(sent), text))
+
+        engine = Engine(
+            self.config,
+            live_flag=True,
+            chat_db=db,
+            send_fn=send_ok,
+            clock=lambda: now,
+            sleeper=lambda _s: None,
+            linear_client=client,
+            proposal_code_factory=lambda: "7K2P",
+        )
+        engine.process_once()
+        self.assertEqual(client.update_calls, [{"id": "id-layout", "dueDate": "2026-11-20"}])
+        confirm_hit = [e for e in _events(self.config) if e.get("rowid") == 93][-1]
+        self.assertIn("linear_write", confirm_hit["decisions"])
+        self.assertIn("live_send", confirm_hit["decisions"])
+        self.assertTrue(any("updated PH-203" in line for line in sent))
+        self.assertTrue(any("->" in line for line in sent))
+
 
 if __name__ == "__main__":
     unittest.main()

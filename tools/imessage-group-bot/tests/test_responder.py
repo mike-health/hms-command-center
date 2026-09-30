@@ -39,6 +39,13 @@ class ResponderTests(unittest.TestCase):
         self.assertIn("routing to the dev desk", text)
         self.assertIn("why is CI red", text)
 
+    def test_stub_strips_money_in_echo(self):
+        text, meta = generate_reply(_cfg(), "can we spend $1,200 or 1200 USD")
+        self.assertEqual(meta["responder"], "stub")
+        self.assertNotIn("$", text)
+        self.assertNotIn("1200", text)
+        self.assertNotIn("USD", text)
+
     def test_stub_bare_trigger(self):
         text, meta = generate_reply(_cfg(), "")
         self.assertEqual(meta["responder"], "stub")
@@ -73,6 +80,20 @@ class ResponderTests(unittest.TestCase):
         text, meta = generate_reply(cfg, "hello desk")
         self.assertEqual(meta["responder"], "stub_fallback")
         self.assertIn("openai_error", meta)
+        self.assertIn("routing to the dev desk", text)
+
+    def test_openai_skipped_when_not_allowed(self):
+        os.environ["IMESSAGE_BOT_API_KEY"] = "sk-test"
+        calls = []
+
+        def fake_post(*_a, **_k):
+            calls.append(1)
+            raise AssertionError("should not call")
+
+        cfg = _cfg(type="openai_compatible")
+        text, meta = generate_reply(cfg, "status", http_post=fake_post, allow_model=False)
+        self.assertEqual(calls, [])
+        self.assertEqual(meta["responder"], "stub")
         self.assertIn("routing to the dev desk", text)
 
 

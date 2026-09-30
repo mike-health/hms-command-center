@@ -12,9 +12,31 @@ except ImportError:  # pragma: no cover - Python < 3.9
     ZoneInfo = None
 
 
-MARKDOWN_RE = re.compile(r"[*_`#\[\]()>~]+")
+# Keep `->` and `(expires 24h)` intact; do not treat `>` `(` `)` as markdown.
+MARKDOWN_RE = re.compile(r"[*_`#\[\]~]+")
 HOUR_SECONDS = 3600
 DAY_SECONDS = 86400
+MONEY_RES = (
+    re.compile(r"[$€£]\s*\d{1,3}(?:,\d{3})*(?:\.\d+)?\s*[kKmMbB]?\b"),
+    re.compile(r"[$€£]\s*\d+(?:\.\d+)?\s*[kKmMbB]?\b"),
+    re.compile(
+        r"\b\d{1,3}(?:,\d{3})*(?:\.\d+)?\s*[kKmMbB]?\s*"
+        r"(?:USD|EUR|GBP|dollars?|bucks|euros?|pounds?)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b\d+(?:\.\d+)?\s*[kKmMbB]?\s*(?:USD|EUR|GBP|dollars?|bucks|euros?|pounds?)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:USD|EUR|GBP)\s*[$€£]?\s*\d{1,3}(?:,\d{3})*(?:\.\d+)?\s*[kKmMbB]?\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:USD|EUR|GBP)\s*[$€£]?\s*\d+(?:\.\d+)?\s*[kKmMbB]?\b",
+        re.IGNORECASE,
+    ),
+)
 
 
 def kill_flag_present(path):
@@ -91,25 +113,40 @@ def prune_send_times(send_times, now_ts):
 
 def rate_cap_decision(send_times, now_ts, min_seconds, max_hour, max_day):
     times = prune_send_times(send_times, now_ts)
+    min_seconds = float(min_seconds or 0)
+    max_hour = int(max_hour)
+    max_day = int(max_day)
     if times:
         last = max(times)
         delta = now_ts - last
-        if delta < min_seconds:
+        if min_seconds > 0 and delta < min_seconds:
             return "min_interval", times
     hour_count = sum(1 for ts in times if now_ts - ts < HOUR_SECONDS)
-    if hour_count >= max_hour:
+    if max_hour <= 0 or hour_count >= max_hour:
         return "hourly_cap", times
     day_count = len(times)
-    if day_count >= max_day:
+    if max_day <= 0 or day_count >= max_day:
         return "daily_cap", times
     return None, times
+
+
+def strip_dollars(text):
+    """Remove currency amounts from any outgoing line. Idempotent."""
+    if not text:
+        return text
+    out = str(text)
+    for pattern in MONEY_RES:
+        out = pattern.sub(" ", out)
+    return " ".join(out.split())
 
 
 def clamp_reply(text, prefix, max_chars):
     if text is None:
         text = ""
     one_line = " ".join(str(text).split())
+    one_line = strip_dollars(one_line)
     one_line = MARKDOWN_RE.sub("", one_line).strip()
+    one_line = " ".join(one_line.split())
     prefix = (prefix or "").strip()
     if prefix and not one_line.startswith(prefix):
         body = one_line

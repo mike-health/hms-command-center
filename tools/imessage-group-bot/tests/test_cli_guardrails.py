@@ -51,6 +51,10 @@ class GuardrailUnitTests(unittest.TestCase):
         day = [now - 100] * 40
         reason, _ = rate_cap_decision(day, now, 0, 100, 40)
         self.assertEqual(reason, "daily_cap")
+        zero_hour, _ = rate_cap_decision([], now, 0, 0, 40)
+        self.assertEqual(zero_hour, "hourly_cap")
+        zero_day, _ = rate_cap_decision([], now, 0, 10, 0)
+        self.assertEqual(zero_day, "daily_cap")
 
 
 class ListGroupsCliTests(unittest.TestCase):
@@ -86,6 +90,10 @@ class ListGroupsCliTests(unittest.TestCase):
         cfg.dry_run = False
         self.assertTrue(cfg.live_send_allowed(True))
         self.assertFalse(cfg.live_send_allowed(False))
+        self.assertFalse(cfg.linear_write_allowed(False))
+        cfg.linear_allow_writes = True
+        self.assertFalse(cfg.linear_write_allowed(False))
+        self.assertTrue(cfg.linear_write_allowed(True))
 
     def test_code_defaults_for_trigger_and_quiet_hours(self):
         raw = {
@@ -112,6 +120,31 @@ class ListGroupsCliTests(unittest.TestCase):
             cfg.linear_project_names,
             ["Clinic Development - Todd", "Supervision Standard Rollout"],
         )
+
+    def test_rate_caps_zero_is_zero(self):
+        raw = {
+            "dry_run": True,
+            "enabled": True,
+            "chat_db_path": "chat.db",
+            "group_guid": "g",
+            "trigger_word": "@dev",
+            "allowlist_handles": [],
+            "poll_interval_seconds": 10,
+            "kill_flag_file": "k",
+            "state_file": "s",
+            "events_log": "e",
+            "alerts_log": "a",
+            "queue_file": "q",
+            "rate_caps": {
+                "min_seconds_between_replies": 0,
+                "max_replies_per_hour": 0,
+                "max_replies_per_day": 0,
+            },
+        }
+        cfg = Config(raw, base_dir=".", source_path="./config.json")
+        self.assertEqual(cfg.min_seconds_between_replies, 0)
+        self.assertEqual(cfg.max_replies_per_hour, 0)
+        self.assertEqual(cfg.max_replies_per_day, 0)
 
     def test_osascript_argv_carries_raw_emoji(self):
         text = "🤖 Dev: hi there"

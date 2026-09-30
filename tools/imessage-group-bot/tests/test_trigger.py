@@ -46,6 +46,10 @@ class TriggerTests(unittest.TestCase):
         self.assertTrue(out.endswith("…"))
         self.assertNotIn("\n", clamp_reply("a\nb **bold**", "🤖 Dev:", 200))
         self.assertNotIn("**", clamp_reply("a\nb **bold**", "🤖 Dev:", 200))
+        proposal = "propose PH-203 due 11/13 -> 11/20. Confirm: @dev confirm 7K2P (expires 24h)."
+        clamped = clamp_reply(proposal, "🤖 Dev:", 200)
+        self.assertIn("->", clamped)
+        self.assertIn("(expires 24h)", clamped)
 
 
 if __name__ == "__main__":

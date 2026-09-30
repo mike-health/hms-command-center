@@ -33,7 +33,7 @@ def sensitive_reply(prefix, max_chars):
     return clamp_reply(SENSITIVE_REPLY_BODY, prefix, max_chars)
 
 
-def generate_reply(config, question, http_post=None):
+def generate_reply(config, question, http_post=None, allow_model=True):
     """Return (text, meta) where meta notes which responder produced it."""
     prefix = config.bot_prefix
     max_chars = config.max_reply_chars
@@ -41,7 +41,7 @@ def generate_reply(config, question, http_post=None):
         return sensitive_reply(prefix, max_chars), {"responder": "sensitive_guard"}
 
     kind = (config.responder_type or "stub").strip().lower()
-    if kind == EXPLICIT_OPENAI_TYPE:
+    if kind == EXPLICIT_OPENAI_TYPE and allow_model:
         try:
             text = _openai_compatible(config, question, http_post=http_post)
             return clamp_reply(text, prefix, max_chars), {"responder": "openai_compatible"}
@@ -55,6 +55,9 @@ def generate_reply(config, question, http_post=None):
     meta = {"responder": "stub"}
     if kind not in ("stub", "", "default"):
         meta["unknown_type"] = kind
+        if kind == EXPLICIT_OPENAI_TYPE and not allow_model:
+            meta["responder"] = "stub"
+            meta["openai_skipped"] = "not_live"
     return build_stub_reply(question, prefix, max_chars), meta
 
 

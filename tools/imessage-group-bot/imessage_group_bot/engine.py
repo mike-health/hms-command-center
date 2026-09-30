@@ -320,16 +320,17 @@ class Engine(object):
             )
             return False
 
+        live = self.live_send_allowed()
         if canned_reply is not None:
             reply = canned_reply
             meta = {"responder": "canned"}
         else:
-            reply, meta = self._compose_reply(state, message, rest, now)
+            reply, meta = self._compose_reply(state, message, rest, now, live=live)
             if meta.get("openai_error"):
                 decisions.append("openai_fallback_stub")
         decisions.append("responder:%s" % meta.get("responder"))
+        reply = clamp_reply(reply, self.config.bot_prefix, self.config.max_reply_chars)
 
-        live = self.live_send_allowed()
         if not live:
             if self.config.dry_run:
                 decisions.append("dry_run_config")
@@ -346,6 +347,31 @@ class Engine(object):
             return True
 
         decisions.append("live_send")
+        if meta.get("pending_linear_write"):
+            from .linear_client import LinearError
+            from .linear_desk import apply_pending_linear_write
+
+            try:
+                meta = apply_pending_linear_write(
+                    self.linear_client or self._linear_client(),
+                    state,
+                    meta,
+                    self.config.events_log,
+                    now,
+                )
+                decisions.append("linear_write")
+            except LinearError as exc:
+                log_event(
+                    self.config.events_log,
+                    {"event": "linear_error", "error": str(exc), "phase": "write"},
+                    now_ts=now,
+                )
+                reply = clamp_reply(
+                    "Linear update failed. Check the log.",
+                    self.config.bot_prefix,
+                    self.config.max_reply_chars,
+                )
+                meta["wrote"] = False
 
         def counting_send(guid, text):
             times.append(self.clock())
@@ -407,12 +433,17 @@ class Engine(object):
             )
             return False
 
-    def _compose_reply(self, state, message, rest, now):
-        from .linear_desk import client_from_config, handle_linear, parse_intent
+    def _linear_client(self):
+        from .linear_desk import client_from_config
 
-        client = self.linear_client
-        if client is None:
-            client = client_from_config(self.config, http_post=self.http_post)
+        if self.linear_client is not None:
+            return self.linear_client
+        return client_from_config(self.config, http_post=self.http_post)
+
+    def _compose_reply(self, state, message, rest, now, live=False):
+        from .linear_desk import handle_linear, parse_intent
+
+        client = self._linear_client()
         if client is not None:
             result = handle_linear(
                 self.config,
@@ -423,6 +454,7 @@ class Engine(object):
                 client,
                 events_log=self.config.events_log,
                 code_factory=self.proposal_code_factory,
+                live_flag=live,
             )
             if result is not None:
                 return result
@@ -432,7 +464,9 @@ class Engine(object):
                 self.config.bot_prefix,
                 self.config.max_reply_chars,
             ), {"responder": "linear_unconfigured"}
-        return generate_reply(self.config, rest, http_post=self.http_post)
+        return generate_reply(
+            self.config, rest, http_post=self.http_post, allow_model=bool(live)
+        )
 
     def _enqueue(self, message, rest, now):
         log_event(

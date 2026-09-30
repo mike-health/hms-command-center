@@ -123,6 +123,16 @@ def _normalize_owner_map(owners):
     return out
 
 
+def _num_field(mapping, key, default, caster):
+    """Missing/null → default. Explicit 0 is 0 (not the default)."""
+    if not isinstance(mapping, dict) or key not in mapping or mapping[key] is None:
+        return default
+    value = caster(mapping[key])
+    if value < 0:
+        raise ConfigError("rate_caps.%s cannot be negative" % key)
+    return value
+
+
 def _hhmm_field(quiet, key, default):
     """Missing key → decided default. Explicit empty string disables that bound."""
     if key not in quiet:
@@ -163,9 +173,13 @@ class Config(object):
         self.poll_interval_seconds = float(raw.get("poll_interval_seconds") or 10)
         self.delivery_confirm_seconds = float(raw.get("delivery_confirm_seconds") or 15)
         rate = raw.get("rate_caps") or {}
-        self.min_seconds_between_replies = float(rate.get("min_seconds_between_replies") or 20)
-        self.max_replies_per_hour = int(rate.get("max_replies_per_hour") or 10)
-        self.max_replies_per_day = int(rate.get("max_replies_per_day") or 40)
+        if not isinstance(rate, dict):
+            rate = {}
+        self.min_seconds_between_replies = _num_field(
+            rate, "min_seconds_between_replies", 20, float
+        )
+        self.max_replies_per_hour = _num_field(rate, "max_replies_per_hour", 10, int)
+        self.max_replies_per_day = _num_field(rate, "max_replies_per_day", 40, int)
         quiet = raw.get("quiet_hours")
         if quiet is None or isinstance(quiet, list):
             quiet = {}
@@ -233,8 +247,9 @@ class Config(object):
                 return handle.read().strip()
         return ""
 
-    def linear_write_allowed(self):
-        return (not self.dry_run) and bool(self.linear_allow_writes)
+    def linear_write_allowed(self, live_flag=False):
+        """Linear mutation: not dry_run AND --live AND allow_writes."""
+        return (not self.dry_run) and bool(live_flag) and bool(self.linear_allow_writes)
 
     def live_send_allowed(self, live_flag):
         """Real send requires dry_run false AND --live. Default is always dry-run."""
