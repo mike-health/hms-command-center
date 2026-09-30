@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pleasant Hill — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=8">
+<link rel="stylesheet" href="/css/app.css?v=9">
+<style>
+  #linear-project-link[hidden] { display: none !important; }
+</style>
 </head>
 <body>
 <div class="app">
@@ -70,9 +73,9 @@
   </main>
 </div>
 
-<script src="/js/app.js?v=8"></script>
-<script src="/js/strip-financials.js?v=8"></script>
-<script src="/js/pleasant-hill-format.js?v=8"></script>
+<script src="/js/app.js?v=9"></script>
+<script src="/js/strip-financials.js?v=9"></script>
+<script src="/js/pleasant-hill-format.js?v=9"></script>
 <script>
 const VIEWER_LOAD_ERROR = 'The schedule could not be loaded. Try again later.';
 const stripFn = (typeof PleasantHillStrip !== 'undefined' && PleasantHillStrip.stripFinancials)
@@ -240,10 +243,13 @@ async function loadBoard() {
       `${site.name || 'Pleasant Hill'} · ${site.address || ''}`
     );
     const projectLink = document.getElementById('linear-project-link');
-    if (json.project && json.project.url) {
-      projectLink.href = fmt.strip(json.project.url);
+    const projectUrl = json.project && json.project.url;
+    if (json.source !== 'fixture' && projectUrl && /^https?:/i.test(String(projectUrl))) {
+      projectLink.href = fmt.strip(projectUrl);
+      projectLink.hidden = true;
       projectLink.hidden = false;
     } else {
+      projectLink.removeAttribute('href');
       projectLink.hidden = true;
     }
     renderGates(json.gates || []);
