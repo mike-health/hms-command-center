@@ -25,6 +25,7 @@ Single Express app with modular HTML pages. One JSON data file. Zero build step.
 6. Done — no build, no deploy step, just refresh
 
 ## Future Modules (Planned)
+- **Health Path Planner** — client-side POC at `health-path-planner/index.html` (P-BON-9)
 - **Billing Extraction** — EHR integration, automated billing/receipt capture
 - **Camera App** — Location photos, site documentation, equipment photos
 - (More to come)
