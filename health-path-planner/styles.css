@@ -160,11 +160,12 @@ h1 {
 
 .tooltip {
   position: absolute;
-  left: 50%;
+  left: auto;
+  right: 0;
   bottom: calc(100% + 0.55rem);
-  transform: translateX(-50%);
+  transform: none;
   width: max-content;
-  max-width: min(18rem, 80vw);
+  max-width: min(18rem, calc(100vw - 2rem));
   padding: 0.45rem 0.65rem;
   background: var(--ink);
   color: #f7f4ee;
@@ -239,8 +240,12 @@ button:focus-visible,
 
 .select-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 0.65rem;
+}
+
+.select-row .field:last-child {
+  grid-column: 1 / -1;
 }
 
 .field {
@@ -309,12 +314,14 @@ button:focus-visible,
   gap: 0;
   margin: 0;
   padding: 0.35rem 0.15rem 0.6rem;
-  min-width: min-content;
+  width: 100%;
 }
 
 .path-item {
   display: flex;
   align-items: center;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .path-node {
@@ -323,10 +330,11 @@ button:focus-visible,
   flex-direction: column;
   justify-content: center;
   gap: 0.2rem;
-  width: 8.6rem;
-  min-height: 6.2rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 6.4rem;
   margin: 0;
-  padding: 0.7rem 0.65rem;
+  padding: 0.55rem 0.5rem;
   text-align: left;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -360,12 +368,13 @@ button:focus-visible,
 .path-node .title {
   font-weight: 750;
   line-height: 1.25;
+  font-size: 0.92rem;
 }
 
 .connector {
-  width: 2.1rem;
+  width: 1.35rem;
   height: 1.4rem;
-  flex: 0 0 auto;
+  flex: 0 0 1.35rem;
   color: var(--muted);
 }
 
@@ -416,6 +425,21 @@ footer {
   font-size: 0.88rem;
 }
 
+@media (max-width: 1100px) {
+  .path {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .path-item {
+    flex: 0 0 auto;
+  }
+
+  .path-node {
+    width: 7.4rem;
+  }
+}
+
 @media (max-width: 860px) {
   .panels,
   .select-row {
@@ -433,12 +457,14 @@ footer {
   .path {
     flex-direction: column;
     align-items: stretch;
+    width: 100%;
     min-width: 0;
   }
 
   .path-item {
     flex-direction: column;
     align-items: stretch;
+    flex: 0 0 auto;
   }
 
   .path-node {
@@ -449,6 +475,7 @@ footer {
   .connector {
     width: 1.4rem;
     height: 1.8rem;
+    flex-basis: 1.8rem;
     margin-inline: auto;
     transform: rotate(90deg);
   }
