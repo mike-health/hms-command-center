@@ -25,7 +25,7 @@ Single Express app with modular HTML pages. One JSON data file. Zero build step.
 6. Done — no build, no deploy step, just refresh
 
 ## Future Modules (Planned)
-- **Health Path Planner** — client-side POC at `health-path-planner/index.html` (P-BON-9)
+- **Health Path Planner** — gated at `/health-path-planner` (P-BON-9); requires `PLANNER_VIEW_PASSWORD`
 - **Billing Extraction** — EHR integration, automated billing/receipt capture
 - **Camera App** — Location photos, site documentation, equipment photos
 - (More to come)
@@ -51,8 +51,9 @@ Copy `.env.example` and set values in the host (Render, Railway, or a local `.en
 | `LINEAR_API_KEY` | For live data | Linear API key (workspace **healthi**, team **Healthai / HEA**). The server calls `https://api.linear.app/graphql`. Without this key the Ops board serves documented mock issues. |
 | `LINEAR_PROJECT_NAME` | No | Defaults to `Ops cadence`. |
 | `LINEAR_PROJECT_ID` | No | Defaults to `91532ea3-24e8-4e10-981e-03b6fb245cd6`. |
+| `PLANNER_VIEW_PASSWORD` | **Required to view the planner** | Shared viewer passcode for `/health-path-planner` (HTML, CSS, and JS). Cookie is stored after first correct entry (HTTP Basic also accepted). **If this is unset, the planner returns 503** (fail closed). Set it in Render; never commit a value. |
 
-Do not put the API key in client JavaScript or commit it.
+Do not put the API key or view password in client JavaScript or commit them.
 
 ### Tagging issues for the Ops board
 
