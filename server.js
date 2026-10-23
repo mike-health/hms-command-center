@@ -4,12 +4,14 @@ const path = require('path');
 const cors = require('cors');
 const { getOpsCadenceBoard } = require('./lib/ops-cadence');
 const { applyOpsPlan, previewOpsInstruction } = require('./lib/ops-chat');
+const { mountPlanner } = require('./lib/planner-routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: false }));
 
 // Resolve public directory
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -113,6 +115,8 @@ app.post('/api/ops-cadence/apply', async (req, res) => {
     res.status(502).json({ success: false, error: err.message || 'Apply failed' });
   }
 });
+mountPlanner(app, { plannerDir: path.join(__dirname, 'health-path-planner') });
+
 app.get('/api/summary', (req, res) => {
   const totalRevenue = data.clinics.reduce((s, c) => s + (c.revenue || 0), 0);
   const totalExpenses = data.clinics.reduce((s, c) => s + (c.expenses || 0), 0);

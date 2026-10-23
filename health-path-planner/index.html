@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Health Path Planner</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232f6f62'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/health-path-planner/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#path-output">Skip to pathway</a>
+
+  <header class="site-header">
+    <div class="header-copy">
+      <p class="eyebrow">P-BON-9 · Bonita team</p>
+      <h1>Health Path Planner</h1>
+      <p class="lede">Solving health is like solving math, but easier. Enter a starting disease state and a desired end health state to see the pathway between them as connected nodes.</p>
+    </div>
+    <p class="disclaimer" role="note">Illustrative demo, not medical advice</p>
+  </header>
+
+  <main>
+    <section class="mode-bar" aria-labelledby="mode-heading">
+      <h2 id="mode-heading" class="visually-hidden">Computation mode</h2>
+      <div class="mode-toggles" role="group" aria-labelledby="mode-heading">
+        <label class="mode-option">
+          <input type="checkbox" id="symbolic-mode" checked>
+          <span>Symbolic mode</span>
+        </label>
+
+        <span class="mode-option mode-option--disabled" tabindex="0"
+              aria-describedby="real-mode-tooltip">
+          <label>
+            <input type="checkbox" id="real-mode" disabled
+                   aria-describedby="real-mode-tooltip"
+                   title="Real genomics and multi-factor lookup coming in phase two.">
+            <span>Real mode</span>
+          </label>
+          <span id="real-mode-tooltip" class="tooltip" role="tooltip">
+            Real genomics and multi-factor lookup coming in phase two.
+          </span>
+        </span>
+      </div>
+    </section>
+
+    <section class="inputs" aria-labelledby="inputs-heading">
+      <h2 id="inputs-heading" class="visually-hidden">Start and goal states</h2>
+
+      <div class="panels">
+        <fieldset class="panel">
+          <legend>Start State</legend>
+          <label for="start-text">Plain-language description</label>
+          <textarea id="start-text" name="start-text" rows="3" maxlength="400">type 2 diabetes</textarea>
+
+          <div class="select-row">
+            <div class="field">
+              <label for="start-category">Category</label>
+              <select id="start-category" name="start-category">
+                <option value="metabolic" selected>Metabolic</option>
+                <option value="cardiovascular">Cardiovascular</option>
+                <option value="respiratory">Respiratory</option>
+                <option value="musculoskeletal">Musculoskeletal</option>
+                <option value="mental-health">Mental health</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="start-severity">Severity</label>
+              <select id="start-severity" name="start-severity">
+                <option value="mild">Mild</option>
+                <option value="moderate" selected>Moderate</option>
+                <option value="severe">Severe</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="start-duration">Duration</label>
+              <select id="start-duration" name="start-duration">
+                <option value="recent">Recent (&lt; 3 mo)</option>
+                <option value="ongoing" selected>Ongoing (3–12 mo)</option>
+                <option value="long-standing">Long-standing (&gt; 1 yr)</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="panel">
+          <legend>Goal State</legend>
+          <label for="goal-text">Plain-language description</label>
+          <textarea id="goal-text" name="goal-text" rows="3" maxlength="400">normal glucose regulation</textarea>
+
+          <div class="select-row">
+            <div class="field">
+              <label for="goal-category">Category</label>
+              <select id="goal-category" name="goal-category">
+                <option value="metabolic" selected>Metabolic</option>
+                <option value="cardiovascular">Cardiovascular</option>
+                <option value="respiratory">Respiratory</option>
+                <option value="musculoskeletal">Musculoskeletal</option>
+                <option value="mental-health">Mental health</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="goal-severity">Severity</label>
+              <select id="goal-severity" name="goal-severity">
+                <option value="resolved" selected>Resolved / target</option>
+                <option value="improved">Improved</option>
+                <option value="stable">Stable</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="goal-duration">Duration</label>
+              <select id="goal-duration" name="goal-duration">
+                <option value="six-months" selected>Within 6 months</option>
+                <option value="one-year">Within 1 year</option>
+                <option value="ongoing">Ongoing maintenance</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+
+      <button type="button" class="generate" id="generate-path">Generate Path</button>
+    </section>
+
+    <section class="output" id="path-output" aria-labelledby="output-heading">
+      <div class="output-heading-row">
+        <h2 id="output-heading">Pathway</h2>
+        <p id="path-caption" class="path-caption"></p>
+      </div>
+      <p id="path-status" class="status" role="status" aria-live="polite"></p>
+      <div class="path-wrap">
+        <ol class="path" id="path-diagram"></ol>
+      </div>
+      <article class="detail-card" id="detail-card" hidden>
+        <h3 id="detail-title"></h3>
+        <p class="detail-kind" id="detail-kind"></p>
+        <div id="detail-factors"></div>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    <p>Hardcoded symbolic example graph only. No patient data. No network calls.</p>
+  </footer>
+
+  <script src="/health-path-planner/app.js"></script>
+</body>
+</html>
