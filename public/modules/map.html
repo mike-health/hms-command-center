@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Clinic Map — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=4">
+<link rel="stylesheet" href="/css/app.css?v=5">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <style>
 .map-wrap { display: grid; grid-template-columns: 300px 1fr; gap: 0; height: calc(100vh - 56px); }
+.map-sidebar { order: 1; }
+#map-container { order: 2; }
 .map-sidebar { background: #fff; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; }
 .map-sidebar-header { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
 .map-sidebar-header h3 { font-size: 14px; font-weight: 600; color: #1e293b; }
@@ -24,7 +26,19 @@
 .map-popup .badge-row { display: flex; gap: 4px; margin-top: 6px; }
 .add-clinic-card { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; color: #64748b; font-size: 12px; font-weight: 500; transition: all 0.15s; }
 .add-clinic-card:hover { border-color: #93c5fd; color: #2563eb; background: #f8fafc; }
-@media (max-width: 768px) { .map-wrap { grid-template-columns: 1fr; grid-template-rows: 200px 1fr; } }
+@media (max-width: 768px) {
+  .map-wrap {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(42vh, 320px) 1fr;
+    height: calc(100dvh - 56px - 64px - env(safe-area-inset-bottom, 0px));
+  }
+  .map-sidebar { border-right: 0; border-top: 1px solid #e2e8f0; order: 2; min-height: 0; }
+  #map-container { order: 1; min-height: 42vh; }
+  .map-card { padding: 12px; }
+  .map-card-name { font-size: 15px; }
+  .map-card-city { font-size: 12px; }
+  .topbar-actions .status-pill { display: none; }
+}
 </style>
 </head>
 <body>
@@ -147,7 +161,9 @@ function initMap() {
     const group = new L.featureGroup(markers.map(m => m.marker));
     map.fitBounds(group.getBounds().pad(0.2));
   }
+  requestAnimationFrame(() => map.invalidateSize());
 }
+window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
 
 function focusClinic(id) {
   highlightCard(id);
