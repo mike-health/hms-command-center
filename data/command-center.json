@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastModified": "2026-10-31T21:30:00.000Z",
+  "lastModified": "2026-10-31T21:48:00.000Z",
   "dataNotes": {
     "seedIsSourceOfTruth": true,
     "liveOverrideTodo": "TODO: Live /api/state persists to data/command-center.json at runtime and overrides this seed until POST /api/reset. Deployed hosts may still show older Monterey notes (operator seat open) until reset or a state PATCH. Seed is factory-default SoT only."
@@ -18,12 +18,29 @@
       "opexDraft": 80778,
       "opexRef": "*0811"
     },
-    "oaActivePatients": {
-      "count": 532,
-      "asOf": "2026-10-29",
-      "sub": "OA Active (all clinics) · as of 10/29",
-      "source": "Office Ally Patient List Status='Active' across all offices; unique Chart Numbers from demographics export dated 10/29/2026. Count only — no PHI in repo.",
-      "definition": "Active patients = all current patients in all clinics (Mike, 2026-10-31). Not the referral-tracker in-treatment count."
+    "activePatients": {
+      "asOf": "2026-10-31",
+      "source": "Office Ally Patient Visits Report 2026-10-31",
+      "definition": "Unique patients with CPT 99183 in Oct 2026 (still in treatment = Oct HBOT visits). Replaces OA Active roster (532) and referral-tracker in-treatment proxy (4). Counts only; no PHI.",
+      "sublabel": "Oct HBOT visits · OA 10/31",
+      "cpt": "99183",
+      "period": "2026-10",
+      "total": 36,
+      "byClinic": {
+        "c-chula": 19,
+        "c-salinas": 7,
+        "c-madras": 5,
+        "c-laguna": 5,
+        "c-oceanside": 0,
+        "c-monterey": 0,
+        "c-riverside": 0
+      },
+      "notTreating": [
+        "Oceanside",
+        "Monterey",
+        "Riverside",
+        "Pleasant Hill (not in clinic seed)"
+      ]
     },
     "billingReferrals": {
       "asOf": "2026-10-31",
@@ -45,7 +62,7 @@
         "cleared-not-booked",
         "open"
       ],
-      "activeReferralsNote": "Open referral pipeline: non-closed minus in-treatment (37 − 4). Separate from the OA Active patients census."
+      "activeReferralsNote": "Open referral pipeline: non-closed minus in-treatment (37 − 4). Separate from the OA Oct HBOT Active patients census (36)."
     }
   },
   "nodes": {
@@ -307,7 +324,7 @@
       "assignedTo": "mily",
       "revenue": 0,
       "expenses": 0,
-      "patientsMonth": 0
+      "patientsMonth": 19
     },
     {
       "id": "c-oceanside",
@@ -335,7 +352,7 @@
       "assignedTo": "rudy",
       "revenue": 0,
       "expenses": 0,
-      "patientsMonth": 0
+      "patientsMonth": 7
     },
     {
       "id": "c-monterey",
@@ -370,7 +387,7 @@
       "assignedTo": "rudy",
       "revenue": 0,
       "expenses": 0,
-      "patientsMonth": 0
+      "patientsMonth": 5
     },
     {
       "id": "c-laguna",
@@ -384,7 +401,7 @@
       "assignedTo": "rudy",
       "revenue": 0,
       "expenses": 0,
-      "patientsMonth": 0
+      "patientsMonth": 5
     },
     {
       "id": "c-riverside",
