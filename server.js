@@ -4,6 +4,7 @@ const path = require('path');
 const cors = require('cors');
 const { getOpsCadenceBoard } = require('./lib/ops-cadence');
 const { applyOpsPlan, previewOpsInstruction } = require('./lib/ops-chat');
+const { partnerSummary } = require('./lib/partner-kpis');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,6 +36,8 @@ function getDefaults() {
 }
 
 function load() {
+  // TODO: This file is live state. Seed (FACTORY_DEFAULTS) is SoT for Reset only.
+  // Deployed hosts can still show older Monterey "operator seat open" until POST /api/reset.
   if (fs.existsSync(DATA_FILE)) {
     try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')); }
     catch (e) { console.error('Data corrupt, resetting'); }
@@ -117,7 +120,8 @@ app.get('/api/summary', (req, res) => {
   const totalRevenue = data.clinics.reduce((s, c) => s + (c.revenue || 0), 0);
   const totalExpenses = data.clinics.reduce((s, c) => s + (c.expenses || 0), 0);
   const totalPatients = data.clinics.reduce((s, c) => s + (c.patientsMonth || 0), 0);
-  const activeReferrals = data.referrals.filter(r => r.status === 'active').length;
+  const partner = partnerSummary(data);
+  const activeReferrals = partner.activeReferrals.value;
   const pendingTasks = data.tasks.filter(t => t.status !== 'completed').length;
   const urgentAlerts = data.alerts.filter(a => a.type === 'urgent').length;
   res.json({
@@ -126,7 +130,8 @@ app.get('/api/summary', (req, res) => {
       totalRevenue, totalExpenses, netIncome: totalRevenue - totalExpenses,
       totalPatients, activeReferrals, pendingTasks, urgentAlerts,
       clinicCount: data.clinics.length,
-      operationalClinics: data.clinics.filter(c => c.status === 'operational').length
+      operationalClinics: data.clinics.filter(c => c.status === 'operational').length,
+      partner
     }
   });
 });

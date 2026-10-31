@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>HMS Command Center</title>
-<link rel="stylesheet" href="/css/app.css?v=5">
+<link rel="stylesheet" href="/css/app.css?v=6">
 </head>
 <body>
 <div class="app">
@@ -78,37 +78,27 @@
     </header>
 
     <div class="content" id="content">
-      <!-- Pre-rendered summary cards -->
-      <div class="summary-grid">
-        <div class="sum-card">
+      <!-- Pre-rendered partner KPIs (replaced from /api/state on load) -->
+      <div class="summary-grid partner-kpis">
+        <div class="sum-card kpi-draft">
           <div class="sum-label">Monthly Revenue</div>
-          <div class="sum-value">$105k</div>
-          <div class="sum-sub positive">Net: $9k</div>
+          <div class="sum-value">—</div>
+          <div class="sum-sub">Loading clinic revenue fields…</div>
         </div>
         <div class="sum-card">
           <div class="sum-label">Active Patients</div>
-          <div class="sum-value">202</div>
-          <div class="sum-sub">Across 2 operational clinics</div>
+          <div class="sum-value">—</div>
+          <div class="sum-sub">from patientsMonth</div>
         </div>
         <div class="sum-card">
           <div class="sum-label">Active Referrals</div>
-          <div class="sum-value">2</div>
-          <div class="sum-sub">1 pending approval</div>
+          <div class="sum-value">—</div>
+          <div class="sum-sub">open / pending from state</div>
         </div>
-        <div class="sum-card">
-          <div class="sum-label">Open Tasks</div>
-          <div class="sum-value">3</div>
-          <div class="sum-sub">1 urgent alert</div>
-        </div>
-        <div class="sum-card">
-          <div class="sum-label">Clinics</div>
-          <div class="sum-value">7</div>
-          <div class="sum-sub">3 open · 2 starting · 2 partly staffed</div>
-        </div>
-        <div class="sum-card">
-          <div class="sum-label">Team</div>
-          <div class="sum-value">15</div>
-          <div class="sum-sub">15 active</div>
+        <div class="sum-card kpi-monterey">
+          <div class="sum-label">Monterey Operator</div>
+          <div class="sum-value" style="font-size:18px;">—</div>
+          <div class="sum-sub">staffing from clinic state</div>
         </div>
       </div>
 
@@ -121,7 +111,7 @@
           <div class="alert-list">
             <div class="alert-item warning">
               <span class="alert-icon">▲</span>
-              <span class="alert-text">Monterey clinic inactive — operator seat open</span>
+              <span class="alert-text">Monterey: Operator hire Finnlee Morgan (tentative start ~10/26, 20 hrs) — not confirmed hired</span>
               <span class="alert-time">Sep 6</span>
             </div>
             <div class="alert-item info">
@@ -151,7 +141,7 @@
   </main>
 </div>
 
-<script src="/js/app.js?v=4"></script>
+<script src="/js/app.js?v=5"></script>
 <script>
 /* ===== DASHBOARD MODULE ===== */
 let state = null;
@@ -161,40 +151,85 @@ async function initDashboard() {
   const s = state.data;
   const sum = await fetchSummary();
 
+  const partner = sum.partner || {};
+  const rev = partner.monthlyRevenue || {};
+  const patients = partner.activePatients || {};
+  const refs = partner.activeReferrals || {};
+  const monterey = partner.monterey || {};
+  const revClass = rev.isDraft ? 'sum-card kpi-draft' : 'sum-card';
+  const netClass = !rev.isDraft && typeof rev.net === 'number'
+    ? (rev.net >= 0 ? 'positive' : 'negative')
+    : '';
+
   const html = `
-    <!-- Summary Cards -->
-    <div class="summary-grid">
-      <div class="sum-card">
+    <!-- Partner-facing KPIs (from /api/state clinics + referrals; draft P&L only if clinic revenue is $0) -->
+    <div class="summary-grid partner-kpis">
+      <div class="${revClass}">
         <div class="sum-label">Monthly Revenue</div>
-        <div class="sum-value">$${(sum.totalRevenue/1000).toFixed(1)}k</div>
-        <div class="sum-sub ${sum.netIncome >= 0 ? 'positive' : 'negative'}">
-          Net: $${(sum.netIncome/1000).toFixed(1)}k
-        </div>
+        <div class="sum-value">${esc(rev.display || '—')}</div>
+        <div class="sum-sub ${netClass}">${esc(rev.isDraft ? 'Draft estimate' : (rev.netLabel || 'From clinic revenue fields'))}</div>
+        ${rev.netLabel && rev.isDraft ? `<div class="sum-sub">${esc(rev.netLabel)}</div>` : ''}
+        <div class="sum-source">${esc(rev.source || 'clinics[].revenue from /api/state')}${rev.caveat ? ' — ' + esc(rev.caveat) : ''}</div>
       </div>
       <div class="sum-card">
         <div class="sum-label">Active Patients</div>
-        <div class="sum-value">${sum.totalPatients}</div>
-        <div class="sum-sub">Across ${sum.operationalClinics} operational clinics</div>
+        <div class="sum-value">${esc(patients.display != null ? String(patients.display) : String(sum.totalPatients ?? '—'))}</div>
+        <div class="sum-sub">${esc(patients.sub || '')}</div>
+        <div class="sum-source">${esc(patients.source || 'clinics[].patientsMonth from /api/state')}</div>
       </div>
       <div class="sum-card">
         <div class="sum-label">Active Referrals</div>
-        <div class="sum-value">${sum.activeReferrals}</div>
-        <div class="sum-sub">${s.referrals.filter(r => r.status === 'pending').length} pending approval</div>
+        <div class="sum-value">${esc(refs.display != null ? String(refs.display) : String(sum.activeReferrals ?? '—'))}</div>
+        <div class="sum-sub">${esc(refs.sub || '')}</div>
+        <div class="sum-source">${esc(refs.source || 'open/active referrals from /api/state')}</div>
+      </div>
+      <div class="sum-card kpi-monterey">
+        <div class="sum-label">Monterey Operator</div>
+        <div class="sum-value" style="font-size:18px;">${esc(monterey.operatorName || 'See clinic note')}</div>
+        <div class="sum-sub">${esc(monterey.label || '')}</div>
+        <div class="sum-source">From Monterey clinic on /api/state (seed SoT). Live persisted state can override until Reset.</div>
       </div>
       <div class="sum-card">
         <div class="sum-label">Open Tasks</div>
         <div class="sum-value">${sum.pendingTasks}</div>
-        <div class="sum-sub">${sum.urgentAlerts} urgent alerts</div>
+        <div class="sum-sub">${sum.urgentAlerts} urgent alert${sum.urgentAlerts === 1 ? '' : 's'}</div>
       </div>
       <div class="sum-card">
         <div class="sum-label">Clinics</div>
         <div class="sum-value">${sum.clinicCount}</div>
-        <div class="sum-sub">${s.clinics.filter(c => c.status === 'operational').length} open · ${s.clinics.filter(c => c.status === 'startup').length} starting · ${s.clinics.filter(c => c.status === 'prospective').length} prospective</div>
+        <div class="sum-sub">${s.clinics.filter(c => c.status === 'operational').length} open · ${s.clinics.filter(c => c.status === 'startup').length} starting · ${s.clinics.filter(c => c.status === 'partly').length} partly staffed</div>
       </div>
       <div class="sum-card">
         <div class="sum-label">Team</div>
         <div class="sum-value">${Object.keys(s.nodes).length}</div>
         <div class="sum-sub">${Object.values(s.nodes).filter(n => n.active).length} active</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Clinic status</div>
+        <a href="/modules/map.html" class="btn btn-secondary btn-sm">Map</a>
+      </div>
+      <div class="section-body">
+        <div class="clinic-strip">
+          ${s.clinics.map(c => {
+            const shortName = (c.name || '').replace(/^Pacific Hyperbarics — /, '');
+            const hire = c.operatorHire;
+            const focus = c.id === 'c-monterey' ? ' clinic-chip-focus' : '';
+            const staffLine = hire
+              ? `<div class="clinic-chip-staff">${esc(hire.label)}</div>`
+              : (c.id === 'c-monterey' && c.notes ? `<div class="clinic-chip-staff">${esc(c.notes)}</div>` : '');
+            return `<a class="clinic-chip${focus}" href="/modules/clinic-detail.html?clinic=${encodeURIComponent(c.id)}">
+              <div class="clinic-chip-name">${esc(shortName)}</div>
+              <div class="clinic-chip-city">${esc(c.city || '')}</div>
+              <div class="clinic-chip-meta">
+                <span class="badge badge-${c.status==='operational'?'green':c.status==='startup'?'blue':'amber'}">${esc(c.status)}</span>
+              </div>
+              ${staffLine}
+            </a>`;
+          }).join('')}
+        </div>
       </div>
     </div>
 

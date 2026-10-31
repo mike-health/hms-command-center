@@ -218,6 +218,62 @@ body {
 }
 .sum-sub.positive { color: #16a34a; }
 .sum-sub.negative { color: #dc2626; }
+.sum-source {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 6px;
+  line-height: 1.35;
+}
+.sum-card.kpi-draft {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+.sum-card.kpi-monterey {
+  border-color: #fdba74;
+}
+
+.clinic-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.clinic-chip {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 92px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.clinic-chip:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.clinic-chip-focus {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+.clinic-chip-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.clinic-chip-city {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+.clinic-chip-meta { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+.clinic-chip-staff {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #92400e;
+  line-height: 1.35;
+  font-weight: 500;
+}
 
 /* Sections */
 .section {
@@ -983,6 +1039,18 @@ body {
   .topbar-actions .btn { padding: 6px 10px; font-size: 12px; }
   .content { padding: 12px; }
   .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .sum-value { font-size: 20px; }
+  .clinic-strip {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    gap: 8px;
+  }
+  .clinic-chip {
+    flex: 0 0 180px;
+    min-height: 108px;
+  }
   .org-chart-wrap { gap: 20px; flex-direction: column; }
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .ops-drawer {
