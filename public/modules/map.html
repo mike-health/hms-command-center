@@ -29,15 +29,43 @@
 @media (max-width: 768px) {
   .map-wrap {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(42vh, 320px) 1fr;
-    height: calc(100dvh - 56px - 64px - env(safe-area-inset-bottom, 0px));
+    grid-template-rows: minmax(38vh, 280px) 1fr;
+    height: auto;
+    flex: 1;
+    min-height: 0;
   }
+  .map-partner-kpis { padding: 10px 10px 0; }
+  .map-partner-kpis .summary-grid { margin-bottom: 10px; }
   .map-sidebar { border-right: 0; border-top: 1px solid #e2e8f0; order: 2; min-height: 0; }
-  #map-container { order: 1; min-height: 42vh; }
+  #map-container { order: 1; min-height: 38vh; }
   .map-card { padding: 12px; }
   .map-card-name { font-size: 15px; }
   .map-card-city { font-size: 12px; }
   .topbar-actions .status-pill { display: none; }
+}
+.map-page.content {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+.map-partner-kpis {
+  padding: 12px 12px 0;
+  flex-shrink: 0;
+}
+.map-partner-kpis .summary-grid {
+  margin-bottom: 12px;
+}
+.map-page .map-wrap {
+  flex: 1;
+  min-height: 0;
+  height: calc(100vh - 56px - 120px);
+}
+@media (max-width: 768px) {
+  .map-page .map-wrap {
+    height: auto;
+  }
 }
 </style>
 </head>
@@ -71,7 +99,10 @@
         <button class="btn btn-primary btn-sm" onclick="addClinic()">+ Add Clinic</button>
       </div>
     </header>
-    <div class="content" style="padding:0;">
+    <div class="content map-page" style="padding:0;">
+      <div id="partner-kpi-strip" class="map-partner-kpis">
+        <div class="loading" style="padding:8px;text-align:center;color:#94a3b8;font-size:12px;">Loading partner KPIs…</div>
+      </div>
       <div class="map-wrap">
         <div class="map-sidebar">
           <div class="map-sidebar-header">
@@ -89,11 +120,24 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="/js/app.js?v=4"></script>
+<script src="/js/app.js?v=6"></script>
 <script>
 let clinics = [], map = null, markers = [];
 
+async function loadPartnerKpis() {
+  const el = document.getElementById('partner-kpi-strip');
+  if (!el) return;
+  try {
+    const sum = await fetchSummary();
+    el.innerHTML = renderPartnerKpiStrip(sum.partner || {}, { showSource: false });
+  } catch (e) {
+    console.error('Partner KPI load error:', e);
+    el.innerHTML = '<div style="padding:8px;color:#94a3b8;font-size:12px;">Partner KPIs unavailable</div>';
+  }
+}
+
 async function init() {
+  loadPartnerKpis();
   try {
     const s = await loadState();
     if (!s.success) throw new Error('Failed to load');

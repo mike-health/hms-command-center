@@ -7,7 +7,9 @@ const {
   monthlyRevenueKpi,
   activePatientsKpi,
   activeReferralsKpi,
-  montereyStaffing
+  montereyStaffing,
+  siteProjectionKpi,
+  cumulativeSitesOverMonths
 } = require('../lib/partner-kpis');
 
 const seed = JSON.parse(
@@ -137,9 +139,45 @@ describe('partner KPIs from seed /api/state shape', () => {
     assert.ok(s.activePatients);
     assert.ok(s.activeReferrals);
     assert.ok(s.monterey);
+    assert.ok(s.siteProjection);
     assert.equal(s.activePatients.value, 36);
     assert.equal(s.activeReferrals.value, 33);
     assert.equal(s.monthlyRevenue.value, 250366.77);
+  });
+
+  it('site projection uses draft NOI as monthly capex margin (Mike 2026-10-31)', () => {
+    const sp = siteProjectionKpi(seed);
+    assert.equal(sp.monthlyCapexMargin, 169588);
+    assert.equal(sp.costPerSite, 200000);
+    assert.equal(sp.maxSitesPerMonth, 2);
+    assert.equal(sp.sitesThisMonth, 0);
+    assert.equal(sp.monthsToFirstSite, 2);
+    assert.equal(sp.cumulative6Mo, 5);
+    assert.equal(sp.isDraft, true);
+    assert.match(sp.marginLabel, /169\.6k/);
+    assert.match(sp.marginLabel, /DRAFT/);
+    assert.equal(sp.displayValue, '0/2 this mo');
+    assert.match(sp.sixMoLabel, /5 sites/);
+  });
+
+  it('site projection opens up to two sites when margin supports it', () => {
+    const sp = siteProjectionKpi({
+      clinics: [{ revenue: 900000, expenses: 0 }],
+      kpis: seed.kpis
+    });
+    assert.equal(sp.monthlyCapexMargin, 900000);
+    assert.equal(sp.sitesThisMonth, 2);
+    assert.equal(sp.monthsToFirstSite, null);
+    assert.equal(sp.isDraft, false);
+    assert.equal(cumulativeSitesOverMonths(900000, 6), 12);
+    assert.equal(sp.cumulative6Mo, 12);
+  });
+
+  it('site projection shows margin TBD when net is missing', () => {
+    const sp = siteProjectionKpi({ clinics: [], kpis: {} });
+    assert.equal(sp.monthlyCapexMargin, null);
+    assert.equal(sp.sitesThisMonth, null);
+    assert.match(sp.marginLabel, /Margin TBD/);
   });
 
   it('seed stores OA Active count only — no PHI fields or restricted export path', () => {
