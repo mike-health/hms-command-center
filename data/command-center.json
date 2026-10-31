@@ -1,6 +1,24 @@
 {
   "version": "1.0.0",
-  "lastModified": "2026-09-06T15:20:00.000Z",
+  "lastModified": "2026-10-31T20:00:00.000Z",
+  "dataNotes": {
+    "seedIsSourceOfTruth": true,
+    "liveOverrideTodo": "TODO: Live /api/state persists to data/command-center.json at runtime and overrides this seed until POST /api/reset. Deployed hosts may still show older Monterey notes (operator seat open) until reset or a state PATCH. Seed is factory-default SoT only."
+  },
+  "kpis": {
+    "monthlyRevenue": {
+      "amount": 250366.77,
+      "currency": "USD",
+      "period": "2026-10-01/2026-10-28",
+      "periodLabel": "Oct 1–28, 2026",
+      "status": "draft-estimate",
+      "source": "HMS P&L v1 / Revenue desk (OA+Stripe+paper checks)",
+      "caveat": "Actual #6002 not provided. clinics[].revenue in /api/state are all $0 — not clinic-level actuals.",
+      "noiDraft": 169588,
+      "opexDraft": 80778,
+      "opexRef": "*0811"
+    }
+  },
   "nodes": {
     "hms": {
       "id": "hms",
@@ -218,10 +236,10 @@
     },
     "vacMonterey": {
       "id": "vacMonterey",
-      "name": "Open Seat: Monterey",
+      "name": "Monterey operator (tentative hire)",
       "title": "Clinic Operator",
       "role": "Vacancy",
-      "description": "Monterey clinic operator — inactive staffing, seat open. Rudy Alvarez acting operator until filled.",
+      "description": "Operator hire: Finnlee Morgan (tentative start ~10/26, 20 hrs). Not confirmed hired. Rudy Alvarez acting operator until start.",
       "active": true,
       "parentId": null,
       "inTree": false
@@ -298,7 +316,14 @@
       "lng": -121.8947,
       "status": "partly",
       "type": "independent",
-      "notes": "Inactive / not active staffing. 70 Garden Ct Suite 100, Monterey, CA. Operator seat open.",
+      "notes": "70 Garden Ct Suite 100, Monterey, CA. Operator hire: Finnlee Morgan (tentative start ~10/26, 20 hrs). Not confirmed hired.",
+      "operatorHire": {
+        "name": "Finnlee Morgan",
+        "status": "tentative",
+        "start": "~10/26",
+        "hours": 20,
+        "label": "Operator hire: Finnlee Morgan (tentative start ~10/26)"
+      },
       "assignedTo": "rudy",
       "revenue": 0,
       "expenses": 0,
@@ -391,7 +416,7 @@
     {
       "id": "a1",
       "type": "warning",
-      "message": "Monterey clinic inactive — operator seat open",
+      "message": "Monterey: Operator hire Finnlee Morgan (tentative start ~10/26, 20 hrs) — not confirmed hired",
       "module": "org-chart",
       "time": "2026-09-06T01:00:00Z"
     },

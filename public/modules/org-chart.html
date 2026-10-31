@@ -351,7 +351,7 @@ const DEFAULT_NODES = {
   bobby: { id: 'bobby', name: 'Bobby Awadalla', title: 'Skincredible Partner', role: 'Partner (External)', description: 'Laguna Beach Skincredible partner. Not an HMS employee.', parentId: null, inTree: false },
   nikhil: { id: 'nikhil', name: 'Nikhil Narayan', title: 'Marketing — Web & Digital', role: 'Staff', description: 'Member of Marketing Outreach group with Stacey Vajrabukka and Rudy Alvarez — web presence, digital tools, referrals support, and patient acquisition across all clinics.', multiHome: true, parentId: 'marketingOutreach', treeRole: 'person', nodeClass: 'node-assistant', home: 'marketing', inTree: true },
   vacOceanside: { id: 'vacOceanside', name: 'Open Seat: Oceanside', title: 'Operator + Front Desk', role: 'Vacancy', description: 'Oceanside operator and front desk — recruiting via Melinna. Rudy Alvarez acting operator until filled.', parentId: null, inTree: false },
-  vacMonterey: { id: 'vacMonterey', name: 'Open Seat: Monterey', title: 'Clinic Operator', role: 'Vacancy', description: 'Monterey clinic operator — inactive staffing, seat open. Rudy Alvarez acting operator until filled.', parentId: null, inTree: false },
+  vacMonterey: { id: 'vacMonterey', name: 'Monterey operator (tentative hire)', title: 'Clinic Operator', role: 'Vacancy', description: 'Operator hire: Finnlee Morgan (tentative start ~10/26, 20 hrs). Not confirmed hired. Rudy Alvarez acting operator until start.', parentId: null, inTree: false },
   vacRiverside: { id: 'vacRiverside', name: 'Open Seat: Riverside', title: 'Clinic Operator', role: 'Vacancy', description: 'Riverside operator for TI / early buildout site. Rudy Alvarez acting operator until filled.', parentId: null, inTree: false },
   vacLaguna: { id: 'vacLaguna', name: 'Open Seat: Laguna', title: 'Onsite Manager', role: 'Vacancy', description: 'Laguna Beach onsite manager — thin staffing, recruiting. Rudy Alvarez acting operator covering gaps.', parentId: null, inTree: false }
 };
@@ -376,7 +376,7 @@ let clinics = [
   { id:'c-chula', name:'Pacific Hyperbarics — Chula Vista', city:'Chula Vista, CA', status:'operational', type:'independent', notes:'Managed by Emilia (Mily) Greenhalgh — local mgr, personnel oversight, new-clinic design. Flagship — Open. 826 Starboard St, Chula Vista, CA 91914.', assignedTo:'mily' },
   { id:'c-oceanside', name:'Pacific Hyperbarics — Oceanside', city:'Oceanside, CA', status:'startup', type:'independent', notes:'TI / buildout. 1411 N Coast Hwy, Oceanside, CA 92054. Rudy standup. Operator + front desk open.', assignedTo:'rudy' },
   { id:'c-salinas', name:'Pacific Hyperbarics — Salinas / Cypress Coast', city:'Salinas, CA', status:'operational', type:'independent', notes:'Open. 610 E Romie Ln Unit B, Salinas, CA. Monica floor ops. RM: Rudy.', assignedTo:'rudy' },
-  { id:'c-monterey', name:'Pacific Hyperbarics — Monterey', city:'Monterey, CA', status:'partly', type:'independent', notes:'Inactive / not active staffing. 70 Garden Ct Suite 100, Monterey, CA. Operator seat open.', assignedTo:'rudy' },
+  { id:'c-monterey', name:'Pacific Hyperbarics — Monterey', city:'Monterey, CA', status:'partly', type:'independent', notes:'70 Garden Ct Suite 100, Monterey, CA. Operator hire: Finnlee Morgan (tentative start ~10/26, 20 hrs). Not confirmed hired.', assignedTo:'rudy', operatorHire: { name: 'Finnlee Morgan', status: 'tentative', start: '~10/26', hours: 20, label: 'Operator hire: Finnlee Morgan (tentative start ~10/26)' } },
   { id:'c-madras', name:'Pacific Hyperbarics — Madras, OR', city:'Madras, OR', status:'operational', type:'independent', notes:'Open. ADDRESS CONFLICT: app lists 83 NW K St; Deb/listing shows 83 SW K St — do not collapse; verify before mail/maps. Deb hyperbaric tech. RM: Rudy.', assignedTo:'rudy' },
   { id:'c-laguna', name:'Pacific Hyperbarics — Laguna Beach', city:'Laguna Beach, CA', status:'partly', type:'partnered', notes:'Open / thin staffing. 31655 Coast Hwy Suite B, Laguna Beach, CA 92651. Rudy ops; Bobby Awadalla Skincredible partner.', assignedTo:'rudy' },
   { id:'c-riverside', name:'Pacific Hyperbarics — Riverside', city:'Riverside, CA', status:'startup', type:'independent', notes:'TI / early buildout. 6939 Palm Ct, Riverside, CA 92506. Operator seat open.', assignedTo:'rudy' }
@@ -713,7 +713,7 @@ function getReporting(id) {
     deb: 'Madras hyperbaric tech — assigned to clinic card, not a direct report in org tree.',
     bobby: 'Laguna Skincredible partner — on Laguna clinic card, not HMS employee.',
     vacOceanside: 'Open seat on Oceanside clinic card — recruiting via Melinna Leon. Rudy Alvarez acting operator until filled.',
-    vacMonterey: 'Open seat on Monterey clinic card — recruiting via Melinna Leon. Rudy Alvarez acting operator until filled.',
+    vacMonterey: 'Monterey clinic card — Operator hire: Finnlee Morgan (tentative start ~10/26, 20 hrs). Not confirmed hired. Rudy Alvarez acting operator until start.',
     vacRiverside: 'Open seat on Riverside clinic card — recruiting via Melinna Leon. Rudy Alvarez acting operator until filled.',
     vacLaguna: 'Open seat on Laguna clinic card — recruiting via Melinna Leon. Rudy Alvarez acting operator covering gaps.'
   };

@@ -127,6 +127,7 @@ async function init() {
           ${clinic.lat != null ? `<div class="cd-meta-item"><label>Coordinates</label><span>${clinic.lat}, ${clinic.lng}</span></div>` : ''}
           <div class="cd-meta-item"><label>Patients / Month</label><span>${clinic.patientsMonth || 0}</span></div>
           <div class="cd-meta-item"><label>Revenue</label><span>$${(clinic.revenue || 0).toLocaleString()}</span></div>
+          ${clinic.operatorHire ? `<div class="cd-meta-item"><label>Operator</label><span>${esc(clinic.operatorHire.label || clinic.operatorHire.name)}</span></div>` : ''}
         </div>
         <div class="cd-actions">
           <a class="cd-btn cd-btn-primary" href="/modules/map.html?clinic=${encodeURIComponent(clinicId)}">View on Map</a>
