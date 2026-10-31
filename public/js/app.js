@@ -115,5 +115,71 @@ async function resetAll() {
   }
 }
 
+async function fetchSummary() {
+  try {
+    const res = await fetch('/api/summary');
+    const j = await res.json();
+    return j.success ? j.data : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Partner-facing KPI strip (dashboard + map). */
+function renderPartnerKpiStrip(partner, options = {}) {
+  const showSource = options.showSource !== false;
+  const rev = partner.monthlyRevenue || {};
+  const patients = partner.activePatients || {};
+  const refs = partner.activeReferrals || {};
+  const monterey = partner.monterey || {};
+  const site = partner.siteProjection || {};
+  const revClass = rev.isDraft ? 'sum-card kpi-draft' : 'sum-card';
+  const netClass =
+    !rev.isDraft && typeof rev.net === 'number'
+      ? rev.net >= 0
+        ? 'positive'
+        : 'negative'
+      : '';
+  const siteClass = site.isDraft ? 'sum-card kpi-draft' : 'sum-card';
+  const sourceBlock = (text) =>
+    showSource ? `<div class="sum-source">${esc(text)}</div>` : '';
+
+  return `
+    <div class="summary-grid partner-kpis">
+      <div class="${revClass}">
+        <div class="sum-label">Monthly Revenue</div>
+        <div class="sum-value">${esc(rev.display || '—')}</div>
+        <div class="sum-sub ${netClass}">${esc(rev.isDraft ? rev.periodLabel || 'Draft estimate' : rev.netLabel || 'From clinic revenue fields')}</div>
+        ${rev.netLabel && rev.isDraft ? `<div class="sum-sub">${esc(rev.netLabel)}</div>` : ''}
+        ${sourceBlock((rev.source || 'clinics[].revenue from /api/state') + (rev.caveat ? ' — ' + rev.caveat : ''))}
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">Active Patients</div>
+        <div class="sum-value">${esc(patients.display != null ? String(patients.display) : '—')}</div>
+        <div class="sum-sub">${esc(patients.sub || '')}</div>
+        ${sourceBlock(patients.source || 'clinics[].patientsMonth from /api/state')}
+      </div>
+      <div class="sum-card">
+        <div class="sum-label">Active Referrals</div>
+        <div class="sum-value">${esc(refs.display != null ? String(refs.display) : '—')}</div>
+        <div class="sum-sub">${esc(refs.sub || '')}</div>
+        ${sourceBlock(refs.source || 'open/active referrals from /api/state')}
+      </div>
+      <div class="sum-card kpi-monterey">
+        <div class="sum-label">Monterey Operator</div>
+        <div class="sum-value" style="font-size:18px;">${esc(monterey.operatorName || 'See clinic note')}</div>
+        <div class="sum-sub">${esc(monterey.label || '')}</div>
+        ${sourceBlock('Monterey clinic on /api/state')}
+      </div>
+      <div class="${siteClass}">
+        <div class="sum-label">Site projection</div>
+        <div class="sum-value" style="font-size:20px;">${esc(site.displayValue || '—/2 this mo')}</div>
+        <div class="sum-sub">${esc(site.marginLabel || 'Margin TBD · $200k/site · max 2/mo')}</div>
+        <div class="sum-sub">${esc(site.sixMoLabel || '')}</div>
+        ${sourceBlock(site.source || site.assumptions || '')}
+      </div>
+    </div>`;
+}
+
 /* Init nav on page load */
 document.addEventListener('DOMContentLoaded', setActiveNav);
