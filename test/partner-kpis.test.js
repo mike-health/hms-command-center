@@ -36,38 +36,57 @@ describe('partner KPIs from seed /api/state shape', () => {
     assert.match(kpi.source, /clinics\[\]\.revenue/);
   });
 
-  it('uses OA Active census (all clinics) for Active patients, not referral in-treatment', () => {
+  it('uses OA Oct HBOT visit census (CPT 99183), not the 4-row tracker proxy or 532 roster', () => {
     const kpi = activePatientsKpi(seed);
-    assert.equal(kpi.value, 532);
+    assert.equal(kpi.value, 36);
+    assert.equal(kpi.display, '36');
     assert.equal(kpi.isCensus, true);
     assert.equal(kpi.isProxy, false);
-    assert.equal(kpi.sub, 'OA Active (all clinics) · as of 10/29');
-    assert.match(kpi.source, /Office Ally Patient List Status='Active'/);
-    assert.match(kpi.source, /10\/29\/2026/);
-    assert.doesNotMatch(kpi.source, /in-treatment/i);
-    assert.doesNotMatch(kpi.sub, /in treatment/i);
+    assert.equal(kpi.sub, 'Oct HBOT visits · OA 10/31');
+    assert.match(kpi.source, /Office Ally Patient Visits Report 2026-10-31/);
+    assert.match(kpi.source, /99183/);
+    assert.doesNotMatch(kpi.source, /billing\/referrals\.db/);
+    assert.equal(seed.kpis.activePatients.total, 36);
+    assert.equal(seed.kpis.activePatients.byClinic['c-chula'], 19);
+    assert.equal(seed.kpis.activePatients.byClinic['c-salinas'], 7);
+    assert.equal(seed.kpis.activePatients.byClinic['c-madras'], 5);
+    assert.equal(seed.kpis.activePatients.byClinic['c-laguna'], 5);
+    assert.equal(seed.kpis.activePatients.byClinic['c-oceanside'], 0);
+    assert.equal(seed.kpis.activePatients.byClinic['c-monterey'], 0);
+    assert.equal(seed.kpis.activePatients.byClinic['c-riverside'], 0);
+    const byId = Object.fromEntries(seed.clinics.map((c) => [c.id, c.patientsMonth]));
+    assert.equal(byId['c-chula'], 19);
+    assert.equal(byId['c-salinas'], 7);
+    assert.equal(byId['c-madras'], 5);
+    assert.equal(byId['c-laguna'], 5);
+    assert.equal(byId['c-oceanside'], 0);
+    assert.equal(byId['c-monterey'], 0);
+    assert.equal(byId['c-riverside'], 0);
+    const clinicSum = seed.clinics.reduce((s, c) => s + (c.patientsMonth || 0), 0);
+    assert.equal(clinicSum, 36);
+    assert.ok(!seed.clinics.some((c) => /pleasant hill/i.test(c.name)));
   });
 
   it('does not use referral-tracker in-treatment when OA census is missing', () => {
-    const { oaActivePatients, ...kpisWithoutCensus } = seed.kpis;
+    const { activePatients, ...kpisWithoutCensus } = seed.kpis;
     const kpi = activePatientsKpi({
       clinics: seed.clinics,
       kpis: kpisWithoutCensus
     });
-    assert.equal(oaActivePatients.count, 532);
+    assert.equal(activePatients.total, 36);
     assert.notEqual(kpi.value, 4);
     assert.equal(kpi.isProxy, false);
     assert.match(kpi.source, /patientsMonth/);
   });
 
-  it('prefers OA Active census over clinic patientsMonth', () => {
+  it('prefers OA Oct HBOT census over clinic patientsMonth', () => {
     const kpi = activePatientsKpi({
       clinics: [{ status: 'operational', patientsMonth: 12 }],
       kpis: seed.kpis
     });
-    assert.equal(kpi.value, 532);
+    assert.equal(kpi.value, 36);
     assert.equal(kpi.isCensus, true);
-    assert.equal(kpi.sub, 'OA Active (all clinics) · as of 10/29');
+    assert.equal(kpi.sub, 'Oct HBOT visits · OA 10/31');
   });
 
   it('falls back to clinic patientsMonth only when OA census is absent', () => {
@@ -87,7 +106,7 @@ describe('partner KPIs from seed /api/state shape', () => {
     assert.match(kpi.sub, /authorized/i);
     assert.match(kpi.source, /billing\/referrals\.db as of 2026-10-31/);
     assert.match(kpi.source, /37/);
-    assert.match(kpi.source, /OA Active patients census/);
+    assert.match(kpi.source, /OA Oct HBOT Active patients census/);
     assert.doesNotMatch(kpi.source, /double-counted/);
   });
 
@@ -118,7 +137,7 @@ describe('partner KPIs from seed /api/state shape', () => {
     assert.ok(s.activePatients);
     assert.ok(s.activeReferrals);
     assert.ok(s.monterey);
-    assert.equal(s.activePatients.value, 532);
+    assert.equal(s.activePatients.value, 36);
     assert.equal(s.activeReferrals.value, 33);
     assert.equal(s.monthlyRevenue.value, 250366.77);
   });
@@ -129,8 +148,9 @@ describe('partner KPIs from seed /api/state shape', () => {
     assert.doesNotMatch(raw, /all_offices_active_patient_list/);
     assert.doesNotMatch(raw, /date of birth/i);
     assert.doesNotMatch(raw, /"chartNumbers"/);
-    const oa = seed.kpis.oaActivePatients;
-    assert.equal(Object.keys(oa).sort().join(','), 'asOf,count,definition,source,sub');
-    assert.equal(oa.count, 532);
+    const oa = seed.kpis.activePatients;
+    assert.ok(!seed.kpis.oaActivePatients);
+    assert.equal(oa.total, 36);
+    assert.doesNotMatch(JSON.stringify(oa), /chartNumber/i);
   });
 });
