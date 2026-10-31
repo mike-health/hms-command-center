@@ -36,19 +36,44 @@ describe('partner KPIs from seed /api/state shape', () => {
     assert.match(kpi.source, /clinics\[\]\.revenue/);
   });
 
-  it('uses billing referral-tracker in-treatment proxy when patientsMonth is zero', () => {
+  it('uses OA Active census (all clinics) for Active patients, not referral in-treatment', () => {
     const kpi = activePatientsKpi(seed);
-    assert.equal(kpi.value, 4);
-    assert.equal(kpi.isProxy, true);
-    assert.match(kpi.sub, /Open referral pipeline: ~37/);
-    assert.match(kpi.source, /billing\/referrals\.db as of 2026-10-31/);
-    assert.match(kpi.source, /in treatment/);
+    assert.equal(kpi.value, 532);
+    assert.equal(kpi.isCensus, true);
+    assert.equal(kpi.isProxy, false);
+    assert.equal(kpi.sub, 'OA Active (all clinics) · as of 10/29');
+    assert.match(kpi.source, /Office Ally Patient List Status='Active'/);
+    assert.match(kpi.source, /10\/29\/2026/);
+    assert.doesNotMatch(kpi.source, /in-treatment/i);
+    assert.doesNotMatch(kpi.sub, /in treatment/i);
   });
 
-  it('prefers live clinic patientsMonth over the billing proxy', () => {
+  it('does not use referral-tracker in-treatment when OA census is missing', () => {
+    const { oaActivePatients, ...kpisWithoutCensus } = seed.kpis;
+    const kpi = activePatientsKpi({
+      clinics: seed.clinics,
+      kpis: kpisWithoutCensus
+    });
+    assert.equal(oaActivePatients.count, 532);
+    assert.notEqual(kpi.value, 4);
+    assert.equal(kpi.isProxy, false);
+    assert.match(kpi.source, /patientsMonth/);
+  });
+
+  it('prefers OA Active census over clinic patientsMonth', () => {
     const kpi = activePatientsKpi({
       clinics: [{ status: 'operational', patientsMonth: 12 }],
       kpis: seed.kpis
+    });
+    assert.equal(kpi.value, 532);
+    assert.equal(kpi.isCensus, true);
+    assert.equal(kpi.sub, 'OA Active (all clinics) · as of 10/29');
+  });
+
+  it('falls back to clinic patientsMonth only when OA census is absent', () => {
+    const kpi = activePatientsKpi({
+      clinics: [{ status: 'operational', patientsMonth: 12 }],
+      kpis: { billingReferrals: seed.kpis.billingReferrals }
     });
     assert.equal(kpi.value, 12);
     assert.equal(kpi.isProxy, false);
@@ -62,6 +87,8 @@ describe('partner KPIs from seed /api/state shape', () => {
     assert.match(kpi.sub, /authorized/i);
     assert.match(kpi.source, /billing\/referrals\.db as of 2026-10-31/);
     assert.match(kpi.source, /37/);
+    assert.match(kpi.source, /OA Active patients census/);
+    assert.doesNotMatch(kpi.source, /double-counted/);
   });
 
   it('counts live non-placeholder referrals instead of the billing seed', () => {
@@ -91,5 +118,19 @@ describe('partner KPIs from seed /api/state shape', () => {
     assert.ok(s.activePatients);
     assert.ok(s.activeReferrals);
     assert.ok(s.monterey);
+    assert.equal(s.activePatients.value, 532);
+    assert.equal(s.activeReferrals.value, 33);
+    assert.equal(s.monthlyRevenue.value, 250366.77);
+  });
+
+  it('seed stores OA Active count only — no PHI fields or restricted export path', () => {
+    const raw = fs.readFileSync(path.join(__dirname, '../data/command-center.json'), 'utf-8');
+    assert.doesNotMatch(raw, /RESTRICTED/);
+    assert.doesNotMatch(raw, /all_offices_active_patient_list/);
+    assert.doesNotMatch(raw, /date of birth/i);
+    assert.doesNotMatch(raw, /"chartNumbers"/);
+    const oa = seed.kpis.oaActivePatients;
+    assert.equal(Object.keys(oa).sort().join(','), 'asOf,count,definition,source,sub');
+    assert.equal(oa.count, 532);
   });
 });

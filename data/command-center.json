@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastModified": "2026-10-31T21:00:00.000Z",
+  "lastModified": "2026-10-31T21:30:00.000Z",
   "dataNotes": {
     "seedIsSourceOfTruth": true,
     "liveOverrideTodo": "TODO: Live /api/state persists to data/command-center.json at runtime and overrides this seed until POST /api/reset. Deployed hosts may still show older Monterey notes (operator seat open) until reset or a state PATCH. Seed is factory-default SoT only."
@@ -18,10 +18,17 @@
       "opexDraft": 80778,
       "opexRef": "*0811"
     },
+    "oaActivePatients": {
+      "count": 532,
+      "asOf": "2026-10-29",
+      "sub": "OA Active (all clinics) · as of 10/29",
+      "source": "Office Ally Patient List Status='Active' across all offices; unique Chart Numbers from demographics export dated 10/29/2026. Count only — no PHI in repo.",
+      "definition": "Active patients = all current patients in all clinics (Mike, 2026-10-31). Not the referral-tracker in-treatment count."
+    },
     "billingReferrals": {
       "asOf": "2026-10-31",
       "source": "billing/referrals.db as of 2026-10-31",
-      "note": "No clinic census SoT. Seeded proxy from Mike’s ops billing referral tracker — app does not query referrals.db.",
+      "note": "Open referral pipeline for the Active referrals card only — not the Active patients census. Seeded from Mike’s ops billing referral tracker; app does not query referrals.db.",
       "inTreatment": 4,
       "inTreatmentStatuses": [
         "in treatment…",
@@ -38,7 +45,7 @@
         "cleared-not-booked",
         "open"
       ],
-      "activeReferralsNote": "Non-closed minus in-treatment (37 − 4) so Active patients and Active referrals are not double-counted."
+      "activeReferralsNote": "Open referral pipeline: non-closed minus in-treatment (37 − 4). Separate from the OA Active patients census."
     }
   },
   "nodes": {
