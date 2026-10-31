@@ -83,17 +83,17 @@
         <div class="sum-card kpi-draft">
           <div class="sum-label">Monthly Revenue</div>
           <div class="sum-value">—</div>
-          <div class="sum-sub">Loading clinic revenue fields…</div>
+          <div class="sum-sub">Oct MTD (to 10/28)</div>
         </div>
         <div class="sum-card">
           <div class="sum-label">Active Patients</div>
           <div class="sum-value">—</div>
-          <div class="sum-sub">from patientsMonth</div>
+          <div class="sum-sub">in treatment / referral tracker</div>
         </div>
         <div class="sum-card">
           <div class="sum-label">Active Referrals</div>
           <div class="sum-value">—</div>
-          <div class="sum-sub">open / pending from state</div>
+          <div class="sum-sub">open pipeline excluding in-treatment</div>
         </div>
         <div class="sum-card kpi-monterey">
           <div class="sum-label">Monterey Operator</div>
@@ -167,7 +167,7 @@ async function initDashboard() {
       <div class="${revClass}">
         <div class="sum-label">Monthly Revenue</div>
         <div class="sum-value">${esc(rev.display || '—')}</div>
-        <div class="sum-sub ${netClass}">${esc(rev.isDraft ? 'Draft estimate' : (rev.netLabel || 'From clinic revenue fields'))}</div>
+        <div class="sum-sub ${netClass}">${esc(rev.isDraft ? (rev.periodLabel || 'Draft estimate') : (rev.netLabel || 'From clinic revenue fields'))}</div>
         ${rev.netLabel && rev.isDraft ? `<div class="sum-sub">${esc(rev.netLabel)}</div>` : ''}
         <div class="sum-source">${esc(rev.source || 'clinics[].revenue from /api/state')}${rev.caveat ? ' — ' + esc(rev.caveat) : ''}</div>
       </div>
