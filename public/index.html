@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>HMS Command Center</title>
-<link rel="stylesheet" href="/css/app.css?v=6">
+<link rel="stylesheet" href="/css/app.css?v=7">
 </head>
 <body>
 <div class="app">
@@ -64,7 +64,10 @@
   <!-- Main -->
   <main class="main">
     <header class="topbar">
-      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-left">
+        <button type="button" class="btn btn-secondary btn-sm btn-hub-back" onclick="goHubBack()">← Back</button>
+        <div class="topbar-title">Dashboard</div>
+      </div>
       <div class="topbar-actions">
         <div class="status-pill">
           <span class="status-dot"></span>
@@ -141,7 +144,7 @@
   </main>
 </div>
 
-<script src="/js/app.js?v=5"></script>
+<script src="/js/app.js?v=6"></script>
 <script>
 /* ===== DASHBOARD MODULE ===== */
 let state = null;

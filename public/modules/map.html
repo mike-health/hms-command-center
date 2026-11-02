@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Clinic Map — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=5">
+<link rel="stylesheet" href="/css/app.css?v=7">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <style>
 .map-wrap { display: grid; grid-template-columns: 300px 1fr; gap: 0; height: calc(100vh - 56px); }
@@ -37,6 +37,7 @@
   .map-card { padding: 12px; }
   .map-card-name { font-size: 15px; }
   .map-card-city { font-size: 12px; }
+  .topbar { z-index: 40; }
   .topbar-actions .status-pill { display: none; }
 }
 </style>
@@ -65,7 +66,10 @@
 
   <main class="main">
     <header class="topbar">
-      <div class="topbar-title">Clinic Map</div>
+      <div class="topbar-left">
+        <button type="button" class="btn btn-secondary btn-sm btn-hub-back" onclick="goHubBack()">← Back</button>
+        <div class="topbar-title">Clinic Map</div>
+      </div>
       <div class="topbar-actions">
         <div class="status-pill"><span class="status-dot"></span><span id="status-text">Live</span></div>
         <button class="btn btn-primary btn-sm" onclick="addClinic()">+ Add Clinic</button>
@@ -89,7 +93,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="/js/app.js?v=4"></script>
+<script src="/js/app.js?v=6"></script>
 <script>
 let clinics = [], map = null, markers = [];
 

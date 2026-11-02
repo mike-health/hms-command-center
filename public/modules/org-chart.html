@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Org Chart — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=5">
+<link rel="stylesheet" href="/css/app.css?v=7">
 <style>
 /* ===== COMMAND CENTER LAYOUT ===== */
 .app { display: flex; height: 100vh; overflow: hidden; }
@@ -272,7 +272,10 @@
 
   <main class="main">
     <header class="topbar">
-      <div class="topbar-title">Org Chart</div>
+      <div class="topbar-left">
+        <button type="button" class="btn btn-secondary btn-sm btn-hub-back" onclick="goHubBack()">← Back</button>
+        <div class="topbar-title">Org Chart</div>
+      </div>
       <div class="topbar-actions">
         <div class="status-pill"><span class="status-dot"></span><span id="status-text">Live</span></div>
       </div>
@@ -331,7 +334,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=4"></script>
+<script src="/js/app.js?v=6"></script>
 <script src="/js/org-tree.js?v=3"></script>
 <script>
 // Node data — keep in sync with data/command-center.json (FACTORY_DEFAULTS)

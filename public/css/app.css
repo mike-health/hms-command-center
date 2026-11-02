@@ -134,15 +134,35 @@ body {
   padding: 0 24px;
   flex-shrink: 0;
 }
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
 .topbar-title {
   font-size: 18px;
   font-weight: 600;
   color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .topbar-actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
+}
+.btn-hub-back {
+  flex-shrink: 0;
+  min-height: 36px;
+  min-width: 44px;
+  padding: 8px 12px;
+  font-size: 13px;
+  position: relative;
+  z-index: 2;
 }
 
 .status-pill {
@@ -1028,13 +1048,19 @@ body {
   .topbar {
     position: sticky;
     top: 0;
-    z-index: 30;
+    z-index: 40;
     height: auto;
     min-height: 56px;
     padding: 10px 12px;
     gap: 8px;
   }
+  .topbar-left { gap: 8px; }
   .topbar-title { font-size: 16px; }
+  .btn-hub-back {
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 14px;
+  }
   .topbar-actions { flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
   .topbar-actions .btn { padding: 6px 10px; font-size: 12px; }
   .content { padding: 12px; }
