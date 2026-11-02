@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>HMS Command Center</title>
-<link rel="stylesheet" href="/css/app.css?v=7">
+<link rel="stylesheet" href="/css/app.css?v=8">
 </head>
 <body>
 <div class="app">
@@ -114,7 +114,7 @@
           <div class="alert-list">
             <div class="alert-item warning">
               <span class="alert-icon">▲</span>
-              <span class="alert-text">Monterey: Operator hire Finnlee Morgan (tentative start ~10/26, 20 hrs) — not confirmed hired</span>
+              <span class="alert-text">Monterey is opening — not yet active. New employee starts week of 2026-11-02 for training; treatments start week of 2026-11-09 (Mike, 2026-11-02).</span>
               <span class="alert-time">Sep 6</span>
             </div>
             <div class="alert-item info">
@@ -144,7 +144,7 @@
   </main>
 </div>
 
-<script src="/js/app.js?v=6"></script>
+<script src="/js/app.js?v=7"></script>
 <script>
 /* ===== DASHBOARD MODULE ===== */
 let state = null;
@@ -188,9 +188,9 @@ async function initDashboard() {
       </div>
       <div class="sum-card kpi-monterey">
         <div class="sum-label">Monterey Operator</div>
-        <div class="sum-value" style="font-size:18px;">${esc(monterey.operatorName || 'See clinic note')}</div>
+        <div class="sum-value" style="font-size:18px;">${esc(monterey.operatorName || (monterey.clinicStatus === 'opening' ? 'Opening' : 'See clinic note'))}</div>
         <div class="sum-sub">${esc(monterey.label || '')}</div>
-        <div class="sum-source">From Monterey clinic on /api/state (seed SoT). Live persisted state can override until Reset.</div>
+        <div class="sum-source">${esc(monterey.source || 'From Monterey clinic on /api/state (seed SoT). Live persisted state can override until Reset.')}</div>
       </div>
       <div class="sum-card">
         <div class="sum-label">Open Tasks</div>
@@ -200,7 +200,7 @@ async function initDashboard() {
       <div class="sum-card">
         <div class="sum-label">Clinics</div>
         <div class="sum-value">${sum.clinicCount}</div>
-        <div class="sum-sub">${s.clinics.filter(c => c.status === 'operational').length} open · ${s.clinics.filter(c => c.status === 'startup').length} starting · ${s.clinics.filter(c => c.status === 'partly').length} partly staffed</div>
+        <div class="sum-sub">${s.clinics.filter(c => c.status === 'operational').length} open · ${s.clinics.filter(c => c.status === 'startup' || c.status === 'opening').length} starting · ${s.clinics.filter(c => c.status === 'partly').length} partly staffed</div>
       </div>
       <div class="sum-card">
         <div class="sum-label">Team</div>
@@ -219,15 +219,18 @@ async function initDashboard() {
           ${s.clinics.map(c => {
             const shortName = (c.name || '').replace(/^Pacific Hyperbarics — /, '');
             const hire = c.operatorHire;
+            const statusNote = clinicStatusNote(c);
             const focus = c.id === 'c-monterey' ? ' clinic-chip-focus' : '';
-            const staffLine = hire
+            const staffLine = statusNote
+              ? `<div class="clinic-chip-staff">${esc(statusNote.text)}</div>`
+              : hire
               ? `<div class="clinic-chip-staff">${esc(hire.label)}</div>`
               : (c.id === 'c-monterey' && c.notes ? `<div class="clinic-chip-staff">${esc(c.notes)}</div>` : '');
             return `<a class="clinic-chip${focus}" href="/modules/clinic-detail.html?clinic=${encodeURIComponent(c.id)}">
               <div class="clinic-chip-name">${esc(shortName)}</div>
               <div class="clinic-chip-city">${esc(c.city || '')}</div>
               <div class="clinic-chip-meta">
-                <span class="badge badge-${c.status==='operational'?'green':c.status==='startup'?'blue':'amber'}">${esc(c.status)}</span>
+                <span class="badge badge-${statusBadgeTone(c.status)}">${esc(c.status)}</span>
               </div>
               ${staffLine}
             </a>`;

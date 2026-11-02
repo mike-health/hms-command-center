@@ -72,6 +72,27 @@ async function saveState(data) {
   }
 }
 
+function statusBadgeTone(status) {
+  if (status === 'operational') return 'green';
+  if (status === 'startup' || status === 'opening') return 'blue';
+  if (status === 'partly') return 'amber';
+  return 'gray';
+}
+
+function clinicStatusNote(clinic) {
+  if (!clinic || !clinic.statusNote || !clinic.statusNote.text) return null;
+  return clinic.statusNote;
+}
+
+function clinicStatusNoteHtml(clinic) {
+  const note = clinicStatusNote(clinic);
+  if (!note) return '';
+  const source = note.source
+    ? `<span class="clinic-status-source">${esc(note.source)}</span>`
+    : '';
+  return `<div class="clinic-status-note">${esc(note.text)}${source}</div>`;
+}
+
 function esc(s) {
   return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

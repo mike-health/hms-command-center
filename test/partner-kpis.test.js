@@ -123,12 +123,14 @@ describe('partner KPIs from seed /api/state shape', () => {
     assert.equal(kpi.isProxy, false);
   });
 
-  it('surfaces Monterey tentative operator hire, not confirmed hired', () => {
+  it('surfaces Monterey opening status from Mike 2026-11-02, not yet active', () => {
     const m = montereyStaffing(seed);
-    assert.match(m.label, /Finnlee Morgan/);
-    assert.match(m.label, /tentative start/);
-    assert.equal(m.hireStatus, 'tentative');
-    assert.doesNotMatch(m.label.toLowerCase(), /hired confirmed/);
+    assert.equal(m.clinicStatus, 'opening');
+    assert.match(m.label, /not yet active/i);
+    assert.match(m.label, /training/);
+    assert.match(m.label, /treatments start/);
+    assert.equal(m.source, 'Mike, 2026-11-02');
+    assert.equal(m.hireStatus, 'training');
   });
 
   it('partnerSummary includes all four partner signals', () => {

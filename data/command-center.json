@@ -282,10 +282,10 @@
     },
     "vacMonterey": {
       "id": "vacMonterey",
-      "name": "Monterey operator (tentative hire)",
+      "name": "Monterey operator (opening)",
       "title": "Clinic Operator",
       "role": "Vacancy",
-      "description": "Operator hire: Finnlee Morgan (tentative start ~10/26, 20 hrs). Not confirmed hired. Rudy Alvarez acting operator until start.",
+      "description": "Monterey is opening — not yet active. New employee starts week of 2026-11-02 for training; treatments start week of 2026-11-09 (Mike, 2026-11-02).",
       "active": true,
       "parentId": null,
       "inTree": false
@@ -360,15 +360,19 @@
       "city": "Monterey, CA",
       "lat": 36.6002,
       "lng": -121.8947,
-      "status": "partly",
+      "status": "opening",
       "type": "independent",
-      "notes": "70 Garden Ct Suite 100, Monterey, CA. Operator hire: Finnlee Morgan (tentative start ~10/26, 20 hrs). Not confirmed hired.",
+      "notes": "70 Garden Ct Suite 100, Monterey, CA. Opening — not yet active. New employee starts this week (week of 2026-11-02) for training; treatments start next week (week of 2026-11-09).",
+      "statusNote": {
+        "text": "Opening — not yet active. New employee starts this week (week of 2026-11-02) for training; treatments start next week (week of 2026-11-09).",
+        "source": "Mike, 2026-11-02"
+      },
       "operatorHire": {
-        "name": "Finnlee Morgan",
-        "status": "tentative",
-        "start": "~10/26",
-        "hours": 20,
-        "label": "Operator hire: Finnlee Morgan (tentative start ~10/26)"
+        "status": "training",
+        "start": "week of 2026-11-02",
+        "treatmentsStart": "week of 2026-11-09",
+        "label": "New employee starts week of 2026-11-02 for training; treatments start week of 2026-11-09",
+        "source": "Mike, 2026-11-02"
       },
       "assignedTo": "rudy",
       "revenue": 0,
@@ -462,9 +466,9 @@
     {
       "id": "a1",
       "type": "warning",
-      "message": "Monterey: Operator hire Finnlee Morgan (tentative start ~10/26, 20 hrs) — not confirmed hired",
+      "message": "Monterey is opening — not yet active. New employee starts week of 2026-11-02 for training; treatments start week of 2026-11-09 (Mike, 2026-11-02).",
       "module": "org-chart",
-      "time": "2026-09-06T01:00:00Z"
+      "time": "2026-11-02T00:00:00Z"
     },
     {
       "id": "a2",

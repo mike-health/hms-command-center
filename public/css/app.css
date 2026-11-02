@@ -377,6 +377,18 @@ body {
 .badge-blue { background: #dbeafe; color: #1e40af; }
 .badge-gray { background: #f1f5f9; color: #475569; }
 .badge-purple { background: #f3e8ff; color: #6b21a8; }
+.clinic-status-note {
+  font-size: 12px;
+  color: #334155;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+.clinic-status-source {
+  display: block;
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
 
 /* Buttons */
 .btn {
