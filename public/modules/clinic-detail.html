@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Clinic Detail — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=5">
+<link rel="stylesheet" href="/css/app.css?v=9">
 <style>
 .cd-wrap { max-width: 800px; margin: 0 auto; }
 .cd-back { font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 500; display: inline-block; margin-bottom: 12px; }
@@ -29,7 +29,9 @@
 .badge-operational { background: #dcfce7; color: #166534; }
 .badge-partly { background: #fef3c7; color: #92400e; }
 .badge-startup { background: #dbeafe; color: #1e40af; }
+.badge-opening { background: #dbeafe; color: #1e40af; }
 .badge-prospective { background: #f1f5f9; color: #475569; }
+.cd-status-note { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f1f5f9; }
 .badge-independent { background: #ede9fe; color: #6b21a8; }
 .badge-partnered { background: #fce7f3; color: #9d174d; }
 </style>
@@ -58,8 +60,12 @@
 
   <main class="main">
     <header class="topbar">
-      <div class="topbar-title">Clinic Detail</div>
+      <div class="topbar-left">
+        <button type="button" class="btn btn-secondary btn-sm btn-hub-back" onclick="goHubBack()">← Back</button>
+        <div class="topbar-title">Clinic Detail</div>
+      </div>
       <div class="topbar-actions">
+        <span class="as-of-pill" id="as-of-pill">As of …</span>
         <div class="status-pill"><span class="status-dot"></span><span id="status-text">Live</span></div>
       </div>
     </header>
@@ -71,13 +77,13 @@
   </main>
 </div>
 
-<script src="/js/app.js?v=4"></script>
+<script src="/js/app.js?v=8"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
 const clinicId = params.get('clinic');
 
-const STATUS_LABELS = { operational: 'Operational', partly: 'Partly Operational', startup: 'Startup', prospective: 'Prospective' };
-const STATUS_CLASSES = { operational: 'badge-operational', partly: 'badge-partly', startup: 'badge-startup', prospective: 'badge-prospective' };
+const STATUS_LABELS = { operational: 'Operational', partly: 'Partly Operational', startup: 'Startup', opening: 'Opening', prospective: 'Prospective' };
+const STATUS_CLASSES = { operational: 'badge-operational', partly: 'badge-partly', startup: 'badge-startup', opening: 'badge-opening', prospective: 'badge-prospective' };
 const TYPE_CLASSES = { independent: 'badge-independent', partnered: 'badge-partnered' };
 
 async function init() {
@@ -98,36 +104,51 @@ async function init() {
       return;
     }
 
-    const manager = nodes[clinic.assignedTo];
-    const clinicReferrals = referrals.filter(r => r.clinicId === clinicId);
-    const clinicTasks = tasks.filter(t => t.assignee === clinic.assignedTo && t.module === 'org-chart');
+    const asOf = clinic.asOf || snapshotAsOf(s.data);
+    const asOfEl = document.getElementById('as-of-pill');
+    if (asOfEl) asOfEl.textContent = asOf ? `As of ${asOf}` : 'As of —';
+
+    const manager = clinic.assignedTo ? nodes[clinic.assignedTo] : null;
+    const clinicReferrals = (referrals || []).filter(r => r.clinicId === clinicId);
+    const clinicTasks = clinic.assignedTo
+      ? (tasks || []).filter(t => t.assignee === clinic.assignedTo && t.module === 'org-chart')
+      : [];
+    const statusNote = clinicStatusNote(clinic);
+    const revOct = clinic.rev_oct || {};
+    const revNote = clinic._sources && clinic._sources.revenue && clinic._sources.revenue.note;
+    const tmsNote = 'TMS remit overlaps Office Ally — not added to OA+Stripe.';
+    const staff = Array.isArray(clinic.staff) ? clinic.staff : null;
+    const pay = clinic.openPayables;
+    const refs = clinic.referrals;
 
     el.innerHTML = `
-      <a class="cd-back" href="/modules/org-chart.html">← Org Chart</a>
+      <a class="cd-back" href="/modules/map.html">← Clinic Map</a>
       <div class="cd-header">
         <h1>${esc(clinic.name)}</h1>
-        <div class="cd-city">${esc(clinic.city)}</div>
+        <div class="cd-city">${esc(clinic.address || clinic.city || '')}</div>
         <div class="cd-badges">
-          <span class="badge ${STATUS_CLASSES[clinic.status] || 'badge-prospective'}">${STATUS_LABELS[clinic.status] || clinic.status}</span>
-          <span class="badge ${TYPE_CLASSES[clinic.type] || 'badge-independent'}">${esc(clinic.type)}</span>
+          <span class="badge badge-${statusBadgeTone(clinic.status)}">${esc(displayValue(clinic.status))}</span>
+          ${clinic.type ? `<span class="badge ${TYPE_CLASSES[clinic.type] || 'badge-independent'}">${esc(clinic.type)}</span>` : ''}
         </div>
       </div>
 
       <div class="cd-card">
         <h2>Notes</h2>
-        <div class="cd-notes">${esc(clinic.notes || 'No notes.')}</div>
+        ${statusNote ? clinicStatusNoteHtml(clinic) : ''}
+        <div class="cd-notes${statusNote ? ' cd-status-note' : ''}">${esc(clinic.notes || displayValue(null))}</div>
       </div>
 
       <div class="cd-card">
         <h2>Details</h2>
         <div class="cd-meta">
-          <div class="cd-meta-item"><label>Responsible</label><span>${esc(manager?.name || clinic.assignedTo)}</span></div>
-          <div class="cd-meta-item"><label>Status</label><span>${STATUS_LABELS[clinic.status] || clinic.status}</span></div>
-          <div class="cd-meta-item"><label>Type</label><span>${esc(clinic.type)}</span></div>
-          ${clinic.lat != null ? `<div class="cd-meta-item"><label>Coordinates</label><span>${clinic.lat}, ${clinic.lng}</span></div>` : ''}
-          <div class="cd-meta-item"><label>Patients / Month</label><span>${clinic.patientsMonth || 0}</span></div>
-          <div class="cd-meta-item"><label>Revenue</label><span>$${(clinic.revenue || 0).toLocaleString()}</span></div>
-          ${clinic.operatorHire ? `<div class="cd-meta-item"><label>Operator</label><span>${esc(clinic.operatorHire.label || clinic.operatorHire.name)}</span></div>` : ''}
+          <div class="cd-meta-item"><label>Manager</label><span>${esc(displayValue(clinic.manager || manager?.name))}</span></div>
+          <div class="cd-meta-item"><label>Responsible</label><span>${esc(displayValue(manager?.name || clinic.assignedTo))}</span></div>
+          <div class="cd-meta-item"><label>Status</label><span>${esc(displayValue(clinic.status))}</span></div>
+          <div class="cd-meta-item"><label>Type</label><span>${esc(displayValue(clinic.type))}</span></div>
+          <div class="cd-meta-item"><label>Coordinates</label><span>${hasMapPoint(clinic) ? `${clinic.lat}, ${clinic.lng}` : displayValue(null)}</span></div>
+          <div class="cd-meta-item"><label>Patients / Month</label><span>${esc(displayValue(clinic.patientsMonth))}</span></div>
+          <div class="cd-meta-item"><label>Visits / Month</label><span>${esc(displayValue(clinic.visitsMonth))}</span></div>
+          ${clinic.operatorHire ? `<div class="cd-meta-item"><label>Staffing</label><span>${esc(clinic.operatorHire.label || displayValue(clinic.operatorHire.name))}</span></div>` : ''}
         </div>
         <div class="cd-actions">
           <a class="cd-btn cd-btn-primary" href="/modules/map.html?clinic=${encodeURIComponent(clinicId)}">View on Map</a>
@@ -135,9 +156,38 @@ async function init() {
         </div>
       </div>
 
+      <div class="cd-card">
+        <h2>October revenue (OA+Stripe tagged)</h2>
+        <div class="cd-meta">
+          <div class="cd-meta-item"><label>OA net</label><span>${esc(formatUsd(revOct.oa))}</span></div>
+          <div class="cd-meta-item"><label>Stripe</label><span>${esc(formatUsd(revOct.stripe))}</span></div>
+          <div class="cd-meta-item"><label>Tagged total</label><span>${esc(formatUsd(clinic.revenue))}</span></div>
+          <div class="cd-meta-item"><label>TMS remit (overlap)</label><span>${esc(formatUsd(revOct.tms_overlaps_oa))}</span></div>
+          <div class="cd-meta-item"><label>Expenses</label><span>${esc(formatUsd(clinic.expenses))}</span></div>
+        </div>
+        <div class="cd-rev-note">${esc(revNote || 'Clinic-tagged OA+Stripe is a lower bound because $172,685.69 of October Office Ally money is unassigned.')} ${esc(tmsNote)}</div>
+      </div>
+
+      <div class="cd-card">
+        <h2>Staff</h2>
+        ${staff && staff.length
+          ? `<ul class="cd-staff">${staff.map(line => `<li>${esc(line)}</li>`).join('')}</ul>`
+          : `<div class="cd-notes">${esc(displayValue(staff))}</div>`}
+      </div>
+
+      <div class="cd-card">
+        <h2>Referrals &amp; payables</h2>
+        <div class="cd-meta">
+          <div class="cd-meta-item"><label>Open referrals</label><span>${esc(displayValue(refs && refs.open))}</span></div>
+          <div class="cd-meta-item"><label>Referral rows</label><span>${esc(displayValue(refs && refs.total))}</span></div>
+          <div class="cd-meta-item"><label>Open payables (n)</label><span>${esc(pay && pay.n != null ? String(pay.n) : displayValue(null))}</span></div>
+          <div class="cd-meta-item"><label>Open payables ($)</label><span>${esc(formatUsd(pay && pay.amount))}</span></div>
+        </div>
+      </div>
+
       ${clinicReferrals.length ? `
       <div class="cd-card">
-        <h2>Referrals (${clinicReferrals.length})</h2>
+        <h2>Referral tracker rows (${clinicReferrals.length})</h2>
         <table class="data-table" style="width:100%;font-size:13px;">
           <thead><tr><th>Patient</th><th>Source</th><th>Status</th><th>Date</th></tr></thead>
           <tbody>${clinicReferrals.map(r => `

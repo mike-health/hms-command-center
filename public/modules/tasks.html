@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tasks — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=5">
+<link rel="stylesheet" href="/css/app.css?v=7">
 </head>
 <body>
 <div class="app">
@@ -26,7 +26,10 @@
 
   <main class="main">
     <header class="topbar">
-      <div class="topbar-title">Tasks</div>
+      <div class="topbar-left">
+        <button type="button" class="btn btn-secondary btn-sm btn-hub-back" onclick="goHubBack()">← Back</button>
+        <div class="topbar-title">Tasks</div>
+      </div>
       <div class="topbar-actions">
         <div class="status-pill"><span class="status-dot"></span><span id="status-text">Live</span></div>
         <button class="btn btn-primary btn-sm" onclick="addTask()">+ New Task</button>
@@ -46,7 +49,7 @@
   </main>
 </div>
 
-<script src="/js/app.js?v=4"></script>
+<script src="/js/app.js?v=6"></script>
 <script>
 let tasks = [];
 

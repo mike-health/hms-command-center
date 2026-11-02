@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Ops board — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=8">
+<link rel="stylesheet" href="/css/app.css?v=9">
 </head>
 <body>
 <div class="app">
@@ -26,7 +26,10 @@
 
   <main class="main">
     <header class="topbar">
-      <div class="topbar-title">Ops cadence</div>
+      <div class="topbar-left">
+        <button type="button" class="btn btn-secondary btn-sm btn-hub-back" onclick="goHubBack()">← Back</button>
+        <div class="topbar-title">Ops cadence</div>
+      </div>
       <div class="topbar-actions">
         <div class="status-pill"><span class="status-dot" id="status-dot"></span><span id="status-text">Loading</span></div>
         <a class="btn btn-secondary btn-sm" id="linear-project-link" href="https://linear.app/healthi/project/ops-cadence-ebb195e01b21" target="_blank" rel="noopener">Open in Linear</a>
@@ -92,7 +95,7 @@
   </aside>
 </div>
 
-<script src="/js/app.js?v=4"></script>
+<script src="/js/app.js?v=6"></script>
 <script src="/js/ops-board-format.js"></script>
 <script>
 let cadence = 'Daily';

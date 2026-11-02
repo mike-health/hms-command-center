@@ -1,6 +1,51 @@
 /* ===== HMS Command Center — Shared JS ===== */
 
 const API_URL = '';
+const HUB_URL = 'https://hms-partner-news.netlify.app';
+
+function arrivedFromThisSite(referrer, origin) {
+  if (!referrer || !origin) return false;
+  try {
+    return new URL(referrer).origin === origin;
+  } catch {
+    return false;
+  }
+}
+
+function goHubBack() {
+  if (arrivedFromThisSite(document.referrer, window.location.origin)) {
+    window.history.back();
+    return;
+  }
+  window.location.assign(HUB_URL);
+}
+
+function mountHubBackButton() {
+  if (document.querySelector('.btn-hub-back')) return;
+  const topbar = document.querySelector('header.topbar');
+  if (!topbar) return;
+
+  let left = topbar.querySelector('.topbar-left');
+  if (!left) {
+    left = document.createElement('div');
+    left.className = 'topbar-left';
+    const title = topbar.querySelector('.topbar-title');
+    if (title) {
+      title.parentNode.insertBefore(left, title);
+      left.appendChild(title);
+    } else {
+      topbar.insertBefore(left, topbar.firstChild);
+    }
+  }
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn-secondary btn-sm btn-hub-back';
+  btn.setAttribute('aria-label', 'Back');
+  btn.textContent = '← Back';
+  btn.addEventListener('click', goHubBack);
+  left.insertBefore(btn, left.firstChild);
+}
 
 async function loadState() {
   try {
@@ -25,6 +70,63 @@ async function saveState(data) {
     console.error('Save failed:', e);
     return { success: false };
   }
+}
+
+const NOT_YET_AVAILABLE = 'not yet available';
+
+function isBlankValue(value) {
+  return value == null || value === '' || (typeof value === 'number' && Number.isNaN(value));
+}
+
+function displayValue(value) {
+  if (isBlankValue(value)) return NOT_YET_AVAILABLE;
+  return String(value);
+}
+
+function formatUsd(amount) {
+  if (isBlankValue(amount)) return NOT_YET_AVAILABLE;
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(amount));
+}
+
+function statusBadgeTone(status) {
+  if (isBlankValue(status)) return 'gray';
+  const s = String(status).toLowerCase();
+  if (s === 'open' || s.startsWith('open ') || s === 'operational') return 'green';
+  if (s.includes('opening') || s === 'startup') return 'blue';
+  if (s === 'build' || s === 'partly') return 'amber';
+  return 'gray';
+}
+
+function hasMapPoint(clinic) {
+  return clinic && clinic.lat != null && clinic.lng != null
+    && !Number.isNaN(Number(clinic.lat)) && !Number.isNaN(Number(clinic.lng));
+}
+
+function snapshotAsOf(state) {
+  const snap = state && (state.clinicSnapshot || state);
+  return (snap && (snap.asOf || snap.generated))
+    || (state && state.dataNotes && state.dataNotes.clinicAsOf)
+    || null;
+}
+
+function asOfHtml(state) {
+  const asOf = snapshotAsOf(state);
+  if (!asOf) return '';
+  return `<span class="as-of-pill">As of ${esc(asOf)}</span>`;
+}
+
+function clinicStatusNote(clinic) {
+  if (!clinic || !clinic.statusNote || !clinic.statusNote.text) return null;
+  return clinic.statusNote;
+}
+
+function clinicStatusNoteHtml(clinic) {
+  const note = clinicStatusNote(clinic);
+  if (!note) return '';
+  const source = note.source
+    ? `<span class="clinic-status-source">${esc(note.source)}</span>`
+    : '';
+  return `<div class="clinic-status-note">${esc(note.text)}${source}</div>`;
 }
 
 function esc(s) {
@@ -115,5 +217,8 @@ async function resetAll() {
   }
 }
 
-/* Init nav on page load */
-document.addEventListener('DOMContentLoaded', setActiveNav);
+/* Init nav + hub Back button on page load */
+document.addEventListener('DOMContentLoaded', () => {
+  setActiveNav();
+  mountHubBackButton();
+});

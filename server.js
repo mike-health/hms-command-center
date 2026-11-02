@@ -117,21 +117,27 @@ app.post('/api/ops-cadence/apply', async (req, res) => {
   }
 });
 app.get('/api/summary', (req, res) => {
-  const totalRevenue = data.clinics.reduce((s, c) => s + (c.revenue || 0), 0);
-  const totalExpenses = data.clinics.reduce((s, c) => s + (c.expenses || 0), 0);
-  const totalPatients = data.clinics.reduce((s, c) => s + (c.patientsMonth || 0), 0);
   const partner = partnerSummary(data);
-  const activeReferrals = partner.activeReferrals.value;
+  const taggedRev = partner.monthlyRevenue.clinicTaggedLowerBound;
   const pendingTasks = data.tasks.filter(t => t.status !== 'completed').length;
   const urgentAlerts = data.alerts.filter(a => a.type === 'urgent').length;
+  const openish = (c) => {
+    const s = (c.status || '').toLowerCase();
+    return s === 'open' || s.startsWith('open ') || s === 'operational';
+  };
   res.json({
     success: true,
     data: {
-      totalRevenue, totalExpenses, netIncome: totalRevenue - totalExpenses,
-      totalPatients, activeReferrals, pendingTasks, urgentAlerts,
+      totalRevenue: taggedRev,
+      totalExpenses: null,
+      netIncome: null,
+      totalPatients: partner.activePatients.value,
+      activeReferrals: partner.activeReferrals.value,
+      pendingTasks, urgentAlerts,
       clinicCount: data.clinics.length,
-      operationalClinics: data.clinics.filter(c => c.status === 'operational').length,
-      partner
+      operationalClinics: data.clinics.filter(openish).length,
+      partner,
+      asOf: partner.asOf
     }
   });
 });
