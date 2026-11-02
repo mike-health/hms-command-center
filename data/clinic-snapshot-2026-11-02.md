@@ -11,6 +11,7 @@
 | Riverside | build | None | None | None | {'n': 0, 'amount': None} | 9/7 | 2026-11-02 |
 | Pleasant Hill (JV w/ Dr. Xingbo Sun) | planned | None | None | None | None | 6/10 | 2026-10-29 |
 | Yuba City (mobile trailer) | planned | None | None | None | None | 4/12 | 2026-10-29 |
-| Hurst, TX (SWHBOT - sold/partner) | other | None | None | None | None | 5/11 | 2026-10-29 |
+
+Hurst, TX (SWHBOT) is not part of this partnership and is excluded from Command Center clinic lists.
 
 Org Oct DRAFT revenue candidate $250,366.77, opex $102,870.49 (oct_summary.json, bank thru 2026-10-30). Unassigned-office OA Oct $172,685.69 not attributed. Per-clinic expenses null everywhere. Details: clinic-snapshot.db table clinic_fields.

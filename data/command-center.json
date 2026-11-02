@@ -6,7 +6,8 @@
     "liveOverrideTodo": "TODO: Live /api/state persists to data/command-center.json at runtime. POST /api/reset to restore this snapshot seed.",
     "clinicSnapshotFile": "data/clinic-snapshot-2026-11-02.json",
     "clinicAsOf": "2026-11-02",
-    "pleasanton": "capex/storage location (finance/BOARD.md:310), not a clinic; never merge with Pleasant Hill"
+    "pleasanton": "capex/storage location (finance/BOARD.md:310), not a clinic; never merge with Pleasant Hill",
+    "hurst": "not part of this partnership (Mike); do not re-add on snapshot refresh"
   },
   "kpis": {
     "monthlyRevenue": {
@@ -41,8 +42,7 @@
         "c-oceanside": null,
         "c-riverside": null,
         "c-pleasant-hill": null,
-        "c-yuba-city": null,
-        "c-hurst": null
+        "c-yuba-city": null
       }
     },
     "billingReferrals": {
@@ -1470,109 +1470,6 @@
       },
       "city": "Yuba City, CA",
       "asOf": "2026-10-29"
-    },
-    {
-      "id": "c-hurst",
-      "name": "Hurst, TX (SWHBOT - sold/partner)",
-      "status": "other",
-      "address": "1845 Precinct Line Rd Ste 105, Hurst, TX 76054",
-      "lat": null,
-      "lng": null,
-      "manager": "Michael Leddy",
-      "staff": null,
-      "type": null,
-      "assignedTo": null,
-      "notes": "NPPES NPI 1437916400 (Leddy auth official). Texas sale funds not received as of 8/14.",
-      "revenue": null,
-      "expenses": null,
-      "patientsMonth": null,
-      "visitsMonth": null,
-      "referrals": null,
-      "openPayables": null,
-      "_sources": {
-        "name": {
-          "source": "/workspace/ops/reference/reference.db locations",
-          "as_of": "2026-10-29",
-          "note": null
-        },
-        "status": {
-          "source": "/workspace/ops/reference/reference.db locations (<- /workspace/ops/audit/obsidian-mirror/Clinic-Audit-Scorecard.md)",
-          "as_of": "2026-08-14",
-          "note": null
-        },
-        "address": {
-          "source": "/workspace/ops/reference/reference.db locations",
-          "as_of": "2026-08-14",
-          "note": null
-        },
-        "lat": {
-          "source": null,
-          "as_of": null,
-          "note": "needs geocode of address"
-        },
-        "lng": {
-          "source": null,
-          "as_of": null,
-          "note": "needs geocode"
-        },
-        "manager": {
-          "source": "/workspace/ops/reference/reference.db locations",
-          "as_of": "2026-08-14",
-          "note": null
-        },
-        "staff": {
-          "source": null,
-          "as_of": null,
-          "note": "no staff rows for location in reference.db staff"
-        },
-        "type": {
-          "source": null,
-          "as_of": null,
-          "note": "Mike to classify"
-        },
-        "assignedTo": {
-          "source": null,
-          "as_of": null,
-          "note": "Mike to assign"
-        },
-        "notes": {
-          "source": "/workspace/ops/reference/reference.db locations",
-          "as_of": "2026-08-14",
-          "note": null
-        },
-        "revenue": {
-          "source": null,
-          "as_of": null,
-          "note": "no clinic-tagged revenue in revenue.db (pre-open/other)"
-        },
-        "expenses": {
-          "source": null,
-          "as_of": null,
-          "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
-        },
-        "patientsMonth": {
-          "source": null,
-          "as_of": null,
-          "note": "needs OA visits/census export"
-        },
-        "visitsMonth": {
-          "source": null,
-          "as_of": null,
-          "note": "needs OA visits/census export"
-        },
-        "referrals": {
-          "source": null,
-          "as_of": null,
-          "note": "no clinic key on referral board (6 open Unassigned)"
-        },
-        "openPayables": {
-          "source": null,
-          "as_of": null,
-          "note": "no clinic-tagged payables"
-        }
-      },
-      "city": "Hurst, TX",
-      "asOf": "2026-10-29"
     }
   ],
   "referrals": [
@@ -1750,7 +1647,8 @@
     },
     "excluded": {
       "Pleasanton": "capex/storage location (finance/BOARD.md:310), not a clinic; never merge with Pleasant Hill",
-      "Bonita": "1 payable tagged Bonita; not a clinic in reference.db"
+      "Bonita": "1 payable tagged Bonita; not a clinic in reference.db",
+      "Hurst": "not part of this partnership (Mike); do not re-add on snapshot refresh"
     }
   },
   "org": {

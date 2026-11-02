@@ -105,7 +105,6 @@ describe('partner KPIs from seed /api/state shape', () => {
       ids.sort(),
       [
         'c-chula',
-        'c-hurst',
         'c-laguna',
         'c-madras',
         'c-monterey',
@@ -116,15 +115,15 @@ describe('partner KPIs from seed /api/state shape', () => {
         'c-yuba-city'
       ]
     );
-    assert.equal(seed.clinics.length, 10);
+    assert.equal(seed.clinics.length, 9);
     assert.ok(seed.clinics.some((c) => c.id === 'c-pleasant-hill'));
     assert.ok(!seed.clinics.some((c) => /pleasanton/i.test(c.name)));
+    assert.ok(!seed.clinics.some((c) => c.id === 'c-hurst' || /hurst|swhbot/i.test(c.name)));
     assert.match(seed.clinicSnapshot.excluded.Pleasanton, /not a clinic/i);
+    assert.match(seed.clinicSnapshot.excluded.Hurst, /not part of this partnership/i);
     assert.equal(seed.clinics.find((c) => c.id === 'c-riverside').status, 'build');
     assert.equal(seed.clinics.find((c) => c.id === 'c-yuba-city').status, 'planned');
-    assert.equal(seed.clinics.find((c) => c.id === 'c-hurst').status, 'other');
     assert.equal(hasMapPoint(seed.clinics.find((c) => c.id === 'c-yuba-city')), false);
-    assert.equal(hasMapPoint(seed.clinics.find((c) => c.id === 'c-hurst')), false);
     assert.equal(hasMapPoint(seed.clinics.find((c) => c.id === 'c-chula')), true);
   });
 

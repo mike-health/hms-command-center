@@ -6,12 +6,46 @@ body {
   background: #f0f4f8;
   color: #1a202c;
   line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  height: 100dvh;
+}
+
+/* Full-width hub return — always on top, including over the map */
+.hms-hub-return {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  background: #1F4E79;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 2000;
+}
+.hms-hub-return:hover,
+.hms-hub-return:focus {
+  background: #163a5c;
+  color: #fff;
 }
 
 /* ===== LAYOUT ===== */
 .app {
   display: flex;
-  height: 100vh;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
   overflow: hidden;
 }
 
@@ -155,16 +189,6 @@ body {
   gap: 12px;
   flex-shrink: 0;
 }
-.btn-hub-back {
-  flex-shrink: 0;
-  min-height: 36px;
-  min-width: 44px;
-  padding: 8px 12px;
-  font-size: 13px;
-  position: relative;
-  z-index: 2;
-}
-
 .status-pill {
   display: flex;
   align-items: center;
@@ -1012,10 +1036,16 @@ body {
 /* ===== RESPONSIVE / PHONE ===== */
 @media (max-width: 768px) {
   html, body { height: 100%; min-height: 100dvh; }
+  .hms-hub-return {
+    min-height: 48px;
+    font-size: 17px;
+    padding: 14px 12px;
+  }
   .app {
     flex-direction: column;
-    height: 100dvh;
-    min-height: 100dvh;
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
     overflow: hidden;
   }
   .sidebar {
@@ -1105,11 +1135,6 @@ body {
   }
   .topbar-left { gap: 8px; }
   .topbar-title { font-size: 16px; }
-  .btn-hub-back {
-    min-height: 40px;
-    padding: 8px 14px;
-    font-size: 14px;
-  }
   .topbar-actions { flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
   .topbar-actions .btn { padding: 6px 10px; font-size: 12px; }
   .content { padding: 12px; }
