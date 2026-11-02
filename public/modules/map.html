@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Clinic Map — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=9">
+<link rel="stylesheet" href="/css/app.css?v=11">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <style>
-.map-wrap { display: grid; grid-template-columns: 300px 1fr; gap: 0; height: calc(100vh - 56px); }
+.map-wrap { display: grid; grid-template-columns: 300px 1fr; gap: 0; height: 100%; }
 .map-sidebar { order: 1; }
 #map-container { order: 2; }
 .map-sidebar { background: #fff; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; }
@@ -31,7 +31,7 @@
   .map-wrap {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(42vh, 320px) 1fr;
-    height: calc(100dvh - 56px - 64px - env(safe-area-inset-bottom, 0px));
+    height: 100%;
   }
   .map-sidebar { border-right: 0; border-top: 1px solid #e2e8f0; order: 2; min-height: 0; }
   #map-container { order: 1; min-height: 42vh; }
@@ -44,6 +44,7 @@
 </style>
 </head>
 <body>
+<a class="hms-hub-return" href="https://hms-partner-news.netlify.app/">← Back to HMS hub</a>
 <div class="app">
   <aside class="sidebar">
     <div class="brand"><h1>HMS Command</h1><div class="sub">Hyperbaric Management</div></div>
@@ -68,7 +69,6 @@
   <main class="main">
     <header class="topbar">
       <div class="topbar-left">
-        <button type="button" class="btn btn-secondary btn-sm btn-hub-back" onclick="goHubBack()">← Back</button>
         <div class="topbar-title">Clinic Map</div>
       </div>
       <div class="topbar-actions">
@@ -95,7 +95,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="/js/app.js?v=8"></script>
+<script src="/js/app.js?v=10"></script>
 <script>
 let clinics = [], map = null, markers = [];
 

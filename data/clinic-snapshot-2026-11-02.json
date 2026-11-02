@@ -47,7 +47,7 @@
    },
    "openPayables": {
     "n": 2,
-    "amount": 1701.0
+    "amount": 1701
    },
    "_sources": {
     "name": {
@@ -200,7 +200,7 @@
    },
    "openPayables": {
     "n": 5,
-    "amount": 9483.0
+    "amount": 9483
    },
    "_sources": {
     "name": {
@@ -646,7 +646,7 @@
    "referrals": null,
    "openPayables": {
     "n": 1,
-    "amount": 5000.0
+    "amount": 5000
    },
    "_sources": {
     "name": {
@@ -1140,107 +1140,6 @@
      "note": "no clinic-tagged payables"
     }
    }
-  },
-  {
-   "id": "c-hurst",
-   "name": "Hurst, TX (SWHBOT - sold/partner)",
-   "status": "other",
-   "address": "1845 Precinct Line Rd Ste 105, Hurst, TX 76054",
-   "lat": null,
-   "lng": null,
-   "manager": "Michael Leddy",
-   "staff": null,
-   "type": null,
-   "assignedTo": null,
-   "notes": "NPPES NPI 1437916400 (Leddy auth official). Texas sale funds not received as of 8/14.",
-   "revenue": null,
-   "expenses": null,
-   "patientsMonth": null,
-   "visitsMonth": null,
-   "referrals": null,
-   "openPayables": null,
-   "_sources": {
-    "name": {
-     "source": "/workspace/ops/reference/reference.db locations",
-     "as_of": "2026-10-29",
-     "note": null
-    },
-    "status": {
-     "source": "/workspace/ops/reference/reference.db locations (<- /workspace/ops/audit/obsidian-mirror/Clinic-Audit-Scorecard.md)",
-     "as_of": "2026-08-14",
-     "note": null
-    },
-    "address": {
-     "source": "/workspace/ops/reference/reference.db locations",
-     "as_of": "2026-08-14",
-     "note": null
-    },
-    "lat": {
-     "source": null,
-     "as_of": null,
-     "note": "needs geocode of address"
-    },
-    "lng": {
-     "source": null,
-     "as_of": null,
-     "note": "needs geocode"
-    },
-    "manager": {
-     "source": "/workspace/ops/reference/reference.db locations",
-     "as_of": "2026-08-14",
-     "note": null
-    },
-    "staff": {
-     "source": null,
-     "as_of": null,
-     "note": "no staff rows for location in reference.db staff"
-    },
-    "type": {
-     "source": null,
-     "as_of": null,
-     "note": "Mike to classify"
-    },
-    "assignedTo": {
-     "source": null,
-     "as_of": null,
-     "note": "Mike to assign"
-    },
-    "notes": {
-     "source": "/workspace/ops/reference/reference.db locations",
-     "as_of": "2026-08-14",
-     "note": null
-    },
-    "revenue": {
-     "source": null,
-     "as_of": null,
-     "note": "no clinic-tagged revenue in revenue.db (pre-open/other)"
-    },
-    "expenses": {
-     "source": null,
-     "as_of": null,
-     "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
-    },
-    "patientsMonth": {
-     "source": null,
-     "as_of": null,
-     "note": "needs OA visits/census export"
-    },
-    "visitsMonth": {
-     "source": null,
-     "as_of": null,
-     "note": "needs OA visits/census export"
-    },
-    "referrals": {
-     "source": null,
-     "as_of": null,
-     "note": "no clinic key on referral board (6 open Unassigned)"
-    },
-    "openPayables": {
-     "source": null,
-     "as_of": null,
-     "note": "no clinic-tagged payables"
-    }
-   }
   }
  ],
  "org": {
@@ -1251,22 +1150,22 @@
    "capex": 16864.96,
    "after_capex_draw": 130631.32,
    "greene_memo": 142980.65,
-   "profit_share": 60000.0,
+   "profit_share": 60000,
    "cats": {
     "Payroll (ADP wires/TotalSource/401k/fees)": 66193.49,
     "Software / subscriptions": 835.02,
-    "Bank fees": 170.0,
+    "Bank fees": 170,
     "Rent": 3270.49,
     "Insurance": 474.07,
-    "HOA - 826 Starboard (Venture Commerce)": 434.0,
+    "HOA - 826 Starboard (Venture Commerce)": 434,
     "Supplies / postage": 482.05,
     "Amex - Matheson (oxygen) statements": 5749.91,
-    "Cleaning / clinic labor (Zelle/Venmo)": 4104.0,
+    "Cleaning / clinic labor (Zelle/Venmo)": 4104,
     "Amex - Chula Vista property tax (SD County TTC)": 8629.99,
     "Utilities": 1299.5,
     "Billing - TMS Billings": 7341.36,
-    "Marketing (Oceanside launch - Stacey Agito)": 1820.0,
-    "Taxes (CA FTB)": 1600.0,
+    "Marketing (Oceanside launch - Stacey Agito)": 1820,
+    "Taxes (CA FTB)": 1600,
     "Other / uncategorized": 466.61
    },
    "month": "2026-10",
@@ -1285,6 +1184,7 @@
  },
  "excluded": {
   "Pleasanton": "capex/storage location (finance/BOARD.md:310), not a clinic; never merge with Pleasant Hill",
-  "Bonita": "1 payable tagged Bonita; not a clinic in reference.db"
+  "Bonita": "1 payable tagged Bonita; not a clinic in reference.db",
+  "Hurst": "not part of this partnership (Mike); do not re-add on snapshot refresh"
  }
 }

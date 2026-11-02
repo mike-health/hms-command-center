@@ -1,50 +1,15 @@
 /* ===== HMS Command Center — Shared JS ===== */
 
 const API_URL = '';
-const HUB_URL = 'https://hms-partner-news.netlify.app';
+const HUB_URL = 'https://hms-partner-news.netlify.app/';
 
-function arrivedFromThisSite(referrer, origin) {
-  if (!referrer || !origin) return false;
-  try {
-    return new URL(referrer).origin === origin;
-  } catch {
-    return false;
-  }
-}
-
-function goHubBack() {
-  if (arrivedFromThisSite(document.referrer, window.location.origin)) {
-    window.history.back();
-    return;
-  }
-  window.location.assign(HUB_URL);
-}
-
-function mountHubBackButton() {
-  if (document.querySelector('.btn-hub-back')) return;
-  const topbar = document.querySelector('header.topbar');
-  if (!topbar) return;
-
-  let left = topbar.querySelector('.topbar-left');
-  if (!left) {
-    left = document.createElement('div');
-    left.className = 'topbar-left';
-    const title = topbar.querySelector('.topbar-title');
-    if (title) {
-      title.parentNode.insertBefore(left, title);
-      left.appendChild(title);
-    } else {
-      topbar.insertBefore(left, topbar.firstChild);
-    }
-  }
-
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'btn btn-secondary btn-sm btn-hub-back';
-  btn.setAttribute('aria-label', 'Back');
-  btn.textContent = '← Back';
-  btn.addEventListener('click', goHubBack);
-  left.insertBefore(btn, left.firstChild);
+function mountHubBar() {
+  if (document.querySelector('a.hms-hub-return')) return;
+  const bar = document.createElement('a');
+  bar.className = 'hms-hub-return';
+  bar.href = HUB_URL;
+  bar.textContent = '← Back to HMS hub';
+  document.body.insertBefore(bar, document.body.firstChild);
 }
 
 async function loadState() {
@@ -217,8 +182,8 @@ async function resetAll() {
   }
 }
 
-/* Init nav + hub Back button on page load */
+/* Init nav + hub bar on page load */
 document.addEventListener('DOMContentLoaded', () => {
   setActiveNav();
-  mountHubBackButton();
+  mountHubBar();
 });

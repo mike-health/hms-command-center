@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Org Chart — HMS Command</title>
-<link rel="stylesheet" href="/css/app.css?v=7">
+<link rel="stylesheet" href="/css/app.css?v=11">
 <style>
 /* ===== COMMAND CENTER LAYOUT ===== */
-.app { display: flex; height: 100vh; overflow: hidden; }
+.app { display: flex; flex: 1 1 auto; min-height: 0; height: auto; overflow: hidden; }
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .content { flex: 1; overflow-y: auto; padding: 24px; }
 
@@ -250,6 +250,7 @@
 </style>
 </head>
 <body>
+<a class="hms-hub-return" href="https://hms-partner-news.netlify.app/">← Back to HMS hub</a>
 <div class="app">
   <aside class="sidebar">
     <div class="brand"><h1>HMS Command</h1><div class="sub">Hyperbaric Management</div></div>
@@ -274,7 +275,6 @@
   <main class="main">
     <header class="topbar">
       <div class="topbar-left">
-        <button type="button" class="btn btn-secondary btn-sm btn-hub-back" onclick="goHubBack()">← Back</button>
         <div class="topbar-title">Org Chart</div>
       </div>
       <div class="topbar-actions">
@@ -335,7 +335,7 @@
   </div>
 </div>
 
-<script src="/js/app.js?v=6"></script>
+<script src="/js/app.js?v=10"></script>
 <script src="/js/org-tree.js?v=3"></script>
 <script>
 // Node data — keep in sync with data/command-center.json (FACTORY_DEFAULTS)

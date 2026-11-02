@@ -30,6 +30,33 @@ const MONTEREY_OVERLAY = {
   }
 };
 
+/** Locations that must never land in Command Center clinic lists, even if a snapshot refresh includes them. */
+const DROP_CLINICS = [
+  {
+    ids: new Set(['c-hurst']),
+    nameRe: /hurst|\bswhbot\b/i,
+    excludedKey: 'Hurst',
+    reason: 'not part of this partnership (Mike); do not re-add on snapshot refresh'
+  }
+];
+
+function isDroppedClinic(c) {
+  const hay = `${c.id || ''} ${c.name || ''} ${c.address || ''} ${c.city || ''}`;
+  return DROP_CLINICS.some((d) => d.ids.has(c.id) || d.nameRe.test(hay));
+}
+
+function dropExcludedClinics(clinics) {
+  return (clinics || []).filter((c) => !isDroppedClinic(c));
+}
+
+function withDropNotes(excluded) {
+  const next = { ...(excluded || {}) };
+  DROP_CLINICS.forEach((d) => {
+    next[d.excludedKey] = d.reason;
+  });
+  return next;
+}
+
 function cityFromAddress(address) {
   if (!address) return null;
   const cleaned = String(address).replace(/\s*\([^)]*\)\s*/g, ' ').trim();
@@ -72,7 +99,7 @@ function taggedReferralOpen(clinics) {
 }
 
 function merge(seed, snap) {
-  const clinics = (snap.clinics || []).map((c) => {
+  const clinics = dropExcludedClinics(snap.clinics || []).map((c) => {
     const row = { ...c, city: cityFromAddress(c.address), asOf: freshestAsOf(c._sources) || snap.generated || null };
     if (row.id === 'c-monterey') {
       row.status = MONTEREY_OVERLAY.status;
@@ -81,6 +108,9 @@ function merge(seed, snap) {
     }
     return row;
   });
+  if (clinics.some(isDroppedClinic)) {
+    throw new Error('Dropped clinic leaked into merge output');
+  }
 
   const names = clinics.map((c) => (c.name || '').toLowerCase());
   if (names.some((n) => n === 'pleasanton' || n.includes('pleasanton') && !n.includes('pleasant hill'))) {
@@ -98,7 +128,7 @@ function merge(seed, snap) {
     generated: snap.generated,
     asOf: snap.generated,
     org: snap.org,
-    excluded: snap.excluded
+    excluded: withDropNotes(snap.excluded)
   };
   seed.org = snap.org;
   seed.lastModified = `${snap.generated || '2026-11-02'}T12:00:00.000Z`;
@@ -109,7 +139,8 @@ function merge(seed, snap) {
     clinicAsOf: snap.generated,
     liveOverrideTodo:
       'TODO: Live /api/state persists to data/command-center.json at runtime. POST /api/reset to restore this snapshot seed.',
-    pleasanton: (snap.excluded && snap.excluded.Pleasanton) || 'not a clinic'
+    pleasanton: (snap.excluded && snap.excluded.Pleasanton) || 'not a clinic',
+    hurst: 'not part of this partnership (Mike); do not re-add on snapshot refresh'
   };
 
   seed.kpis = seed.kpis || {};
@@ -173,4 +204,13 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { merge, cityFromAddress, freshestAsOf, MONTEREY_OVERLAY, taggedRevenueSum };
+module.exports = {
+  merge,
+  cityFromAddress,
+  freshestAsOf,
+  MONTEREY_OVERLAY,
+  taggedRevenueSum,
+  dropExcludedClinics,
+  isDroppedClinic,
+  DROP_CLINICS
+};
