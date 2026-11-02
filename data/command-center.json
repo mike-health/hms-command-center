@@ -1,68 +1,58 @@
 {
   "version": "1.0.0",
-  "lastModified": "2026-10-31T21:48:00.000Z",
+  "lastModified": "2026-11-02T12:00:00.000Z",
   "dataNotes": {
     "seedIsSourceOfTruth": true,
-    "liveOverrideTodo": "TODO: Live /api/state persists to data/command-center.json at runtime and overrides this seed until POST /api/reset. Deployed hosts may still show older Monterey notes (operator seat open) until reset or a state PATCH. Seed is factory-default SoT only."
+    "liveOverrideTodo": "TODO: Live /api/state persists to data/command-center.json at runtime. POST /api/reset to restore this snapshot seed.",
+    "clinicSnapshotFile": "data/clinic-snapshot-2026-11-02.json",
+    "clinicAsOf": "2026-11-02",
+    "pleasanton": "capex/storage location (finance/BOARD.md:310), not a clinic; never merge with Pleasant Hill"
   },
   "kpis": {
     "monthlyRevenue": {
       "amount": 250366.77,
       "currency": "USD",
-      "period": "2026-10-01/2026-10-28",
-      "periodLabel": "Oct MTD (to 10/28)",
+      "period": "2026-10",
+      "periodLabel": "October 2026 DRAFT",
       "status": "draft-estimate",
-      "source": "HMS P&L v1 / Revenue desk (OA+Stripe+paper checks)",
-      "caveat": "Actual #6002 not provided. clinics[].revenue in /api/state are all $0 — not clinic-level actuals.",
-      "noiDraft": 169588,
-      "opexDraft": 80778,
-      "opexRef": "*0811"
+      "source": "/workspace/ops/finance/pnl_monthly_test/oct_summary.json (bank_thru 2026-10-30, DRAFT)",
+      "bankThru": "2026-10-30",
+      "caveat": "Clinic-tagged OA+Stripe is a lower bound because $172,685.69 of October Office Ally money is unassigned. Do not add TMS remit (overlaps OA).",
+      "noiDraft": 147496.28,
+      "opexDraft": 102870.49,
+      "capex": 16864.96,
+      "pnlUrl": "https://hms-pnl-monthly-test.netlify.app/oct/",
+      "clinicTaggedLowerBound": 69703.51,
+      "clinicTaggedCount": 3,
+      "unassignedOaOct": 172685.69
     },
     "activePatients": {
-      "asOf": "2026-10-31",
-      "source": "Office Ally Patient Visits Report 2026-10-31",
-      "definition": "Unique patients with CPT 99183 in Oct 2026 (still in treatment = Oct HBOT visits). Replaces OA Active roster (532) and referral-tracker in-treatment proxy (4). Counts only; no PHI.",
-      "sublabel": "Oct HBOT visits · OA 10/31",
-      "cpt": "99183",
-      "period": "2026-10",
-      "total": 36,
+      "asOf": "2026-11-02",
+      "source": "clinic-snapshot-2026-11-02.json patientsMonth (null = not yet available; Chula 12 is Aug paid-patient count, stale)",
+      "definition": "Per-clinic patientsMonth from the snapshot only. No org total — most clinics are null.",
+      "sublabel": "not yet available at org level",
+      "total": null,
       "byClinic": {
-        "c-chula": 19,
-        "c-salinas": 7,
-        "c-madras": 5,
-        "c-laguna": 5,
-        "c-oceanside": 0,
-        "c-monterey": 0,
-        "c-riverside": 0
-      },
-      "notTreating": [
-        "Oceanside",
-        "Monterey",
-        "Riverside",
-        "Pleasant Hill (not in clinic seed)"
-      ]
+        "c-chula": 12,
+        "c-laguna": null,
+        "c-madras": null,
+        "c-salinas": null,
+        "c-monterey": null,
+        "c-oceanside": null,
+        "c-riverside": null,
+        "c-pleasant-hill": null,
+        "c-yuba-city": null,
+        "c-hurst": null
+      }
     },
     "billingReferrals": {
       "asOf": "2026-10-31",
-      "source": "billing/referrals.db as of 2026-10-31",
-      "note": "Open referral pipeline for the Active referrals card only — not the Active patients census. Seeded from Mike’s ops billing referral tracker; app does not query referrals.db.",
-      "inTreatment": 4,
-      "inTreatmentStatuses": [
-        "in treatment…",
-        "claims in process",
-        "cleared to continue…",
-        "PAUSED…5 treatments remaining"
-      ],
-      "openPipeline": 37,
-      "openPipelineLabel": "Open referral pipeline: ~37",
-      "activeReferrals": 33,
-      "activeReferralStatuses": [
-        "authorized",
-        "waiting",
-        "cleared-not-booked",
-        "open"
-      ],
-      "activeReferralsNote": "Open referral pipeline: non-closed minus in-treatment (37 − 4). Separate from the OA Oct HBOT Active patients census (36)."
+      "source": "clinic-snapshot-2026-11-02.json referrals.open + org.referrals_unassigned_open",
+      "taggedOpen": 32,
+      "taggedClinicCount": 4,
+      "unassignedOpen": 6,
+      "note": "Tagged open referrals from clinics that have a referrals block. Unassigned is separate — not a clinic.",
+      "activeReferrals": 32
     }
   },
   "nodes": {
@@ -314,55 +304,743 @@
   "clinics": [
     {
       "id": "c-chula",
-      "name": "Pacific Hyperbarics — Chula Vista",
-      "city": "Chula Vista, CA",
-      "lat": 32.6401,
-      "lng": -117.0842,
-      "status": "operational",
+      "name": "Chula Vista (826 Starboard)",
+      "status": "open",
+      "address": "826 Starboard St, Chula Vista, CA 91914",
+      "lat": 32.655518,
+      "lng": -116.956752,
+      "manager": "Emilia (Mily) Greenhalgh",
+      "staff": [
+        "Michael Greenhalgh (Managing Director; active)",
+        "Emilia Greenhalgh (Chula Vista clinic manager; active)",
+        "Melinna Leon (Administrator - payroll only since 2026-09-28 (status conflict in Linear HEA-40); payroll-only (unverified))",
+        "Marely Vega (Front desk / referral coordinator (sends referrals to TMS); active 2026)"
+      ],
       "type": "independent",
-      "notes": "Managed by Emilia (Mily) Greenhalgh — local mgr, personnel oversight, new-clinic design. Flagship — Open. 826 Starboard St, Chula Vista, CA 91914.",
       "assignedTo": "mily",
-      "revenue": 0,
-      "expenses": 0,
-      "patientsMonth": 19
+      "notes": "HQ/clinic; all CA entities list this address. Chula BL#103063. Rent paid from *6002 retention.",
+      "rev_sep": {
+        "oa": 6720.9,
+        "stripe": 18178.26,
+        "tms_overlaps_oa": 181624.02
+      },
+      "rev_oct": {
+        "oa": 29383.54,
+        "stripe": 22761.1,
+        "tms_overlaps_oa": 156986.14
+      },
+      "revenue": 52144.64,
+      "expenses": null,
+      "patientsMonth": 12,
+      "visitsMonth": 125,
+      "referrals": {
+        "open": 22,
+        "total": 25,
+        "by_status": {
+          "in_treatment": 1,
+          "ready_to_schedule": 13,
+          "waiting_auth": 1,
+          "paused": 4,
+          "new": 2,
+          "other": 1,
+          "closed": 3
+        }
+      },
+      "openPayables": {
+        "n": 2,
+        "amount": 1701
+      },
+      "_sources": {
+        "name": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "status": {
+          "source": "/workspace/ops/reference/reference.db locations (<- /workspace/ops/audit/obsidian-mirror/Clinic-Audit-Scorecard.md)",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "address": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lat": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lng": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "manager": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "staff": {
+          "source": "/workspace/ops/reference/reference.db staff",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "type": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "assignedTo": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "notes": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "rev_sep_oa_net": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "rev_sep_stripe_net": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "rev_sep_tms_remit": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": "TMS overlaps OA - do not add"
+        },
+        "rev_oct_oa_net": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "rev_oct_stripe_net": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "rev_oct_tms_remit": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": "TMS overlaps OA - do not add"
+        },
+        "revenue": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month (Oct OA+Stripe, clinic-tagged only, excl TMS overlap)",
+          "as_of": "2026-10-29",
+          "note": "LOWER BOUND: $172,685.69 Oct OA is Unassigned office"
+        },
+        "expenses": {
+          "source": null,
+          "as_of": null,
+          "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
+        },
+        "patientsMonth": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_zip3 month=2026-08",
+          "as_of": "2026-08-31",
+          "note": "paid-patient count for Aug, stale; needs OA census for Oct"
+        },
+        "visitsMonth": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_zip3 month=2026-08",
+          "as_of": "2026-08-31",
+          "note": null
+        },
+        "referrals": {
+          "source": "/workspace/ops/billing/referral-board-latest.json",
+          "as_of": "2026-10-31",
+          "note": null
+        },
+        "openPayables": {
+          "source": "/workspace/ops/finance/payables.db payables (dup_of null, status not paid/void)",
+          "as_of": "2026-11-02",
+          "note": null
+        }
+      },
+      "city": "Chula Vista, CA",
+      "asOf": "2026-11-02"
     },
     {
-      "id": "c-oceanside",
-      "name": "Pacific Hyperbarics — Oceanside",
-      "city": "Oceanside, CA",
-      "lat": 33.1959,
-      "lng": -117.3795,
-      "status": "startup",
-      "type": "independent",
-      "notes": "TI / buildout. 1411 N Coast Hwy, Oceanside, CA 92054. Rudy standup. Operator + front desk open.",
+      "id": "c-laguna",
+      "name": "Laguna Beach",
+      "status": "open (buy-out lane)",
+      "address": "31655 Coast Hwy, Suite B, Laguna Beach, CA 92651",
+      "lat": 33.5427,
+      "lng": -117.7854,
+      "manager": "Rudy Alvarez (ops lead)",
+      "staff": [
+        "Rudy Alvarez (Operations Manager (Laguna lead, Oceanside, Salinas training); active)"
+      ],
+      "type": "partnered",
       "assignedTo": "rudy",
-      "revenue": 0,
-      "expenses": 0,
-      "patientsMonth": 0
+      "notes": "Skincredible buy-out; billing firewall (Ben). Equipment ship-to name 'Health Hyperbarics'. PTAN CA888303 cited for Laguna (EMA/ModMed note) - holder entity unverified.",
+      "rev_sep": {
+        "oa": 18286.11,
+        "stripe": 3283.5,
+        "tms_overlaps_oa": 11330.27
+      },
+      "rev_oct": {
+        "oa": 9004.73,
+        "stripe": null,
+        "tms_overlaps_oa": 22950.84
+      },
+      "revenue": 9004.73,
+      "expenses": null,
+      "patientsMonth": null,
+      "visitsMonth": null,
+      "referrals": {
+        "open": 3,
+        "total": 3,
+        "by_status": {
+          "ready_to_schedule": 1,
+          "waiting_auth": 2
+        }
+      },
+      "openPayables": {
+        "n": 5,
+        "amount": 9483
+      },
+      "_sources": {
+        "name": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "status": {
+          "source": "/workspace/ops/reference/reference.db locations (<- /workspace/ops/audit/obsidian-mirror/Clinic-Audit-Scorecard.md)",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "address": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "lat": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": "not in clinics_geo.json"
+        },
+        "lng": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "manager": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "staff": {
+          "source": "/workspace/ops/reference/reference.db staff",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "type": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "assignedTo": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "notes": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "rev_sep_oa_net": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "rev_sep_stripe_net": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "rev_sep_tms_remit": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": "TMS overlaps OA - do not add"
+        },
+        "rev_oct_oa_net": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "rev_oct_stripe_net": {
+          "source": null,
+          "as_of": null,
+          "note": "no Stripe payouts"
+        },
+        "rev_oct_tms_remit": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": "TMS overlaps OA - do not add"
+        },
+        "revenue": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month (Oct OA+Stripe, clinic-tagged only, excl TMS overlap)",
+          "as_of": "2026-10-29",
+          "note": "LOWER BOUND: $172,685.69 Oct OA is Unassigned office"
+        },
+        "expenses": {
+          "source": null,
+          "as_of": null,
+          "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
+        },
+        "patientsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "visitsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "referrals": {
+          "source": "/workspace/ops/billing/referral-board-latest.json",
+          "as_of": "2026-10-31",
+          "note": null
+        },
+        "openPayables": {
+          "source": "/workspace/ops/finance/payables.db payables (dup_of null, status not paid/void)",
+          "as_of": "2026-11-02",
+          "note": null
+        }
+      },
+      "city": "Laguna Beach, CA",
+      "asOf": "2026-11-02"
+    },
+    {
+      "id": "c-madras",
+      "name": "Madras, OR",
+      "status": "open",
+      "address": "83 SW K St, Madras, OR 97741",
+      "lat": 44.623704,
+      "lng": -121.131703,
+      "manager": "Deborah Dunton (tech)",
+      "staff": [
+        "Deborah Dunton (Hyperbaric Technician; active)"
+      ],
+      "type": "independent",
+      "assignedTo": "rudy",
+      "notes": "Leased from Greene: rent $5,000 + equipment $5,940.36/mo. Biz license 902587 UNVERIFIED. Landlord CBDG Realty Madras LLC (Lamar Yoder). Utilities moving to HMS MSO eff. 2026-10-08.",
+      "rev_sep": {
+        "oa": null,
+        "stripe": null,
+        "tms_overlaps_oa": 48532.8
+      },
+      "rev_oct": {
+        "oa": null,
+        "stripe": null,
+        "tms_overlaps_oa": 36358.57
+      },
+      "revenue": null,
+      "expenses": null,
+      "patientsMonth": null,
+      "visitsMonth": null,
+      "referrals": {
+        "open": 5,
+        "total": 5,
+        "by_status": {
+          "in_treatment": 1,
+          "ready_to_schedule": 1,
+          "waiting_auth": 2,
+          "new": 1
+        }
+      },
+      "openPayables": {
+        "n": 6,
+        "amount": 11545.66
+      },
+      "_sources": {
+        "name": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "status": {
+          "source": "/workspace/ops/reference/reference.db locations (<- /workspace/ops/audit/obsidian-mirror/Clinic-Audit-Scorecard.md)",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "address": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lat": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lng": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "manager": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "staff": {
+          "source": "/workspace/ops/reference/reference.db staff",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "type": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "assignedTo": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "notes": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "rev_sep_oa_net": {
+          "source": null,
+          "as_of": null,
+          "note": "no OA rows tagged to clinic (most OA is Unassigned office)"
+        },
+        "rev_sep_stripe_net": {
+          "source": null,
+          "as_of": null,
+          "note": "no Stripe payouts"
+        },
+        "rev_sep_tms_remit": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": "TMS overlaps OA - do not add"
+        },
+        "rev_oct_oa_net": {
+          "source": null,
+          "as_of": null,
+          "note": "no OA rows tagged to clinic (most OA is Unassigned office)"
+        },
+        "rev_oct_stripe_net": {
+          "source": null,
+          "as_of": null,
+          "note": "no Stripe payouts"
+        },
+        "rev_oct_tms_remit": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": "TMS overlaps OA - do not add"
+        },
+        "revenue": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month (Oct OA+Stripe, clinic-tagged only, excl TMS overlap)",
+          "as_of": "2026-10-29",
+          "note": "LOWER BOUND: $172,685.69 Oct OA is Unassigned office"
+        },
+        "expenses": {
+          "source": null,
+          "as_of": null,
+          "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
+        },
+        "patientsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "visitsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "referrals": {
+          "source": "/workspace/ops/billing/referral-board-latest.json",
+          "as_of": "2026-10-31",
+          "note": null
+        },
+        "openPayables": {
+          "source": "/workspace/ops/finance/payables.db payables (dup_of null, status not paid/void)",
+          "as_of": "2026-11-02",
+          "note": null
+        }
+      },
+      "city": "Madras, OR",
+      "asOf": "2026-11-02"
     },
     {
       "id": "c-salinas",
-      "name": "Pacific Hyperbarics — Salinas / Cypress Coast",
-      "city": "Salinas, CA",
-      "lat": 36.6777,
-      "lng": -121.6555,
-      "status": "operational",
+      "name": "Salinas / Monterey (Cypress Coast)",
+      "status": "open",
+      "address": "610 E Romie Ln, Unit B, Salinas, CA 93901",
+      "lat": 36.659457,
+      "lng": -121.644402,
+      "manager": "Monica Hernandez",
+      "staff": [
+        "Monica Hernandez (Cypress Coast / Salinas clinic ops; active)",
+        "Finnlee Morgan (Hyperbaric Tech (offer); offer 2026-10-09)"
+      ],
       "type": "independent",
-      "notes": "Open. 610 E Romie Ln Unit B, Salinas, CA. Monica floor ops. RM: Rudy.",
       "assignedTo": "rudy",
-      "revenue": 0,
-      "expenses": 0,
-      "patientsMonth": 7
+      "notes": "Cypress Coast HBOT ops; ZIP not on file. Salinas rent/share via *6002 retention.",
+      "rev_sep": {
+        "oa": 29726.08,
+        "stripe": 10255.66,
+        "tms_overlaps_oa": 94005.52
+      },
+      "rev_oct": {
+        "oa": 360.81,
+        "stripe": 8193.33,
+        "tms_overlaps_oa": 77734.96
+      },
+      "revenue": 8554.14,
+      "expenses": null,
+      "patientsMonth": null,
+      "visitsMonth": null,
+      "referrals": {
+        "open": 2,
+        "total": 4,
+        "by_status": {
+          "waiting_auth": 2,
+          "closed": 2
+        }
+      },
+      "openPayables": {
+        "n": 4,
+        "amount": 833.4
+      },
+      "_sources": {
+        "name": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "status": {
+          "source": "/workspace/ops/reference/reference.db locations (<- /workspace/ops/monterey/HUB.md)",
+          "as_of": "2026-09-17",
+          "note": null
+        },
+        "address": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lat": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lng": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "manager": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-09-17",
+          "note": null
+        },
+        "staff": {
+          "source": "/workspace/ops/reference/reference.db staff",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "type": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "assignedTo": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "notes": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-09-17",
+          "note": null
+        },
+        "rev_sep_oa_net": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "rev_sep_stripe_net": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "rev_sep_tms_remit": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": "TMS overlaps OA - do not add"
+        },
+        "rev_oct_oa_net": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "rev_oct_stripe_net": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "rev_oct_tms_remit": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month",
+          "as_of": "2026-10-29",
+          "note": "TMS overlaps OA - do not add"
+        },
+        "revenue": {
+          "source": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month (Oct OA+Stripe, clinic-tagged only, excl TMS overlap)",
+          "as_of": "2026-10-29",
+          "note": "LOWER BOUND: $172,685.69 Oct OA is Unassigned office"
+        },
+        "expenses": {
+          "source": null,
+          "as_of": null,
+          "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
+        },
+        "patientsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "visitsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "referrals": {
+          "source": "/workspace/ops/billing/referral-board-latest.json",
+          "as_of": "2026-10-31",
+          "note": null
+        },
+        "openPayables": {
+          "source": "/workspace/ops/finance/payables.db payables (dup_of null, status not paid/void)",
+          "as_of": "2026-11-02",
+          "note": null
+        }
+      },
+      "city": "Salinas, CA",
+      "asOf": "2026-11-02"
     },
     {
       "id": "c-monterey",
-      "name": "Pacific Hyperbarics — Monterey",
-      "city": "Monterey, CA",
-      "lat": 36.6002,
-      "lng": -121.8947,
+      "name": "Monterey",
       "status": "opening",
+      "address": "70 Garden Ct, Suite 100, Monterey, CA 93940",
+      "lat": 36.585308,
+      "lng": -121.855272,
+      "manager": "Monica Hernandez",
+      "staff": [
+        "Monica Hernandez (Cypress Coast / Salinas clinic ops; active)",
+        "Finnlee Morgan (Hyperbaric Tech (offer); offer 2026-10-09)"
+      ],
       "type": "independent",
-      "notes": "70 Garden Ct Suite 100, Monterey, CA. Opening — not yet active. New employee starts this week (week of 2026-11-02) for training; treatments start next week (week of 2026-11-09).",
+      "assignedTo": "rudy",
+      "notes": "Cypress Coast HBOT ops; ZIP not on file. Salinas rent/share via *6002 retention.",
+      "revenue": null,
+      "expenses": null,
+      "patientsMonth": null,
+      "visitsMonth": null,
+      "referrals": null,
+      "openPayables": {
+        "n": 1,
+        "amount": 5000
+      },
+      "_sources": {
+        "name": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "status": {
+          "source": null,
+          "as_of": null,
+          "note": "reference.db merges Salinas/Monterey into one location; last CC (2026-09-06) said inactive/operator seat open; Mike to confirm"
+        },
+        "address": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lat": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lng": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "manager": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-09-17",
+          "note": null
+        },
+        "staff": {
+          "source": "/workspace/ops/reference/reference.db staff",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "type": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "assignedTo": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "notes": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-09-17",
+          "note": null
+        },
+        "revenue": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic-tagged revenue in revenue.db (pre-open/other)"
+        },
+        "expenses": {
+          "source": null,
+          "as_of": null,
+          "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
+        },
+        "patientsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "visitsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "referrals": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic key on referral board (6 open Unassigned)"
+        },
+        "openPayables": {
+          "source": "/workspace/ops/finance/payables.db payables (dup_of null, status not paid/void)",
+          "as_of": "2026-11-02",
+          "note": null
+        }
+      },
+      "city": "Monterey, CA",
+      "asOf": "2026-11-02",
       "statusNote": {
         "text": "Opening — not yet active. New employee starts this week (week of 2026-11-02) for training; treatments start next week (week of 2026-11-09).",
         "source": "Mike, 2026-11-02"
@@ -373,53 +1051,528 @@
         "treatmentsStart": "week of 2026-11-09",
         "label": "New employee starts week of 2026-11-02 for training; treatments start week of 2026-11-09",
         "source": "Mike, 2026-11-02"
-      },
-      "assignedTo": "rudy",
-      "revenue": 0,
-      "expenses": 0,
-      "patientsMonth": 0
+      }
     },
     {
-      "id": "c-madras",
-      "name": "Pacific Hyperbarics — Madras, OR",
-      "city": "Madras, OR",
-      "lat": 44.6335,
-      "lng": -121.1295,
-      "status": "operational",
+      "id": "c-oceanside",
+      "name": "Oceanside",
+      "status": "opening (fire/BL gate)",
+      "address": "1411 N Coast Hwy, Oceanside, CA 92054",
+      "lat": 33.208021,
+      "lng": -117.386422,
+      "manager": "Rudy Alvarez",
+      "staff": null,
       "type": "independent",
-      "notes": "Open. ADDRESS CONFLICT: app lists 83 NW K St; Deb/listing shows 83 SW K St — do not collapse; verify before mail/maps. Deb hyperbaric tech. RM: Rudy.",
       "assignedTo": "rudy",
-      "revenue": 0,
-      "expenses": 0,
-      "patientsMonth": 5
-    },
-    {
-      "id": "c-laguna",
-      "name": "Pacific Hyperbarics — Laguna Beach",
-      "city": "Laguna Beach, CA",
-      "lat": 33.5427,
-      "lng": -117.7854,
-      "status": "partly",
-      "type": "partnered",
-      "notes": "Open / thin staffing. 31655 Coast Hwy Suite B, Laguna Beach, CA 92651. Rudy ops; Bobby Awadalla Skincredible partner.",
-      "assignedTo": "rudy",
-      "revenue": 0,
-      "expenses": 0,
-      "patientsMonth": 5
+      "notes": "Concentrator O2 only, never LOX. APN 143-090-04-00; landlord Athletes Nutrition Inc.",
+      "revenue": null,
+      "expenses": null,
+      "patientsMonth": null,
+      "visitsMonth": null,
+      "referrals": null,
+      "openPayables": {
+        "n": 2,
+        "amount": 8991.91
+      },
+      "_sources": {
+        "name": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "status": {
+          "source": "/workspace/ops/reference/reference.db locations (<- /workspace/ops/oceanside/HUB.md)",
+          "as_of": "2026-10-06",
+          "note": null
+        },
+        "address": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lat": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lng": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "manager": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-06",
+          "note": null
+        },
+        "staff": {
+          "source": null,
+          "as_of": null,
+          "note": "no staff rows for location in reference.db staff"
+        },
+        "type": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "assignedTo": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "notes": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-06",
+          "note": null
+        },
+        "revenue": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic-tagged revenue in revenue.db (pre-open/other)"
+        },
+        "expenses": {
+          "source": null,
+          "as_of": null,
+          "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
+        },
+        "patientsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "visitsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "referrals": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic key on referral board (6 open Unassigned)"
+        },
+        "openPayables": {
+          "source": "/workspace/ops/finance/payables.db payables (dup_of null, status not paid/void)",
+          "as_of": "2026-11-02",
+          "note": null
+        }
+      },
+      "city": "Oceanside, CA",
+      "asOf": "2026-11-02"
     },
     {
       "id": "c-riverside",
-      "name": "Pacific Hyperbarics — Riverside",
-      "city": "Riverside, CA",
-      "lat": 33.9533,
-      "lng": -117.3962,
-      "status": "startup",
+      "name": "Riverside",
+      "status": "build",
+      "address": "6939 Palm Ct, Riverside, CA 92506",
+      "lat": 33.946967,
+      "lng": -117.401597,
+      "manager": null,
+      "staff": null,
       "type": "independent",
-      "notes": "TI / early buildout. 6939 Palm Ct, Riverside, CA 92506. Operator seat open.",
       "assignedTo": "rudy",
-      "revenue": 0,
-      "expenses": 0,
-      "patientsMonth": 0
+      "notes": "Machine room build; Francisco electrical (HEA-26). Address from Jamie move draft.",
+      "revenue": null,
+      "expenses": null,
+      "patientsMonth": null,
+      "visitsMonth": null,
+      "referrals": null,
+      "openPayables": {
+        "n": 0,
+        "amount": null
+      },
+      "_sources": {
+        "name": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "status": {
+          "source": "/workspace/ops/reference/reference.db locations (<- /workspace/ops/audit/obsidian-mirror/People/Jamie Jaramillo.md)",
+          "as_of": "2026-09-09",
+          "note": null
+        },
+        "address": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lat": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lng": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "manager": {
+          "source": null,
+          "as_of": null,
+          "note": "no manager on file in reference.db"
+        },
+        "staff": {
+          "source": null,
+          "as_of": null,
+          "note": "no staff rows for location in reference.db staff"
+        },
+        "type": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "assignedTo": {
+          "source": "/workspace/hcc/data/command-center.json",
+          "as_of": "2026-09-06",
+          "note": null
+        },
+        "notes": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-09-09",
+          "note": null
+        },
+        "revenue": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic-tagged revenue in revenue.db (pre-open/other)"
+        },
+        "expenses": {
+          "source": null,
+          "as_of": null,
+          "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
+        },
+        "patientsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "visitsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "referrals": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic key on referral board (6 open Unassigned)"
+        },
+        "openPayables": {
+          "source": "/workspace/ops/finance/payables.db payables (dup_of null, status not paid/void)",
+          "as_of": "2026-11-02",
+          "note": null
+        }
+      },
+      "city": "Riverside, CA",
+      "asOf": "2026-11-02"
+    },
+    {
+      "id": "c-pleasant-hill",
+      "name": "Pleasant Hill (JV w/ Dr. Xingbo Sun)",
+      "status": "planned",
+      "address": "400 Taylor Blvd, Suite 103, Pleasant Hill, CA 94523",
+      "lat": 37.961674,
+      "lng": -122.074277,
+      "manager": null,
+      "staff": null,
+      "type": null,
+      "assignedTo": null,
+      "notes": "JV Newco planned (own TIN/NPI before ~11/20 enrollment). Owner side Paul Schrupp / Cheryl Chouman.",
+      "revenue": null,
+      "expenses": null,
+      "patientsMonth": null,
+      "visitsMonth": null,
+      "referrals": null,
+      "openPayables": null,
+      "_sources": {
+        "name": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "status": {
+          "source": "/workspace/ops/reference/reference.db locations (<- /workspace/ops/pleasanton/PLEASANT-DIALOG.md)",
+          "as_of": "2026-10-09",
+          "note": null
+        },
+        "address": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lat": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "lng": {
+          "source": "/workspace/ops/dashboard/clinics_geo.json",
+          "as_of": "2026-10-03",
+          "note": null
+        },
+        "manager": {
+          "source": null,
+          "as_of": null,
+          "note": "no manager on file in reference.db"
+        },
+        "staff": {
+          "source": null,
+          "as_of": null,
+          "note": "no staff rows for location in reference.db staff"
+        },
+        "type": {
+          "source": null,
+          "as_of": null,
+          "note": "Mike to classify"
+        },
+        "assignedTo": {
+          "source": null,
+          "as_of": null,
+          "note": "Mike to assign"
+        },
+        "notes": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-09",
+          "note": null
+        },
+        "revenue": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic-tagged revenue in revenue.db (pre-open/other)"
+        },
+        "expenses": {
+          "source": null,
+          "as_of": null,
+          "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
+        },
+        "patientsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "visitsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "referrals": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic key on referral board (6 open Unassigned)"
+        },
+        "openPayables": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic-tagged payables"
+        }
+      },
+      "city": "Pleasant Hill, CA",
+      "asOf": "2026-10-29"
+    },
+    {
+      "id": "c-yuba-city",
+      "name": "Yuba City (mobile trailer)",
+      "status": "planned",
+      "address": "450 Queens Ave, Yuba City, CA 95991 (APN 51-560-110)",
+      "lat": null,
+      "lng": null,
+      "manager": null,
+      "staff": null,
+      "type": null,
+      "assignedTo": null,
+      "notes": "Feasibility package 2026-10-13; temp commercial coach use permit needed.",
+      "revenue": null,
+      "expenses": null,
+      "patientsMonth": null,
+      "visitsMonth": null,
+      "referrals": null,
+      "openPayables": null,
+      "_sources": {
+        "name": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "status": {
+          "source": "/workspace/ops/reference/reference.db locations (<- /workspace/ops/sites/yuba-city/2026-10-13-Yuba-City-Mobile-HBOT-Package.pdf)",
+          "as_of": "2026-10-13",
+          "note": null
+        },
+        "address": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-13",
+          "note": null
+        },
+        "lat": {
+          "source": null,
+          "as_of": null,
+          "note": "needs geocode of address"
+        },
+        "lng": {
+          "source": null,
+          "as_of": null,
+          "note": "needs geocode"
+        },
+        "manager": {
+          "source": null,
+          "as_of": null,
+          "note": "no manager on file in reference.db"
+        },
+        "staff": {
+          "source": null,
+          "as_of": null,
+          "note": "no staff rows for location in reference.db staff"
+        },
+        "type": {
+          "source": null,
+          "as_of": null,
+          "note": "Mike to classify"
+        },
+        "assignedTo": {
+          "source": null,
+          "as_of": null,
+          "note": "Mike to assign"
+        },
+        "notes": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-13",
+          "note": null
+        },
+        "revenue": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic-tagged revenue in revenue.db (pre-open/other)"
+        },
+        "expenses": {
+          "source": null,
+          "as_of": null,
+          "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
+        },
+        "patientsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "visitsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "referrals": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic key on referral board (6 open Unassigned)"
+        },
+        "openPayables": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic-tagged payables"
+        }
+      },
+      "city": "Yuba City, CA",
+      "asOf": "2026-10-29"
+    },
+    {
+      "id": "c-hurst",
+      "name": "Hurst, TX (SWHBOT - sold/partner)",
+      "status": "other",
+      "address": "1845 Precinct Line Rd Ste 105, Hurst, TX 76054",
+      "lat": null,
+      "lng": null,
+      "manager": "Michael Leddy",
+      "staff": null,
+      "type": null,
+      "assignedTo": null,
+      "notes": "NPPES NPI 1437916400 (Leddy auth official). Texas sale funds not received as of 8/14.",
+      "revenue": null,
+      "expenses": null,
+      "patientsMonth": null,
+      "visitsMonth": null,
+      "referrals": null,
+      "openPayables": null,
+      "_sources": {
+        "name": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-10-29",
+          "note": null
+        },
+        "status": {
+          "source": "/workspace/ops/reference/reference.db locations (<- /workspace/ops/audit/obsidian-mirror/Clinic-Audit-Scorecard.md)",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "address": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "lat": {
+          "source": null,
+          "as_of": null,
+          "note": "needs geocode of address"
+        },
+        "lng": {
+          "source": null,
+          "as_of": null,
+          "note": "needs geocode"
+        },
+        "manager": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "staff": {
+          "source": null,
+          "as_of": null,
+          "note": "no staff rows for location in reference.db staff"
+        },
+        "type": {
+          "source": null,
+          "as_of": null,
+          "note": "Mike to classify"
+        },
+        "assignedTo": {
+          "source": null,
+          "as_of": null,
+          "note": "Mike to assign"
+        },
+        "notes": {
+          "source": "/workspace/ops/reference/reference.db locations",
+          "as_of": "2026-08-14",
+          "note": null
+        },
+        "revenue": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic-tagged revenue in revenue.db (pre-open/other)"
+        },
+        "expenses": {
+          "source": null,
+          "as_of": null,
+          "note": "Oct P&L (pnl_monthly_test/oct_summary.json) is org-wide only; needs per-clinic expense allocation"
+        },
+        "patientsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "visitsMonth": {
+          "source": null,
+          "as_of": null,
+          "note": "needs OA visits/census export"
+        },
+        "referrals": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic key on referral board (6 open Unassigned)"
+        },
+        "openPayables": {
+          "source": null,
+          "as_of": null,
+          "note": "no clinic-tagged payables"
+        }
+      },
+      "city": "Hurst, TX",
+      "asOf": "2026-10-29"
     }
   ],
   "referrals": [
@@ -551,5 +1704,93 @@
       "home": "marketing",
       "order": 3
     }
-  ]
+  ],
+  "clinicSnapshot": {
+    "generated": "2026-11-02",
+    "asOf": "2026-11-02",
+    "org": {
+      "oct_pnl_draft": {
+        "revenue_candidate": 250366.77,
+        "noi_draft": 147496.28,
+        "opex": 102870.49,
+        "capex": 16864.96,
+        "after_capex_draw": 130631.32,
+        "greene_memo": 142980.65,
+        "profit_share": 60000,
+        "cats": {
+          "Payroll (ADP wires/TotalSource/401k/fees)": 66193.49,
+          "Software / subscriptions": 835.02,
+          "Bank fees": 170,
+          "Rent": 3270.49,
+          "Insurance": 474.07,
+          "HOA - 826 Starboard (Venture Commerce)": 434,
+          "Supplies / postage": 482.05,
+          "Amex - Matheson (oxygen) statements": 5749.91,
+          "Cleaning / clinic labor (Zelle/Venmo)": 4104,
+          "Amex - Chula Vista property tax (SD County TTC)": 8629.99,
+          "Utilities": 1299.5,
+          "Billing - TMS Billings": 7341.36,
+          "Marketing (Oceanside launch - Stacey Agito)": 1820,
+          "Taxes (CA FTB)": 1600,
+          "Other / uncategorized": 466.61
+        },
+        "month": "2026-10",
+        "label": "October 2026 DRAFT",
+        "bank_thru": "2026-10-30",
+        "is_draft": true,
+        "pnl_url": "https://hms-pnl-monthly-test.netlify.app/oct/"
+      },
+      "oct_unassigned_oa_net": 172685.69,
+      "referrals_unassigned_open": 6,
+      "_sources": {
+        "oct_pnl_draft": "/workspace/ops/finance/pnl_monthly_test/oct_summary.json (bank_thru 2026-10-30, DRAFT)",
+        "oct_unassigned_oa_net": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month clinic='Unassigned office' 2026-10",
+        "referrals_unassigned_open": "/workspace/ops/billing/referral-board-latest.json 2026-10-31"
+      }
+    },
+    "excluded": {
+      "Pleasanton": "capex/storage location (finance/BOARD.md:310), not a clinic; never merge with Pleasant Hill",
+      "Bonita": "1 payable tagged Bonita; not a clinic in reference.db"
+    }
+  },
+  "org": {
+    "oct_pnl_draft": {
+      "revenue_candidate": 250366.77,
+      "noi_draft": 147496.28,
+      "opex": 102870.49,
+      "capex": 16864.96,
+      "after_capex_draw": 130631.32,
+      "greene_memo": 142980.65,
+      "profit_share": 60000,
+      "cats": {
+        "Payroll (ADP wires/TotalSource/401k/fees)": 66193.49,
+        "Software / subscriptions": 835.02,
+        "Bank fees": 170,
+        "Rent": 3270.49,
+        "Insurance": 474.07,
+        "HOA - 826 Starboard (Venture Commerce)": 434,
+        "Supplies / postage": 482.05,
+        "Amex - Matheson (oxygen) statements": 5749.91,
+        "Cleaning / clinic labor (Zelle/Venmo)": 4104,
+        "Amex - Chula Vista property tax (SD County TTC)": 8629.99,
+        "Utilities": 1299.5,
+        "Billing - TMS Billings": 7341.36,
+        "Marketing (Oceanside launch - Stacey Agito)": 1820,
+        "Taxes (CA FTB)": 1600,
+        "Other / uncategorized": 466.61
+      },
+      "month": "2026-10",
+      "label": "October 2026 DRAFT",
+      "bank_thru": "2026-10-30",
+      "is_draft": true,
+      "pnl_url": "https://hms-pnl-monthly-test.netlify.app/oct/"
+    },
+    "oct_unassigned_oa_net": 172685.69,
+    "referrals_unassigned_open": 6,
+    "_sources": {
+      "oct_pnl_draft": "/workspace/ops/finance/pnl_monthly_test/oct_summary.json (bank_thru 2026-10-30, DRAFT)",
+      "oct_unassigned_oa_net": "/workspace/ops/revenue/revenue.db revenue_by_clinic_month clinic='Unassigned office' 2026-10",
+      "referrals_unassigned_open": "/workspace/ops/billing/referral-board-latest.json 2026-10-31"
+    }
+  }
 }

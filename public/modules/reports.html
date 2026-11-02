@@ -53,7 +53,7 @@
   </main>
 </div>
 
-<script src="/js/app.js?v=6"></script>
+<script src="/js/app.js?v=8"></script>
 <script>
 async function init() {
   const s = await loadState();
@@ -63,22 +63,20 @@ async function init() {
   const sum = await fetchSummary();
   const cards = document.getElementById('summary-cards');
   cards.innerHTML = `
-    <div class="sum-card"><div class="sum-label">Total Revenue</div><div class="sum-value">$${(sum.totalRevenue/1000).toFixed(1)}k</div><div class="sum-sub positive">Monthly</div></div>
-    <div class="sum-card"><div class="sum-label">Total Expenses</div><div class="sum-value">$${(sum.totalExpenses/1000).toFixed(1)}k</div><div class="sum-sub negative">Monthly</div></div>
-    <div class="sum-card"><div class="sum-label">Net Income</div><div class="sum-value">$${(sum.netIncome/1000).toFixed(1)}k</div><div class="sum-sub ${sum.netIncome>=0?'positive':'negative'}">${sum.netIncome>=0?'Profit':'Loss'}</div></div>
-    <div class="sum-card"><div class="sum-label">Patient Volume</div><div class="sum-value">${sum.totalPatients}</div><div class="sum-sub">Monthly total</div></div>
+    <div class="sum-card"><div class="sum-label">Clinic-tagged revenue</div><div class="sum-value">${esc(formatUsd(sum.totalRevenue))}</div><div class="sum-sub">Lower bound (OA+Stripe; TMS not added)</div></div>
+    <div class="sum-card"><div class="sum-label">Total Expenses</div><div class="sum-value">${esc(formatUsd(sum.totalExpenses))}</div><div class="sum-sub">Per-clinic expenses ${esc(displayValue(null))}</div></div>
+    <div class="sum-card"><div class="sum-label">Org Oct DRAFT</div><div class="sum-value">${esc((sum.partner && sum.partner.monthlyRevenue && sum.partner.monthlyRevenue.display) || displayValue(null))}</div><div class="sum-sub">From oct_summary.json</div></div>
+    <div class="sum-card"><div class="sum-label">Patient Volume</div><div class="sum-value">${esc(displayValue(sum.totalPatients))}</div><div class="sum-sub">Org total ${esc(displayValue(null))} where clinics are null</div></div>
   `;
 
   const tbody = document.querySelector('#fin-table tbody');
   tbody.innerHTML = d.clinics.map(c => {
-    const net = (c.revenue || 0) - (c.expenses || 0);
-    const margin = c.revenue ? Math.round((net / c.revenue) * 100) : 0;
     return `<tr>
-      <td><strong>${esc(c.name)}</strong><div style="font-size:11px;color:#94a3b8;">${esc(c.city)}</div></td>
-      <td>$${(c.revenue||0).toLocaleString()}</td>
-      <td>$${(c.expenses||0).toLocaleString()}</td>
-      <td style="color:${net>=0?'#16a34a':'#dc2626'};font-weight:600;">$${net.toLocaleString()}</td>
-      <td>${margin}%</td>
+      <td><strong>${esc(c.name)}</strong><div style="font-size:11px;color:#94a3b8;">${esc(c.city || c.address || '')}</div></td>
+      <td>${esc(formatUsd(c.revenue))}</td>
+      <td>${esc(formatUsd(c.expenses))}</td>
+      <td>${esc(c.revenue != null && c.expenses != null ? formatUsd(c.revenue - c.expenses) : displayValue(null))}</td>
+      <td>${esc(c.revenue != null && c.expenses != null ? `${Math.round(((c.revenue - c.expenses) / c.revenue) * 100)}%` : displayValue(null))}</td>
     </tr>`;
   }).join('');
 

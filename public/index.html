@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>HMS Command Center</title>
-<link rel="stylesheet" href="/css/app.css?v=8">
+<link rel="stylesheet" href="/css/app.css?v=9">
 </head>
 <body>
 <div class="app">
@@ -69,6 +69,7 @@
         <div class="topbar-title">Dashboard</div>
       </div>
       <div class="topbar-actions">
+        <span class="as-of-pill" id="as-of-pill">As of …</span>
         <div class="status-pill">
           <span class="status-dot"></span>
           <span id="status-text">Live</span>
@@ -144,7 +145,7 @@
   </main>
 </div>
 
-<script src="/js/app.js?v=7"></script>
+<script src="/js/app.js?v=8"></script>
 <script>
 /* ===== DASHBOARD MODULE ===== */
 let state = null;
@@ -164,33 +165,49 @@ async function initDashboard() {
     ? (rev.net >= 0 ? 'positive' : 'negative')
     : '';
 
+  const asOf = snapshotAsOf(s) || partner.asOf;
+  const asOfEl = document.getElementById('as-of-pill');
+  if (asOfEl) asOfEl.textContent = asOf ? `As of ${asOf}` : 'As of —';
+
+  const statusLine = (() => {
+    const open = s.clinics.filter(c => {
+      const st = (c.status || '').toLowerCase();
+      return st === 'open' || st.startsWith('open ') || st === 'operational';
+    }).length;
+    const opening = s.clinics.filter(c => (c.status || '').toLowerCase().includes('opening')).length;
+    const build = s.clinics.filter(c => (c.status || '').toLowerCase() === 'build').length;
+    const planned = s.clinics.filter(c => (c.status || '').toLowerCase() === 'planned').length;
+    return `${open} open · ${opening} opening · ${build} build · ${planned} planned`;
+  })();
+
   const html = `
-    <!-- Partner-facing KPIs (from /api/state clinics + referrals; draft P&L only if clinic revenue is $0) -->
+    <!-- Partner-facing KPIs from clinic snapshot 2026-11-02 + org Oct DRAFT -->
     <div class="summary-grid partner-kpis">
       <div class="${revClass}">
         <div class="sum-label">Monthly Revenue</div>
-        <div class="sum-value">${esc(rev.display || '—')}</div>
-        <div class="sum-sub ${netClass}">${esc(rev.isDraft ? (rev.periodLabel || 'Draft estimate') : (rev.netLabel || 'From clinic revenue fields'))}</div>
-        ${rev.netLabel && rev.isDraft ? `<div class="sum-sub">${esc(rev.netLabel)}</div>` : ''}
-        <div class="sum-source">${esc(rev.source || 'clinics[].revenue from /api/state')}${rev.caveat ? ' — ' + esc(rev.caveat) : ''}</div>
+        <div class="sum-value">${esc(rev.display || displayValue(null))}</div>
+        <div class="sum-sub ${netClass}">${esc(rev.periodLabel || 'October 2026 DRAFT')}</div>
+        ${rev.clinicTaggedLabel ? `<div class="sum-sub">${esc(rev.clinicTaggedLabel)}</div>` : ''}
+        ${rev.netLabel ? `<div class="sum-sub">${esc(rev.netLabel)}</div>` : ''}
+        <div class="sum-source">${esc([rev.source, rev.caveat].filter(Boolean).join(' — '))}</div>
       </div>
       <div class="sum-card">
         <div class="sum-label">Active Patients</div>
-        <div class="sum-value">${esc(patients.display != null ? String(patients.display) : String(sum.totalPatients ?? '—'))}</div>
+        <div class="sum-value">${esc(patients.display || displayValue(null))}</div>
         <div class="sum-sub">${esc(patients.sub || '')}</div>
-        <div class="sum-source">${esc(patients.source || 'clinics[].patientsMonth from /api/state')}</div>
+        <div class="sum-source">${esc(patients.source || '')}</div>
       </div>
       <div class="sum-card">
         <div class="sum-label">Active Referrals</div>
-        <div class="sum-value">${esc(refs.display != null ? String(refs.display) : String(sum.activeReferrals ?? '—'))}</div>
+        <div class="sum-value">${esc(refs.display || displayValue(null))}</div>
         <div class="sum-sub">${esc(refs.sub || '')}</div>
-        <div class="sum-source">${esc(refs.source || 'open/active referrals from /api/state')}</div>
+        <div class="sum-source">${esc(refs.source || '')}</div>
       </div>
       <div class="sum-card kpi-monterey">
-        <div class="sum-label">Monterey Operator</div>
-        <div class="sum-value" style="font-size:18px;">${esc(monterey.operatorName || (monterey.clinicStatus === 'opening' ? 'Opening' : 'See clinic note'))}</div>
+        <div class="sum-label">Monterey</div>
+        <div class="sum-value" style="font-size:18px;">${esc(displayValue(monterey.clinicStatus))}</div>
         <div class="sum-sub">${esc(monterey.label || '')}</div>
-        <div class="sum-source">${esc(monterey.source || 'From Monterey clinic on /api/state (seed SoT). Live persisted state can override until Reset.')}</div>
+        <div class="sum-source">${esc(monterey.source || '')}</div>
       </div>
       <div class="sum-card">
         <div class="sum-label">Open Tasks</div>
@@ -200,7 +217,7 @@ async function initDashboard() {
       <div class="sum-card">
         <div class="sum-label">Clinics</div>
         <div class="sum-value">${sum.clinicCount}</div>
-        <div class="sum-sub">${s.clinics.filter(c => c.status === 'operational').length} open · ${s.clinics.filter(c => c.status === 'startup' || c.status === 'opening').length} starting · ${s.clinics.filter(c => c.status === 'partly').length} partly staffed</div>
+        <div class="sum-sub">${esc(statusLine)}</div>
       </div>
       <div class="sum-card">
         <div class="sum-label">Team</div>
@@ -217,25 +234,23 @@ async function initDashboard() {
       <div class="section-body">
         <div class="clinic-strip">
           ${s.clinics.map(c => {
-            const shortName = (c.name || '').replace(/^Pacific Hyperbarics — /, '');
-            const hire = c.operatorHire;
+            const shortName = c.name || '';
             const statusNote = clinicStatusNote(c);
             const focus = c.id === 'c-monterey' ? ' clinic-chip-focus' : '';
             const staffLine = statusNote
               ? `<div class="clinic-chip-staff">${esc(statusNote.text)}</div>`
-              : hire
-              ? `<div class="clinic-chip-staff">${esc(hire.label)}</div>`
-              : (c.id === 'c-monterey' && c.notes ? `<div class="clinic-chip-staff">${esc(c.notes)}</div>` : '');
+              : '';
             return `<a class="clinic-chip${focus}" href="/modules/clinic-detail.html?clinic=${encodeURIComponent(c.id)}">
               <div class="clinic-chip-name">${esc(shortName)}</div>
-              <div class="clinic-chip-city">${esc(c.city || '')}</div>
+              <div class="clinic-chip-city">${esc(c.city || c.address || '')}</div>
               <div class="clinic-chip-meta">
-                <span class="badge badge-${statusBadgeTone(c.status)}">${esc(c.status)}</span>
+                <span class="badge badge-${statusBadgeTone(c.status)}">${esc(displayValue(c.status))}</span>
               </div>
               ${staffLine}
             </a>`;
           }).join('')}
         </div>
+        <div class="sum-source" style="margin-top:10px;">Pleasanton is capex/storage, not a clinic — kept separate from Pleasant Hill. ${esc((s.clinicSnapshot && s.clinicSnapshot.excluded && s.clinicSnapshot.excluded.Pleasanton) || '')}</div>
       </div>
     </div>
 

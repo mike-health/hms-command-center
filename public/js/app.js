@@ -72,11 +72,47 @@ async function saveState(data) {
   }
 }
 
+const NOT_YET_AVAILABLE = 'not yet available';
+
+function isBlankValue(value) {
+  return value == null || value === '' || (typeof value === 'number' && Number.isNaN(value));
+}
+
+function displayValue(value) {
+  if (isBlankValue(value)) return NOT_YET_AVAILABLE;
+  return String(value);
+}
+
+function formatUsd(amount) {
+  if (isBlankValue(amount)) return NOT_YET_AVAILABLE;
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(amount));
+}
+
 function statusBadgeTone(status) {
-  if (status === 'operational') return 'green';
-  if (status === 'startup' || status === 'opening') return 'blue';
-  if (status === 'partly') return 'amber';
+  if (isBlankValue(status)) return 'gray';
+  const s = String(status).toLowerCase();
+  if (s === 'open' || s.startsWith('open ') || s === 'operational') return 'green';
+  if (s.includes('opening') || s === 'startup') return 'blue';
+  if (s === 'build' || s === 'partly') return 'amber';
   return 'gray';
+}
+
+function hasMapPoint(clinic) {
+  return clinic && clinic.lat != null && clinic.lng != null
+    && !Number.isNaN(Number(clinic.lat)) && !Number.isNaN(Number(clinic.lng));
+}
+
+function snapshotAsOf(state) {
+  const snap = state && (state.clinicSnapshot || state);
+  return (snap && (snap.asOf || snap.generated))
+    || (state && state.dataNotes && state.dataNotes.clinicAsOf)
+    || null;
+}
+
+function asOfHtml(state) {
+  const asOf = snapshotAsOf(state);
+  if (!asOf) return '';
+  return `<span class="as-of-pill">As of ${esc(asOf)}</span>`;
 }
 
 function clinicStatusNote(clinic) {
