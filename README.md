@@ -50,8 +50,27 @@ Copy `.env.example` and set values in the host (Render, Railway, or a local `.en
 | `LINEAR_API_KEY` | For live data | Linear API key (workspace **healthi**, team **Healthai / HEA**). The server calls `https://api.linear.app/graphql`. Without this key the Ops board serves documented mock issues. |
 | `LINEAR_PROJECT_NAME` | No | Defaults to `Ops cadence`. |
 | `LINEAR_PROJECT_ID` | No | Defaults to `91532ea3-24e8-4e10-981e-03b6fb245cd6`. |
+| `VISIT_HMAC_SECRET` | For IP hashing | HMAC secret used to hash client IPs. Raw IPs are never stored. If this and `VISIT_INGEST_URL` are both unset, `POST /api/visit-log` returns **204** and does nothing. |
+| `VISIT_INGEST_URL` | For durable logs | HTTPS endpoint that receives each visit (`need: "partner_visit_log"`, fields compatible with `partner-visits.db`). Render disk is ephemeral, so this is the durable store. |
+| `VISIT_INGEST_AUTH` | No | Optional `Authorization` value for the ingest URL (a bare token is sent as `Bearer …`). |
 
-Do not put the API key in client JavaScript or commit it.
+Do not put the API key, HMAC secret, ingest URL, or ingest token in client JavaScript or commit them.
+
+### Visitor fingerprint log
+
+Every live HTML page loads `public/js/visit-log.js`. It builds a local fingerprint plus screen, timezone, language, and path, then `POST`s to `/api/visit-log` with `keepalive`. Failures are swallowed; pages never gate or change appearance.
+
+`site` is always `"hms-command-center"`. Persistence: forward to `VISIT_INGEST_URL` (same payload the owner syncs into `partner-visits.db`). In-process memory counts hits for the current Render instance; if ingest is unset or fails, the same ingest JSON is written to stdout as `visit-log {…}` so log drains can recover it. Do not rely on the container filesystem.
+
+```bash
+# After setting VISIT_HMAC_SECRET (and optionally ingest vars) on the host:
+curl -sS -D - -o /tmp/visit-log-body.json \
+  -H 'content-type: application/json' \
+  -H 'x-forwarded-for: 203.0.113.9' \
+  -d '{"fp":"verifyfp01","ua":"curl","screen":"1x1","tz":"UTC","lang":"en","path":"/"}' \
+  http://localhost:3000/api/visit-log
+# Expect HTTP 200 and {"ok":true,"hits":1,"whitelist":false}
+```
 
 ### Tagging issues for the Ops board
 

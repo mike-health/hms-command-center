@@ -75,3 +75,13 @@ The free tier has **ephemeral disk**. Your `data/command-center.json` will reset
 3. **PostgreSQL on Render** (free tier) — structured, reliable
 
 For now, the free web service works for testing. Add persistent storage when you're ready.
+
+### Visitor log (Render env)
+
+Set these in the Render dashboard (never commit values). Names match `.env.example` / README:
+
+- `VISIT_HMAC_SECRET` — HMAC salt for IP hashing
+- `VISIT_INGEST_URL` — durable ingest (owner syncs into `partner-visits.db`)
+- `VISIT_INGEST_AUTH` — optional bearer token
+
+Visit fingerprints are not stored on Render disk. If both secret and ingest URL are unset, `POST /api/visit-log` returns 204.
