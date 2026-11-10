@@ -5,12 +5,16 @@ const cors = require('cors');
 const { getOpsCadenceBoard } = require('./lib/ops-cadence');
 const { applyOpsPlan, previewOpsInstruction } = require('./lib/ops-chat');
 const { partnerSummary } = require('./lib/partner-kpis');
+const { createVisitLogHandler } = require('./lib/visit-log');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
+
+/* Visitor fingerprint log (never blocks pages; no login gate). */
+app.all('/api/visit-log', createVisitLogHandler());
 
 // Resolve public directory
 const PUBLIC_DIR = path.join(__dirname, 'public');

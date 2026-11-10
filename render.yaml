@@ -12,3 +12,9 @@ services:
         value: 10000
       - key: LINEAR_API_KEY
         sync: false
+      - key: VISIT_HMAC_SECRET
+        sync: false
+      - key: VISIT_INGEST_URL
+        sync: false
+      - key: VISIT_INGEST_AUTH
+        sync: false
